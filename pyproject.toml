@@ -1,0 +1,24 @@
+[project]
+name = "el0ps"
+version = "0.0.1"
+description = "An Exact L0-Problem Solver"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE.txt"}
+# keywords = ["sample", "setuptools", "development"]
+authors = [{name = "Theo Guyard", email = "guyard.theo@gmail.com"}]
+dependencies = ["gurobipy", "numpy"]
+
+[project.optional-dependencies]
+dev = ["black", "coverage", "flake8", "pydoctest", "pytest"]
+
+[project.urls]
+# "Homepage" = ""
+# "Bug Reports" = ""
+# "Funding" = ""
+# "Say Thanks!" = ""
+# "Source" = ""
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"

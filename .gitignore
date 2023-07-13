@@ -1,0 +1,23 @@
+.DS_Store
+.vscode
+
+# python
+build/
+dist/
+*.egg-info/
+*.egg
+*.py[cod]
+__pycache__/
+*.so
+*~
+
+# venv
+.venv
+
+# pytest
+.pytest_cache
+.cache
+
+# coverage
+.coverage
+htmlcov
