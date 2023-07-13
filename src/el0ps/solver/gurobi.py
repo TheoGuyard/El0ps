@@ -57,7 +57,7 @@ class GurobiSolver(BaseSolver):
         return Results(
             termination_status,
             model.Runtime,
-            model.NodeCount,
+            int(model.NodeCount),
             model.ObjVal,
             model.ObjVal,
             model.ObjBound,

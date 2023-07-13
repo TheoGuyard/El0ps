@@ -8,12 +8,12 @@ from el0ps.problem import Problem
 
 
 class Status(Enum):
-    SOLVE_NOT_CALLED = -10
-    OTHER_LIMIT = -4
-    NODE_LIMIT = -3
-    TIME_LIMIT = -2
-    RUNNING = -1
-    OPTIMAL = 0
+    SOLVE_NOT_CALLED = "SOLVE_NOT_CALLED"
+    OTHER_LIMIT = "OTHER_LIMIT"
+    NODE_LIMIT = "NODE_LIMIT"
+    TIME_LIMIT = "TIME_LIMIT"
+    RUNNING = "RUNNING"
+    OPTIMAL = "OPTIMAL"
 
 
 @dataclass
@@ -29,6 +29,16 @@ class Results:
     x: NDArray
     z: NDArray
     trace: dict | None
+
+    def __str__(self) -> str:
+        s = ""
+        s += "Results\n"
+        s += "  Status     : {}\n".format(self.termination_status.value)
+        s += "  Solve time : {:.4f} seconds\n".format(self.solve_time)
+        s += "  Node count : {}\n".format(self.node_count)
+        s += "  Objective  : {:.2e}\n".format(self.objective_value)
+        s += "  Non-zeros  : {}".format(int(sum(self.z)))
+        return s
 
 
 @dataclass
