@@ -3,7 +3,6 @@
 import numpy as np
 from abc import ABCMeta, abstractmethod
 from numpy.typing import NDArray
-from gurobipy import Model, Var, MVar
 
 
 class BasePenalty(metaclass=ABCMeta):
@@ -167,13 +166,6 @@ class BasePenalty(metaclass=ABCMeta):
             subdifferential of the convex-conjugate of `h_i(.)` at
             `self.param_slope(i, lmbd)`.
         """
-
-    @abstractmethod
-    def bind_model_cost(
-        self, model: Model, lmbd: float, x_var: MVar, z_var: MVar, g_var: Var
-    ) -> None:
-        """#TODO: Doc"""
-        ...
 
 
 class ProximablePenalty(BasePenalty):

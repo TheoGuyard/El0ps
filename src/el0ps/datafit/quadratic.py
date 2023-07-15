@@ -1,5 +1,3 @@
-import gurobipy as gp
-from gurobipy import MVar, Model, Var
 import numpy as np
 from numpy.typing import NDArray
 from .base import ProximableDatafit, SmoothDatafit
@@ -46,11 +44,3 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
 
     def gradient(self, x: NDArray) -> NDArray:
         return (x - self.y) / self.m
-
-    def bind_model_cost(
-        self, model: Model, A: NDArray, x_var: MVar, f_var: Var
-    ) -> None:
-        r_var = self.y - A @ x_var
-        model.addConstr(
-            f_var >= gp.quicksum(ri * ri for ri in r_var) / (2.0 * self.y.size)
-        )
