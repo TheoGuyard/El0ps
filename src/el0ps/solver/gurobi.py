@@ -156,16 +156,16 @@ class GurobiSolver(BaseSolver):
         self.model.optimize()
 
         if self.model.Status == gp.GRB.OPTIMAL:
-            termination_status = Status.OPTIMAL
+            status = Status.OPTIMAL
         elif self.model.Status == gp.GRB.NODE_LIMIT:
-            termination_status = Status.NODE_LIMIT
+            status = Status.NODE_LIMIT
         elif self.model.Status == gp.GRB.TIME_LIMIT:
-            termination_status = Status.TIME_LIMIT
+            status = Status.TIME_LIMIT
         else:
-            termination_status = Status.OTHER_LIMIT
+            status = Status.OTHER_LIMIT
 
         return Results(
-            termination_status,
+            status,
             self.model.Runtime,
             int(self.model.NodeCount),
             self.model.ObjVal,

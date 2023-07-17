@@ -8,7 +8,9 @@ class GurobiBoundingSolver(BnbBoundingSolver, GurobiSolver):
     
     _default_options = {
         "OutputFlag": 0.,
-        "BarConvTol": 1e-8,
+        "MIPGap": 1e-4,
+        "MIPGapAbs": 1e-8,
+        "IntFeasTol": 1e-8,
     }
 
     def __init__(self, options: dict = _default_options):

@@ -20,7 +20,7 @@ class Status(Enum):
 class Results:
     """Solver results."""
 
-    termination_status: Status
+    status: Status
     solve_time: float
     node_count: int
     objective_value: float
@@ -33,7 +33,7 @@ class Results:
     def __str__(self) -> str:
         s = ""
         s += "Results\n"
-        s += "  Status     : {}\n".format(self.termination_status.value)
+        s += "  Status     : {}\n".format(self.status.value)
         s += "  Solve time : {:.4f} seconds\n".format(self.solve_time)
         s += "  Node count : {}\n".format(self.node_count)
         s += "  Objective  : {:.4f}\n".format(self.objective_value)
