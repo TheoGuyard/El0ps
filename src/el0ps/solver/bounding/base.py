@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from typing import Union
 from el0ps.problem import Problem
 from numpy.typing import NDArray
 
@@ -10,9 +11,9 @@ class BnbBoundingSolver(metaclass=ABCMeta):
     def setup(
         self,
         problem: Problem,
-        x_init: NDArray | None = None,
-        S0_init: NDArray | None = None,
-        S1_init: NDArray | None = None,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
     ) -> None:
         """Initialize internal attributes of the bounding solver.
 
@@ -20,11 +21,11 @@ class BnbBoundingSolver(metaclass=ABCMeta):
         ----------
         problem : Problem
             Problem to solve.
-        x_init : NDArray | None
+        x_init : Union[NDArray, None]
             Warm-start value of x.
-        S0_init : NDArray | None
+        S0_init : Union[NDArray, None]
             Set of indices of x forced to be zero.
-        S1_init : NDArray | None
+        S1_init : Union[NDArray, None]
             Set of indices of x forced to be non-zero.
         """
         ...

@@ -321,9 +321,9 @@ class BnbSolver(BaseSolver):
     def _setup(
         self,
         problem: Problem,
-        x_init: NDArray | None = None,
-        S0_init: NDArray | None = None,
-        S1_init: NDArray | None = None,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
     ):
         """Initialize internal attributes of the solver and set the warm-start.
 
@@ -331,11 +331,11 @@ class BnbSolver(BaseSolver):
         ----------
         problem : Problem
             Problem to solve.
-        x_init : NDArray | None
+        x_init : Union[NDArray, None]
             Warm-start value of x.
-        S0_init : NDArray | None
+        S0_init : Union[NDArray, None]
             Set of indices of x forced to be zero.
-        S1_init : NDArray | None
+        S1_init : Union[NDArray, None]
             Set of indices of x forced to be non-zero.
         """
 

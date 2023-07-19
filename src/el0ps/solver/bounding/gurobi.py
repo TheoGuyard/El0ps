@@ -19,9 +19,9 @@ class GurobiBoundingSolver(BnbBoundingSolver, GurobiSolver):
     def setup(
         self,
         problem: Problem,
-        x_init: NDArray | None = None,
-        S0_init: NDArray | None = None,
-        S1_init: NDArray | None = None,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
     ) -> None:
         self.build_model(problem, relax=True)
 
