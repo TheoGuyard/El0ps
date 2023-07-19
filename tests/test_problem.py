@@ -19,7 +19,6 @@ penalty = L2norm(alpha)
 
 
 def test_problem():
-
     with pytest.raises(ValueError):
         problem = Problem(datafit, penalty, A, "lmbd")
 

@@ -2,6 +2,7 @@
 
 import numpy as np
 import time
+import sys
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum
@@ -172,8 +173,8 @@ class BnbOptions:
     exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.DFS
     exploration_depth_switch: int = 0
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
-    time_limit: float = 60.0
-    node_limit: int = 1_000
+    time_limit: float = float(sys.maxsize)
+    node_limit: int = sys.maxsize
     abs_tol: float = 1e-8
     rel_tol: float = 1e-4
     int_tol: float = 1e-8

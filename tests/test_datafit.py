@@ -16,15 +16,6 @@ base_datafits = [BaseDatafit, ProximableDatafit, SmoothDatafit]
 datafits = [Quadratic(y)]
 
 
-@pytest.mark.parametrize("base_datafit", base_datafits)
-def test_base(base_datafit):
-    class NewDatafitClass(base_datafit):
-        pass
-
-    with pytest.raises(TypeError):
-        datafit = NewDatafitClass()  # noqa: F841
-
-
 @pytest.mark.parametrize("datafit", datafits)
 def test_instances(datafit):
     assert isinstance(datafit.__str__(), str)

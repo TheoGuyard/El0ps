@@ -1,14 +1,35 @@
 """Base classes for penalty functions and related utilities."""
 
 import numpy as np
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from numpy.typing import NDArray
 
 
-class BasePenalty(metaclass=ABCMeta):
+class BasePenalty:
     """Base class for penalty functions. These functions are assumed to be
     separable and splitting terms are identified by the index `i`, i.e, h(x) =
     sum_i hi(xi)."""
+
+    @abstractmethod
+    def get_spec(self) -> tuple:
+        """Specify the numba types of the class attributes.
+
+        Returns
+        -------
+        spec: Tuple of (attr_name, dtype)
+            Specs to be passed to Numba jitclass to compile the class.
+        """
+        ...
+
+    @abstractmethod
+    def params_to_dict(self) -> dict:
+        """Get the parameters to initialize an instance of the class.
+
+        Returns
+        -------
+        dict_of_params : dict
+            The parameters to instantiate an object of the class.
+        """
 
     @abstractmethod
     def value_scalar(self, i: int, x: float) -> float:

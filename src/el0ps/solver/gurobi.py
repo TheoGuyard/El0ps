@@ -3,8 +3,6 @@ import numpy as np
 from typing import Union
 from numpy.typing import NDArray
 from el0ps import Problem
-from el0ps.datafit import Quadratic
-from el0ps.penalty import Bigm, L2norm
 from .base import BaseSolver, Results, Status
 
 
@@ -35,7 +33,7 @@ class GurobiSolver(BaseSolver):
         x_var: gp.MVar,
         f_var: gp.Var,
     ) -> None:
-        if isinstance(problem.datafit, Quadratic):
+        if str(problem.datafit) == "Quadratic":
             r = problem.datafit.y - problem.A @ x_var
             model.addConstr(
                 f_var >= gp.quicksum(r * r) / (2.0 * problem.datafit.y.size)
@@ -54,11 +52,11 @@ class GurobiSolver(BaseSolver):
         z_var: gp.MVar,
         g_var: gp.Var,
     ) -> None:
-        if isinstance(problem.penalty, Bigm):
+        if str(problem.penalty) == "Bigm":
             model.addConstr(g_var >= problem.lmbd * sum(z_var))
             model.addConstr(x_var <= problem.penalty.M * z_var)
             model.addConstr(x_var >= -problem.penalty.M * z_var)
-        elif isinstance(problem.penalty, L2norm):
+        elif str(problem.penalty) == "L2norm":
             s_var = model.addMVar(
                 x_var.size, vtype=gp.GRB.CONTINUOUS, name="s"
             )

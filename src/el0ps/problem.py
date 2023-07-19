@@ -1,7 +1,9 @@
 """Base class for L0-penalized problems."""
 
 import numpy as np
+from functools import lru_cache
 from typing import Union
+from numba.experimental import jitclass
 from numpy.typing import NDArray
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
@@ -54,8 +56,8 @@ class Problem:
         if lmbd < 0.0:
             raise ValueError("Parameter `lmbd` must be positive.")
 
-        self.datafit = datafit
-        self.penalty = penalty
+        self.datafit = compiled_clone(datafit)
+        self.penalty = compiled_clone(penalty)
         self.A = A
         self.lmbd = lmbd
         self.m, self.n = A.shape
@@ -143,3 +145,23 @@ def compute_lmbd_max(
         )
 
     return lmbd_max
+
+
+@lru_cache()
+def compiled_clone(instance):
+    """Compile a class instance to a jitclass. Credits: skglm package.
+
+    Parameters
+    ----------
+    instance: object
+        Instance to compile.
+
+    Returns
+    -------
+    compiled_instance: jitclass
+        Compiled instance.
+    """
+    cls = instance.__class__
+    spec = instance.get_spec()
+    params = instance.params_to_dict()
+    return jitclass(spec)(cls)(**params)

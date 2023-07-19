@@ -1,4 +1,5 @@
 import numpy as np
+from numba import int32, float64
 from numpy.typing import NDArray
 from .base import ProximableDatafit, SmoothDatafit
 
@@ -16,22 +17,20 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
         Target vector.
     """
 
-    L = np.nan
-
     def __init__(self, y: NDArray) -> None:
-        if not isinstance(y, np.ndarray):
-            y = np.array(y)
-        if y.ndim != 1:
-            raise ValueError("Vector `y` must be a one-dimensional array.")
-        if y.size == 0:
-            raise ValueError("Vector `y` is empty.")
-
         self.y = y
         self.m = y.shape[0]
         self.L = 1.0 / y.shape[0]
 
     def __str__(self) -> str:
         return "Quadratic"
+
+    def get_spec(self) -> tuple:
+        spec = (("y", float64[:]), ("m", int32), ("L", float64))
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(y=self.y)
 
     def value(self, x: NDArray) -> float:
         return np.linalg.norm(x - self.y, 2) ** 2 / (2.0 * self.m)

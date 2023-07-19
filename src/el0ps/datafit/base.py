@@ -1,11 +1,32 @@
 """Base classes for data-fidelity functions and related utilities."""
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from numpy.typing import NDArray
 
 
-class BaseDatafit(metaclass=ABCMeta):
+class BaseDatafit:
     """Base class for data-fidelity functions."""
+
+    @abstractmethod
+    def get_spec(self) -> tuple:
+        """Specify the numba types of the class attributes.
+
+        Returns
+        -------
+        spec: Tuple of (attr_name, dtype)
+            Specs to be passed to Numba jitclass to compile the class.
+        """
+        ...
+
+    @abstractmethod
+    def params_to_dict(self) -> dict:
+        """Get the parameters to initialize an instance of the class.
+
+        Returns
+        -------
+        dict_of_params : dict
+            The parameters to instantiate an object of the class.
+        """
 
     @abstractmethod
     def value(self, x: NDArray) -> float:
@@ -61,7 +82,8 @@ class ProximableDatafit(BaseDatafit):
 
 class SmoothDatafit(BaseDatafit):
     """Base class for differentiable data-fidelity functions with a
-    Lipschitz-continuous gradient."""
+    Lipschitz-continuous gradient. Functions deriving from this class must
+    set an attribute `L` giving the gradient Lipschitz constant value."""
 
     @abstractmethod
     def gradient(self, x: NDArray) -> NDArray:
@@ -77,14 +99,4 @@ class SmoothDatafit(BaseDatafit):
         g : NDArray, shape (n,)
             The gradient at vector x.
         """
-
-    @property
-    @abstractmethod
-    def L(self) -> float:
-        """Value of the gradient Lipchitz constant.
-
-        Returns
-        -------
-        L : float
-            The gradient Lipchitz constant value.
-        """
+        ...

@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from el0ps.penalty import (
-    BasePenalty,
-    ProximablePenalty,
-    Bigm,
-    L1norm,
-    L2norm,
-)
+from el0ps.penalty import ProximablePenalty, Bigm, L1norm, L2norm
 
 n = 100
 x = np.random.randn(n)
@@ -16,15 +10,6 @@ lmbd = np.random.rand()
 bigm = np.linalg.norm(x, np.inf)
 alpha = np.random.rand()
 penalties = [Bigm(bigm), L1norm(alpha), L2norm(alpha)]
-
-
-@pytest.mark.parametrize("base_class", [BasePenalty, ProximablePenalty])
-def test_base(base_class):
-    class NewPenaltyClass(base_class):
-        pass
-
-    with pytest.raises(TypeError):
-        penalty = NewPenaltyClass()  # noqa: F841
 
 
 @pytest.mark.parametrize("penalty", penalties)

@@ -14,7 +14,7 @@ def test_solver():
     x[s] = np.random.randn(k)
     A = np.random.randn(m, n)
     y = A @ x
-    y += np.random.randn(m) * 0.1 * (np.linalg.norm(y)**2 / m)
+    y += np.random.randn(m) * 0.1 * (np.linalg.norm(y) ** 2 / m)
     M = 1.5 * np.max(np.abs(x))
 
     datafit = Quadratic(y)

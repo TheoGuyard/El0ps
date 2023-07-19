@@ -1,4 +1,5 @@
 import numpy as np
+from numba import float64
 from numpy.typing import NDArray
 from .base import ProximablePenalty
 
@@ -19,14 +20,17 @@ class L1norm(ProximablePenalty):
     """
 
     def __init__(self, alpha: float) -> None:
-        if not isinstance(alpha, float):
-            alpha = float(alpha)
-        if alpha <= 0.0:
-            raise ValueError("Parameter `alpha` must be positive.")
         self.alpha = alpha
 
     def __str__(self) -> str:
-        return "L1-norm"
+        return "L1norm"
+
+    def get_spec(self) -> tuple:
+        spec = (("alpha", float64),)
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(alpha=self.alpha)
 
     def value_scalar(self, i: int, x: float) -> float:
         return self.alpha * np.abs(x)
@@ -85,14 +89,17 @@ class L2norm(ProximablePenalty):
     """
 
     def __init__(self, alpha: float) -> None:
-        if not isinstance(alpha, float):
-            alpha = float(alpha)
-        if alpha <= 0.0:
-            raise ValueError("Parameter `alpha` must be positive.")
         self.alpha = alpha
 
     def __str__(self) -> str:
-        return "L2-norm"
+        return "L2norm"
+
+    def get_spec(self) -> tuple:
+        spec = (("alpha", float64),)
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(alpha=self.alpha)
 
     def value_scalar(self, i: int, x: float) -> float:
         return self.alpha * x**2
