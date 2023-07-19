@@ -32,7 +32,7 @@ def test_solver():
     node = BnbNode(S0, S1, Sb, -np.inf, +np.inf, x, w, u, np.copy(x))
     assert isinstance(node, BnbNode)
     assert isinstance(node.__str__(), str)
-    
+
     node.fix_to(problem, 0, 0)
     node.fix_to(problem, 1, 1)
     assert node.x[0] == 0.0
