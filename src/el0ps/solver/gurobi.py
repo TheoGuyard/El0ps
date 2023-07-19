@@ -1,5 +1,6 @@
 import gurobipy as gp
 import numpy as np
+from typing import Union
 from numpy.typing import NDArray
 from el0ps import Problem
 from el0ps.datafit import Quadratic
@@ -119,9 +120,9 @@ class GurobiSolver(BaseSolver):
     def solve(
         self,
         problem: Problem,
-        x_init: NDArray | None = None,
-        S0_init: NDArray | None = None,
-        S1_init: NDArray | None = None,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
     ) -> Results:
         self.build_model(problem)
 

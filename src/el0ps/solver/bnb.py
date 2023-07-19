@@ -5,6 +5,7 @@ import time
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum
+from typing import Union
 from numpy.typing import NDArray
 from el0ps.problem import Problem
 from .base import BaseSolver, Results, Status
@@ -420,9 +421,9 @@ class BnbSolver(BaseSolver):
     def solve(
         self,
         problem: Problem,
-        x_init: NDArray | None = None,
-        S0_init: NDArray | None = None,
-        S1_init: NDArray | None = None,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
     ):
         if self.options.verbose:
             self._print_header()
