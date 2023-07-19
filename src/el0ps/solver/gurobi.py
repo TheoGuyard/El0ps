@@ -9,16 +9,16 @@ from .base import BaseSolver, Results, Status
 
 class GurobiSolver(BaseSolver):
     """Gurobi solver for L0-penalized problems.
-    
+
     Parameters
     ----------
     options: dict
-        Gurobi options set with `model.setParam(option_name, option_value)`. 
+        Gurobi options set with `model.setParam(option_name, option_value)`.
         See `https://www.gurobi.com/documentation` for more details.
     """
 
     _default_options = {
-        "OutputFlag": 0.,
+        "OutputFlag": 0.0,
         "MIPGap": 1e-4,
         "MIPGapAbs": 1e-8,
         "IntFeasTol": 1e-8,
@@ -80,7 +80,7 @@ class GurobiSolver(BaseSolver):
         x_init: NDArray | None = None,
         S0_init: NDArray | None = None,
         S1_init: NDArray | None = None,
-        relax: bool =False,
+        relax: bool = False,
     ) -> None:
         """Build the following MIP model of the L0-penalized problem
 
@@ -89,10 +89,10 @@ class GurobiSolver(BaseSolver):
                 g_var >= lmbd * norm(x_var, 0) + h(x_var)   (3)
                 f_var real, g_var real, x_var vector        (4)
 
-        Constraint (2) is set by `self._bind_model_f_var()` and constraint (3) 
-        is set by `self._bind_model_g_var()`, depending on the Problem data 
+        Constraint (2) is set by `self._bind_model_f_var()` and constraint (3)
+        is set by `self._bind_model_g_var()`, depending on the Problem data
         fidelity and penalty functions.
-        
+
         Paramaters
         ----------
         problem: Problem
@@ -100,13 +100,13 @@ class GurobiSolver(BaseSolver):
         x_init: NDArray | None = None
             Intial point.
         S0_init: NDArray | None = None
-            Set of indices to force to zero. If None, no indices are forced to 
+            Set of indices to force to zero. If None, no indices are forced to
             zero by default.
         S1_init: NDArray | None = None
             Set of indices to force to non-zero. If None, no indices are forced
             to non-zero by default.
         relax: bool = False
-            Whether to relax integrality constraints on the binary variable 
+            Whether to relax integrality constraints on the binary variable
             coding the nullity in x.
         """
 
@@ -116,7 +116,9 @@ class GurobiSolver(BaseSolver):
         g_var = model.addVar(vtype=gp.GRB.CONTINUOUS, name="g")
         x_var = model.addMVar(n, vtype=gp.GRB.CONTINUOUS, name="x")
         if relax:
-            z_var = model.addMVar(n, vtype=gp.GRB.CONTINUOUS, lb=0., ub=1., name="z")  # noqa
+            z_var = model.addMVar(
+                n, vtype=gp.GRB.CONTINUOUS, lb=0.0, ub=1.0, name="z"
+            )  # noqa
         else:
             z_var = model.addMVar(n, vtype=gp.GRB.BINARY, name="z")
         model.setObjective(f_var + g_var, gp.GRB.MINIMIZE)
@@ -147,9 +149,8 @@ class GurobiSolver(BaseSolver):
         S0_init: NDArray | None = None,
         S1_init: NDArray | None = None,
     ) -> Results:
-        
         self.build_model(problem, x_init, S0_init, S1_init)
-        
+
         for k, v in self.options.items():
             self.model.setParam(k, v)
 

@@ -1,4 +1,3 @@
-import numpy as np
 from abc import ABCMeta, abstractmethod
 from el0ps.problem import Problem
 from numpy.typing import NDArray
@@ -47,4 +46,3 @@ class BnbBoundingSolver(metaclass=ABCMeta):
             The type of bounding the solver is responsible to perform.
         """
         ...
-

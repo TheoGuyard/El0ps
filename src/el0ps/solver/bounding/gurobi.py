@@ -4,10 +4,10 @@ from el0ps.problem import Problem
 from el0ps.solver.gurobi import GurobiSolver
 from .base import BnbBoundingSolver
 
+
 class GurobiBoundingSolver(BnbBoundingSolver, GurobiSolver):
-    
     _default_options = {
-        "OutputFlag": 0.,
+        "OutputFlag": 0.0,
         "MIPGap": 1e-4,
         "MIPGapAbs": 1e-8,
         "IntFeasTol": 1e-8,
@@ -17,23 +17,23 @@ class GurobiBoundingSolver(BnbBoundingSolver, GurobiSolver):
         self.options = options
 
     def setup(
-        self, 
-        problem: Problem, 
-        x_init: NDArray | None = None, 
-        S0_init: NDArray | None = None, 
-        S1_init: NDArray | None = None
-        ) -> None:
+        self,
+        problem: Problem,
+        x_init: NDArray | None = None,
+        S0_init: NDArray | None = None,
+        S1_init: NDArray | None = None,
+    ) -> None:
         self.build_model(problem, x_init, S0_init, S1_init, relax=True)
         for k, v in self.options.items():
             self.model.setParam(k, v)
 
     def bound(self, problem, node, bnb, bounding_type):
-        cstr_S0 = self.model.addConstr(self.z_var[node.S0] == 0.)
-        cstr_S1 = self.model.addConstr(self.z_var[node.S1] == 1.)
+        cstr_S0 = self.model.addConstr(self.z_var[node.S0] == 0.0)
+        cstr_S1 = self.model.addConstr(self.z_var[node.S1] == 1.0)
         if bounding_type == "upper":
-            cstr_Sb = self.model.addConstr(self.z_var[node.Sb] == 0.)
+            cstr_Sb = self.model.addConstr(self.z_var[node.Sb] == 0.0)
         self.model.update()
-        
+
         self.model.optimize()
 
         if bounding_type == "lower":
@@ -46,7 +46,7 @@ class GurobiBoundingSolver(BnbBoundingSolver, GurobiSolver):
             node.upper_bound = self.model.ObjVal
         else:
             raise ValueError("Unknown bounding `{}`".format(bounding_type))
-        
+
         self.model.remove(cstr_S0)
         self.model.remove(cstr_S1)
         if bounding_type == "upper":

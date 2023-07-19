@@ -2,7 +2,6 @@
 
 import numpy as np
 import time
-from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum
@@ -166,7 +165,9 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    bounding_solver: BnbBoundingSolver = GurobiBoundingSolver({"OutputFlag": 0})
+    bounding_solver: BnbBoundingSolver = GurobiBoundingSolver(
+        {"OutputFlag": 0}
+    )
     exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.DFS
     exploration_depth_switch: int = 0
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
@@ -265,8 +266,8 @@ class BnbSolver(BaseSolver):
 
     def _can_continue(self):
         """Update the solver status and return whether it can continue. Before
-        calling this function, the solver status is Status.RUNNING or Status.SOLVE_NOT_CALLED.
-        """
+        calling this function, the solver status is Status.RUNNING or
+        Status.SOLVE_NOT_CALLED."""
 
         if self.solve_time >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
@@ -476,6 +477,6 @@ class BnbSolver(BaseSolver):
             self.lower_bound,
             self.upper_bound,
             self.x,
-            np.array(self.x != 0., dtype=float),
+            np.array(self.x != 0.0, dtype=float),
             self.trace,
         )

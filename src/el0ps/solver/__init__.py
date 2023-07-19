@@ -2,8 +2,8 @@
 
 from .base import BaseSolver, Results, Status
 from .bnb import (
-    BnbBranchingStrategy, 
-    BnbExplorationStrategy, 
+    BnbBranchingStrategy,
+    BnbExplorationStrategy,
     BnbNode,
     BnbOptions,
     BnbSolver,
@@ -15,8 +15,8 @@ __all__ = [
     "BaseSolver",
     "Results",
     "Status",
-    "BnbBranchingStrategy", 
-    "BnbExplorationStrategy", 
+    "BnbBranchingStrategy",
+    "BnbExplorationStrategy",
     "BnbNode",
     "BnbOptions",
     "BnbSolver",
