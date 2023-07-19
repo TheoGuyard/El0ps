@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Union
 from numpy.typing import NDArray
 from el0ps.problem import Problem
 from el0ps.solver.gurobi import GurobiSolver
