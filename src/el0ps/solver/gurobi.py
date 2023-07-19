@@ -74,14 +74,7 @@ class GurobiSolver(BaseSolver):
                 "penalty function yet."
             )
 
-    def build_model(
-        self,
-        problem: Problem,
-        x_init: NDArray | None = None,
-        S0_init: NDArray | None = None,
-        S1_init: NDArray | None = None,
-        relax: bool = False,
-    ) -> None:
+    def build_model(self, problem: Problem, relax: bool = False) -> None:
         """Build the following MIP model of the L0-penalized problem
 
             min f_var + g_var                               (1)
@@ -97,14 +90,6 @@ class GurobiSolver(BaseSolver):
         ----------
         problem: Problem
             The L0-penalized problem to be solved.
-        x_init: NDArray | None = None
-            Intial point.
-        S0_init: NDArray | None = None
-            Set of indices to force to zero. If None, no indices are forced to
-            zero by default.
-        S1_init: NDArray | None = None
-            Set of indices to force to non-zero. If None, no indices are forced
-            to non-zero by default.
         relax: bool = False
             Whether to relax integrality constraints on the binary variable
             coding the nullity in x.
@@ -125,17 +110,6 @@ class GurobiSolver(BaseSolver):
         self._bind_model_f_var(problem, model, x_var, f_var)
         self._bind_model_g_var(problem, model, x_var, z_var, g_var)
 
-        if S0_init is not None:
-            for i in S0_init:
-                self.model.addConstr(self.x_var[i] == 0.0)
-                self.model.addConstr(self.z_var[i] == 0.0)
-        if S1_init is not None:
-            for i in S1_init:
-                self.model.addConstr(self.z_var[i] == 1.0)
-        if x_init is not None:
-            for i in range(problem.A.shape[1]):
-                self.x_var[i].Start = x_init[i]
-
         self.model = model
         self.x_var = x_var
         self.z_var = z_var
@@ -149,7 +123,18 @@ class GurobiSolver(BaseSolver):
         S0_init: NDArray | None = None,
         S1_init: NDArray | None = None,
     ) -> Results:
-        self.build_model(problem, x_init, S0_init, S1_init)
+        self.build_model(problem)
+
+        if S0_init is not None:
+            for i in S0_init:
+                self.model.addConstr(self.x_var[i] == 0.0)
+                self.model.addConstr(self.z_var[i] == 0.0)
+        if S1_init is not None:
+            for i in S1_init:
+                self.model.addConstr(self.z_var[i] == 1.0)
+        if x_init is not None:
+            for i in range(problem.A.shape[1]):
+                self.x_var[i].Start = x_init[i]
 
         for k, v in self.options.items():
             self.model.setParam(k, v)

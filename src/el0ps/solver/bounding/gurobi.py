@@ -23,7 +23,19 @@ class GurobiBoundingSolver(BnbBoundingSolver, GurobiSolver):
         S0_init: NDArray | None = None,
         S1_init: NDArray | None = None,
     ) -> None:
-        self.build_model(problem, x_init, S0_init, S1_init, relax=True)
+        self.build_model(problem, relax=True)
+
+        if S0_init is not None:
+            for i in S0_init:
+                self.model.addConstr(self.x_var[i] == 0.0)
+                self.model.addConstr(self.z_var[i] == 0.0)
+        if S1_init is not None:
+            for i in S1_init:
+                self.model.addConstr(self.z_var[i] == 1.0)
+        if x_init is not None:
+            for i in range(problem.A.shape[1]):
+                self.x_var[i].Start = x_init[i]
+
         for k, v in self.options.items():
             self.model.setParam(k, v)
 
