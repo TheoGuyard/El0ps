@@ -2,7 +2,7 @@ import numpy as np
 from el0ps import Problem, compute_lmbd_max
 from el0ps.datafit import Quadratic
 from el0ps.penalty import Bigm
-from el0ps.solver import GurobiSolver
+from el0ps.solver import BnbSolver, GurobiSolver
 
 # Syntehtic sparse regression data
 k, m, n = 5, 50, 100
@@ -18,13 +18,12 @@ datafit = Quadratic(y)
 penalty = Bigm(M)
 lmbd = 0.1 * compute_lmbd_max(datafit, penalty, A)
 problem = Problem(datafit, penalty, A, lmbd)
-
 print(problem)
 
-options = {
-    "OutputFlag": 0
-}
-solver = GurobiSolver(options)
+solver = BnbSolver()
 result = solver.solve(problem)
+print(result)
 
+solver = GurobiSolver()
+result = solver.solve(problem)
 print(result)

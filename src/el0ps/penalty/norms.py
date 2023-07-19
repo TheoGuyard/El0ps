@@ -1,7 +1,5 @@
-import gurobipy as gp
 import numpy as np
 from numpy.typing import NDArray
-from gurobipy import MVar, Model, Var
 from .base import ProximablePenalty
 
 
@@ -65,11 +63,6 @@ class L1norm(ProximablePenalty):
 
     def param_sublimit(self, i: int, lmbd: float) -> float:
         return np.inf
-
-    def bind_model_cost(
-        self, model: Model, lmbd: float, x_var: MVar, z_var: MVar, g_var: Var
-    ) -> None:
-        raise NotImplementedError
 
 
 class L2norm(ProximablePenalty):
@@ -136,11 +129,3 @@ class L2norm(ProximablePenalty):
 
     def param_sublimit(self, i: int, lmbd: float) -> float:
         return np.sqrt(lmbd / self.alpha)
-
-    def bind_model_cost(
-        self, model: Model, lmbd: float, x_var: MVar, z_var: MVar, g_var: Var
-    ) -> None:
-        s_var = model.addMVar(x_var.size, vtype=gp.GRB.CONTINUOUS, name="s")
-        model.addConstr(s_var >= 0.0)
-        model.addConstr(x_var * x_var <= s_var * z_var)
-        model.addConstr(g_var >= lmbd * sum(z_var) + self.alpha * sum(s_var))

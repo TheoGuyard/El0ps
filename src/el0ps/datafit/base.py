@@ -2,7 +2,6 @@
 
 from abc import ABCMeta, abstractmethod
 from numpy.typing import NDArray
-from gurobipy import Model, Var, MVar
 
 
 class BaseDatafit(metaclass=ABCMeta):
@@ -37,13 +36,6 @@ class BaseDatafit(metaclass=ABCMeta):
         value : float
             The convex-conjugate value at vector x.
         """
-
-    @abstractmethod
-    def bind_model_cost(
-        self, model: Model, A: NDArray, x_var: MVar, f_var: Var
-    ) -> None:
-        """#TODO: Doc"""
-        ...
 
 
 class ProximableDatafit(BaseDatafit):

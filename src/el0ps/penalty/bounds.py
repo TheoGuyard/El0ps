@@ -1,4 +1,3 @@
-from gurobipy import MVar, Model, Var
 import numpy as np
 from numpy.typing import NDArray
 from .base import ProximablePenalty
@@ -64,10 +63,3 @@ class Bigm(ProximablePenalty):
 
     def param_sublimit(self, i: int, lmbd: float) -> float:
         return self.M
-
-    def bind_model_cost(
-        self, model: Model, lmbd: float, x_var: MVar, z_var: MVar, g_var: Var
-    ) -> None:
-        model.addConstr(g_var >= lmbd * sum(z_var))
-        model.addConstr(x_var <= self.M * z_var)
-        model.addConstr(x_var >= -self.M * z_var)
