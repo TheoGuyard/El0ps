@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from el0ps.penalty import (
-    BasePenalty,
-    ProximablePenalty,
-    Bigm,
-    L1norm,
-    L2norm,
-)
+from el0ps.penalty import ProximablePenalty, Bigm, L1norm, L2norm
 
 n = 100
 x = np.random.randn(n)
