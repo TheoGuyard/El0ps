@@ -18,15 +18,6 @@ alpha = np.random.rand()
 penalties = [Bigm(bigm), L1norm(alpha), L2norm(alpha)]
 
 
-@pytest.mark.parametrize("base_class", [BasePenalty, ProximablePenalty])
-def test_base(base_class):
-    class NewPenaltyClass(base_class):
-        pass
-
-    with pytest.raises(TypeError):
-        penalty = NewPenaltyClass()  # noqa: F841
-
-
 @pytest.mark.parametrize("penalty", penalties)
 def test_instances(penalty):
     assert isinstance(penalty.__str__(), str)

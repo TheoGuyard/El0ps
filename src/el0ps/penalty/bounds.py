@@ -1,4 +1,5 @@
 import numpy as np
+from numba import float64
 from numpy.typing import NDArray
 from .base import ProximablePenalty
 
@@ -8,25 +9,28 @@ class Bigm(ProximablePenalty):
 
     The Big-M penalty function reads:
 
-    .. math:: f(x) = 0 if ||x||_inf <= M and +inf otherwise
+    .. math:: h(x) = 0 if ||x||_inf <= M and +inf otherwise
 
     where `M` is a positive hyperparameter.
 
     Parameters
     ----------
-    M : float, positive
+    M : float
         Big-M value.
     """
 
     def __init__(self, M: float) -> None:
-        if not isinstance(M, float):
-            M = float(M)
-        if M <= 0.0:
-            raise ValueError("Parameter `M` must be positive.")
         self.M = M
 
     def __str__(self) -> str:
-        return "Big-M"
+        return "Bigm"
+
+    def get_spec(self) -> tuple:
+        spec = (("M", float64),)
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(M=self.M)
 
     def value_scalar(self, i: int, x: float) -> float:
         return 0.0 if np.abs(x) <= self.M else np.inf
