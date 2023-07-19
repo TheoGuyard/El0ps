@@ -28,7 +28,7 @@ class Results:
     upper_bound: float
     x: NDArray
     z: NDArray
-    trace: dict | None
+    trace: dict
 
     def __str__(self) -> str:
         s = ""
