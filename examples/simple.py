@@ -9,7 +9,7 @@ k, m, n = 5, 50, 100
 x = np.zeros(n)
 s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
 x[s] = np.random.randn(k)
-A = np.random.randn(m, n)
+A = np.random.randn(n, m).T
 y = A @ x
 y += np.random.randn(m) * 0.1 * (np.linalg.norm(y)**2 / m)
 M = 1.5 * np.max(np.abs(x))

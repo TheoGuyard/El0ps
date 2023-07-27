@@ -1,5 +1,6 @@
 """Base classes for data-fidelity functions and related utilities."""
 
+import numpy as np
 from abc import abstractmethod
 from numpy.typing import NDArray
 
@@ -24,39 +25,39 @@ class BaseDatafit:
 
         Returns
         -------
-        dict_of_params : dict
+        dict_of_params: dict
             The parameters to instantiate an object of the class.
         """
         ...
 
     @abstractmethod
-    def value(self, x: NDArray) -> float:
+    def value(self, x: NDArray[np.float64]) -> float:
         """Value of function at x.
 
         Parameters
         ----------
-        x : NDArray, shape (n,)
+        x: NDArray[np.float64]
             Vector at which the function is evaluated.
 
         Returns
         -------
-        value : float
+        value: float
             The function value at x.
         """
         ...
 
     @abstractmethod
-    def conjugate(self, x: NDArray) -> float:
+    def conjugate(self, x: NDArray[np.float64]) -> float:
         """Value of the conjugate of the function at x.
 
         Parameters
         ----------
-        x : NDArray, shape (n,)
+        x: NDArray[np.float64]
             Vector at which the conjugate is evaluated.
 
         Returns
         -------
-        value : float
+        value: float
             The conjugate value at x.
         """
         ...
@@ -66,19 +67,19 @@ class ProximableDatafit(BaseDatafit):
     """Base class for proximable data-fidelity functions."""
 
     @abstractmethod
-    def prox(self, x: NDArray, eta: float) -> NDArray:
+    def prox(self, x: NDArray[np.float64], eta: float) -> NDArray[np.float64]:
         """Prox of `eta` times the function at x.
 
         Parameters
         ----------
-        x : NDArray, shape (n,)
+        x: NDArray[np.float64]
             Vector at which the prox is evaluated.
-        eta : float, positive
+        eta: float, positive
             Multiplicative factor in front of the function.
 
         Returns
         -------
-        p : NDArray, shape (n,)
+        p: NDArray[np.float64]
             The proximity operator at x.
         """
         ...
@@ -90,17 +91,17 @@ class SmoothDatafit(BaseDatafit):
     set an attribute `L` giving the gradient Lipschitz constant value."""
 
     @abstractmethod
-    def gradient(self, x: NDArray) -> NDArray:
+    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
         """Value of gradient at x.
 
         Parameters
         ----------
-        x : NDArray, shape (n,)
+        x: NDArray[np.float64]
             Vector at which the gradient is evaluated.
 
         Returns
         -------
-        g : NDArray, shape (n,)
+        g: NDArray[np.float64]
             The gradient at x.
         """
         ...

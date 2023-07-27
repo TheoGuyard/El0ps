@@ -5,7 +5,7 @@ from .base import ProximableDatafit, SmoothDatafit
 
 
 class Quadratic(ProximableDatafit, SmoothDatafit):
-    """Quadratic data-fidelity function
+    """Quadratic data-fidelity function given by
 
     .. math:: f(x) = ||x - y||_2^2 / 2m
 
@@ -13,11 +13,11 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
 
     Parameters
     ----------
-    y : NDArray
-        Target vector.
+    y: NDArray[np.float64]
+        Data vector.
     """
 
-    def __init__(self, y: NDArray) -> None:
+    def __init__(self, y: NDArray[np.float64]) -> None:
         self.y = y
         self.m = y.size
         self.L = 1.0 / y.size
@@ -32,14 +32,14 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: NDArray) -> float:
+    def value(self, x: NDArray[np.float64]) -> float:
         return np.linalg.norm(x - self.y, 2) ** 2 / (2.0 * self.m)
 
-    def conjugate(self, x: NDArray) -> float:
+    def conjugate(self, x: NDArray[np.float64]) -> float:
         return (0.5 * self.m) * np.dot(x, x) + np.dot(x, self.y)
 
-    def prox(self, x: NDArray, eta: float) -> NDArray:
+    def prox(self, x: NDArray[np.float64], eta: float) -> NDArray[np.float64]:
         return (x + (eta / self.m) * self.y) / (1.0 + eta / self.m)
 
-    def gradient(self, x: NDArray) -> NDArray:
+    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
         return (x - self.y) / self.m
