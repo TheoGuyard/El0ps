@@ -1,8 +1,6 @@
 """Base classes for penalty functions and related utilities."""
 
-import numpy as np
 from abc import abstractmethod
-from numpy.typing import NDArray
 
 
 class BasePenalty:
@@ -65,7 +63,7 @@ class BasePenalty:
     @abstractmethod
     def param_slope(self, lmbd: float) -> float:
         """Maximum value of `x` such that `h(x) <= lmbd`.
-        
+
         Parameters
         ----------
         lmbd : float
@@ -80,7 +78,7 @@ class BasePenalty:
 
     @abstractmethod
     def param_limit(self, lmbd: float) -> float:
-        """Minimum value of `x` such that `x` is in the subdifferential of the 
+        """Minimum value of `x` such that `x` is in the subdifferential of the
         conjugate of the function at `self.param_slope(lmbd)`.
 
         Parameters

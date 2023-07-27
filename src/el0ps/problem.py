@@ -131,7 +131,7 @@ def compute_lmbd_max(
     w = np.zeros(A.shape[0])
     v = A.T @ datafit.gradient(w)
     r = np.max(np.abs(v))
-    if penalty.conjugate(r) == 0.:
+    if penalty.conjugate(r) == 0.0:
         lmbd_max = 0.0
     elif penalty.conjugate(r) < np.inf:
         lmbd_max = penalty.conjugate(r)

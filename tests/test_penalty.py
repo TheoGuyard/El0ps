@@ -20,7 +20,7 @@ def test_instances(penalty):
         assert penalty.value(xi) >= 0.0
         assert penalty.value(xi) == penalty.value(-xi)
         assert penalty.conjugate(ui) >= 0.0
-        assert (penalty.value(xi) + penalty.conjugate(ui) >= xi * ui)
+        assert penalty.value(xi) + penalty.conjugate(ui) >= xi * ui
     slope = penalty.param_slope(lmbd)
     limit = penalty.param_limit(lmbd)
     maxval = penalty.param_maxval()
@@ -29,7 +29,9 @@ def test_instances(penalty):
     assert maxval >= 0.0
     if limit < np.inf:
         assert penalty.conjugate(slope) == pytest.approx(lmbd)
-        assert penalty.value(limit) + penalty.conjugate(slope) == pytest.approx(limit * slope)
+        assert penalty.value(limit) + penalty.conjugate(
+            slope
+        ) == pytest.approx(limit * slope)
     else:
         assert penalty.conjugate(slope) < lmbd
     if maxval < np.inf:
@@ -41,6 +43,6 @@ def test_instances(penalty):
         eta = np.random.rand()
         for xi in x:
             pi = penalty.prox(xi, eta)
-            v1 = 0.5 * (pi - xi)**2 + eta * penalty.value(pi)
+            v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(pi)
             v2 = eta * penalty.value(xi)
             assert v1 <= v2

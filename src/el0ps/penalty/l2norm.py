@@ -1,6 +1,5 @@
 import numpy as np
 from numba import float64
-from numpy.typing import NDArray
 from .base import ProximablePenalty
 
 
@@ -47,4 +46,3 @@ class L2norm(ProximablePenalty):
 
     def param_maxval(self) -> float:
         return np.inf
-    
