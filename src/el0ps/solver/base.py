@@ -35,9 +35,9 @@ class Results:
         s = ""
         s += "Results\n"
         s += "  Status     : {}\n".format(self.status.value)
-        s += "  Solve time : {:.4f} seconds\n".format(self.solve_time)
+        s += "  Solve time : {:.6f} seconds\n".format(self.solve_time)
         s += "  Node count : {}\n".format(self.node_count)
-        s += "  Objective  : {:.4f}\n".format(self.objective_value)
+        s += "  Objective  : {:.6f}\n".format(self.objective_value)
         s += "  Non-zeros  : {}".format(int(sum(self.z)))
         return s
 

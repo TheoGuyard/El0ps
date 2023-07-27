@@ -91,7 +91,7 @@ class Problem:
         return (
             self.datafit.value(Ax)
             + self.lmbd * np.linalg.norm(x, 0)
-            + self.penalty.value(x)
+            + sum(self.penalty.value(xi) for xi in x)
         )
 
 
@@ -130,19 +130,13 @@ def compute_lmbd_max(
 
     w = np.zeros(A.shape[0])
     v = A.T @ datafit.gradient(w)
-    i = np.argmax(np.abs(v))
-    r = np.abs(v[i])
-    if r <= penalty.param_zerlimit(i):
+    r = np.max(np.abs(v))
+    if penalty.conjugate(r) == 0.0:
         lmbd_max = 0.0
-    elif penalty.param_zerlimit(i) < r < penalty.param_domlimit(i):
-        lmbd_max = penalty.conjugate_scalar(i, r)
-    elif penalty.param_domlimit(i) <= r:
-        lmbd_max = penalty.param_vallimit(i)
+    elif penalty.conjugate(r) < np.inf:
+        lmbd_max = penalty.conjugate(r)
     else:
-        raise BaseException(
-            "Unexepected error in the computation of `lmbd_max`. Please report"
-            "this in the issue section of `el0ps`."
-        )
+        lmbd_max = penalty.param_maxval()
 
     return lmbd_max
 

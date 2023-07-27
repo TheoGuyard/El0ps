@@ -19,14 +19,14 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
 
     def __init__(self, y: NDArray) -> None:
         self.y = y
-        self.m = y.shape[0]
-        self.L = 1.0 / y.shape[0]
+        self.m = y.size
+        self.L = 1.0 / y.size
 
     def __str__(self) -> str:
         return "Quadratic"
 
     def get_spec(self) -> tuple:
-        spec = (("y", float64[:]), ("m", int32), ("L", float64))
+        spec = (("y", float64[::1]), ("m", int32), ("L", float64))
         return spec
 
     def params_to_dict(self) -> dict:
@@ -36,7 +36,7 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
         return np.linalg.norm(x - self.y, 2) ** 2 / (2.0 * self.m)
 
     def conjugate(self, x: NDArray) -> float:
-        return 0.5 * self.m * np.dot(x, x) + np.dot(self.y, x)
+        return (0.5 * self.m) * np.dot(x, x) + np.dot(x, self.y)
 
     def prox(self, x: NDArray, eta: float) -> NDArray:
         return (x + (eta / self.m) * self.y) / (1.0 + eta / self.m)

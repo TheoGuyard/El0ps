@@ -26,7 +26,7 @@ class GurobiSolver(BaseSolver):
     def __init__(self, options: dict = _default_options):
         self.options = options
 
-    def _bind_model_f_var(
+    def bind_model_f_var(
         self,
         problem: Problem,
         model: gp.Model,
@@ -34,17 +34,16 @@ class GurobiSolver(BaseSolver):
         f_var: gp.Var,
     ) -> None:
         if str(problem.datafit) == "Quadratic":
-            r = problem.datafit.y - problem.A @ x_var
-            model.addConstr(
-                f_var >= gp.quicksum(r * r) / (2.0 * problem.datafit.y.size)
-            )
+            r_var = problem.datafit.y - problem.A @ x_var
+            model.addConstr(f_var >= (r_var @ r_var) / (2.0 * problem.m))
         else:
             raise NotImplementedError(
-                f"`GurobiSolver` does not support a `{type(problem.datafit)}`"
-                "data-fidelity function yet."
+                "`GurobiSolver` does not support `{}` yet.".format(
+                    type(problem.datafit)
+                )
             )
 
-    def _bind_model_g_var(
+    def bind_model_g_var(
         self,
         problem: Problem,
         model: gp.Model,
@@ -57,9 +56,7 @@ class GurobiSolver(BaseSolver):
             model.addConstr(x_var <= problem.penalty.M * z_var)
             model.addConstr(x_var >= -problem.penalty.M * z_var)
         elif str(problem.penalty) == "L2norm":
-            s_var = model.addMVar(
-                x_var.size, vtype=gp.GRB.CONTINUOUS, name="s"
-            )
+            s_var = model.addMVar(problem.n, vtype="C", name="s")
             model.addConstr(s_var >= 0.0)
             model.addConstr(x_var * x_var <= s_var * z_var)
             model.addConstr(
@@ -69,8 +66,9 @@ class GurobiSolver(BaseSolver):
             )
         else:
             raise NotImplementedError(
-                f"`GurobiSolver` does not support a `{type(problem.penalty)}`"
-                "penalty function yet."
+                "`GurobiSolver` does not support `{}` yet.".format(
+                    type(problem.penalty)
+                )
             )
 
     def build_model(self, problem: Problem, relax: bool = False) -> None:
@@ -94,26 +92,54 @@ class GurobiSolver(BaseSolver):
             coding the nullity in x.
         """
 
-        m, n = problem.A.shape
         model = gp.Model()
-        f_var = model.addVar(vtype=gp.GRB.CONTINUOUS, name="f")
-        g_var = model.addVar(vtype=gp.GRB.CONTINUOUS, name="g")
-        x_var = model.addMVar(n, vtype=gp.GRB.CONTINUOUS, name="x")
-        if relax:
-            z_var = model.addMVar(
-                n, vtype=gp.GRB.CONTINUOUS, lb=0.0, ub=1.0, name="z"
-            )  # noqa
-        else:
-            z_var = model.addMVar(n, vtype=gp.GRB.BINARY, name="z")
+        f_var = model.addVar(vtype="C", name="f")
+        g_var = model.addVar(vtype="C", name="g")
+        x_var = model.addMVar(problem.n, vtype="C", name="x", lb=-np.inf)
+        z_var = model.addMVar(problem.n, vtype="B", name="z")
+        self.bind_model_f_var(problem, model, x_var, f_var)
+        self.bind_model_g_var(problem, model, x_var, z_var, g_var)
         model.setObjective(f_var + g_var, gp.GRB.MINIMIZE)
-        self._bind_model_f_var(problem, model, x_var, f_var)
-        self._bind_model_g_var(problem, model, x_var, z_var, g_var)
+        if relax:
+            model.relax()
 
         self.model = model
         self.x_var = x_var
         self.z_var = z_var
         self.f_var = f_var
         self.g_var = g_var
+
+    def set_init(
+        self,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
+    ) -> None:
+        if S0_init is not None:
+            for i in S0_init:
+                self.model.addConstr(self.x_var[i] == 0.0)
+                self.model.addConstr(self.z_var[i] == 0.0)
+        if S1_init is not None:
+            for i in S1_init:
+                self.model.addConstr(self.z_var[i] == 1.0)
+        if x_init is not None:
+            for i in range(x_init.shape):
+                self.x_var[i].Start = x_init[i]
+
+    def set_options(self) -> None:
+        for k, v in self.options.items():
+            self.model.setParam(k, v)
+
+    def get_status(self) -> Status:
+        if self.model.Status == gp.GRB.OPTIMAL:
+            status = Status.OPTIMAL
+        elif self.model.Status == gp.GRB.NODE_LIMIT:
+            status = Status.NODE_LIMIT
+        elif self.model.Status == gp.GRB.TIME_LIMIT:
+            status = Status.TIME_LIMIT
+        else:
+            status = Status.OTHER_LIMIT
+        return status
 
     def solve(
         self,
@@ -123,34 +149,12 @@ class GurobiSolver(BaseSolver):
         S1_init: Union[NDArray, None] = None,
     ) -> Results:
         self.build_model(problem)
-
-        if S0_init is not None:
-            for i in S0_init:
-                self.model.addConstr(self.x_var[i] == 0.0)
-                self.model.addConstr(self.z_var[i] == 0.0)
-        if S1_init is not None:
-            for i in S1_init:
-                self.model.addConstr(self.z_var[i] == 1.0)
-        if x_init is not None:
-            for i in range(problem.A.shape[1]):
-                self.x_var[i].Start = x_init[i]
-
-        for k, v in self.options.items():
-            self.model.setParam(k, v)
-
+        self.set_init(x_init, S0_init, S1_init)
+        self.set_options()
         self.model.optimize()
 
-        if self.model.Status == gp.GRB.OPTIMAL:
-            status = Status.OPTIMAL
-        elif self.model.Status == gp.GRB.NODE_LIMIT:
-            status = Status.NODE_LIMIT
-        elif self.model.Status == gp.GRB.TIME_LIMIT:
-            status = Status.TIME_LIMIT
-        else:
-            status = Status.OTHER_LIMIT
-
         return Results(
-            status,
+            self.get_status(),
             self.model.Runtime,
             int(self.model.NodeCount),
             self.model.ObjVal,
