@@ -39,7 +39,7 @@ class Bigm(ProximablePenalty):
         return self.M * np.abs(x)
 
     def prox_scalar(self, i: int, x: float, eta: float) -> float:
-        return np.clip(x, -self.M, self.M)
+        return np.maximum(np.minimum(x, self.M), -self.M)
 
     # Overload `value` function for faster evaluation
     def value(self, x: NDArray) -> float:
@@ -51,7 +51,7 @@ class Bigm(ProximablePenalty):
 
     # Overload `prox` function for faster evaluation
     def prox(self, x: NDArray, eta: float) -> NDArray:
-        return np.clip(x, -self.M, self.M)
+        return np.maximum(np.minimum(x, self.M), -self.M)
 
     def param_zerlimit(self, i: int) -> float:
         return 0.0
