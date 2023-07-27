@@ -7,7 +7,7 @@ from .base import BnbBoundingSolver
 
 
 @njit
-def prox_l1_scalar(x: float, eta: float) -> float:
+def softhresh(x: float, eta: float) -> float:
     return np.sign(x) * np.maximum(np.abs(x) - eta, 0.0)
 
 
@@ -37,16 +37,21 @@ class CdBoundingSolver(BnbBoundingSolver):
         S1_init: Union[NDArray, None] = None,
     ) -> None:
         self.A_colnorm = np.linalg.norm(problem.A, ord=2, axis=0) ** 2
+        self.param_slope = problem.penalty.param_slope(problem.lmbd)
+        self.param_limit = problem.penalty.param_limit(problem.lmbd)
+        self.rho = 1.0 / (problem.datafit.L * self.A_colnorm)
+        self.eta = self.param_slope * self.rho
+        self.delta = self.eta + self.param_limit
 
-    def compute_pv(self, datafit, penalty, lmbd, x, w, tau, mu, S, Sb):
+    def compute_pv(self, datafit, penalty, lmbd, x, w, S, Sb):
         fval = datafit.value(w)
         gval = 0.0
         for i in np.nonzero(S)[0]:
             xi = x[i]
-            if np.logical_and(Sb[i], np.abs(xi) <= mu[i]):
-                gval += tau[i] * np.abs(xi)
+            if np.logical_and(Sb[i], np.abs(xi) <= self.param_limit):
+                gval += self.param_slope * np.abs(xi)
             else:
-                gval += penalty.value_scalar(i, xi) + lmbd
+                gval += penalty.value(xi) + lmbd
         return fval + gval
 
     def compute_dv(self, datafit, penalty, A, lmbd, u, v, p, S, Sb):
@@ -54,19 +59,19 @@ class CdBoundingSolver(BnbBoundingSolver):
         cgval = 0.0
         for i in np.nonzero(S)[0]:
             v[i] = np.dot(A[:, i], u)
-            p[i] = penalty.conjugate_scalar(i, v[i]) - lmbd
+            p[i] = penalty.conjugate(v[i]) - lmbd
             cgval += np.maximum(p[i], 0.0) if Sb[i] else p[i]
         return -cfval - cgval
 
-    def cd_loop(self, datafit, penalty, A, x, w, u, rho, eta, delta, S, Sb):
+    def cd_loop(self, datafit, penalty, A, x, w, u, S, Sb):
         for i in np.nonzero(S)[0]:
             ai = A[:, i]
             xi = x[i]
-            ci = xi + rho[i] * np.dot(ai, u)
-            if Sb[i] and (np.abs(ci) <= delta[i]):
-                x[i] = prox_l1_scalar(ci, eta[i])
+            ci = xi + self.rho[i] * np.dot(ai, u)
+            if Sb[i] and (np.abs(ci) <= self.delta[i]):
+                x[i] = softhresh(ci, self.eta[i])
             else:
-                x[i] = penalty.prox_scalar(i, ci, rho[i])
+                x[i] = penalty.prox(ci, self.rho[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -97,23 +102,6 @@ class CdBoundingSolver(BnbBoundingSolver):
         Sbi = np.copy(Sb)
         S = np.logical_or(x != 0.0, S1)
 
-        # Parameter values
-        time_limit = bnb.options.time_limit
-        abs_tol = bnb.options.abs_tol
-        rel_tol = bnb.options.rel_tol
-        rel_tol_cd = 0.5 * self.rel_gap_tol
-
-        # Working values
-        tau = np.array(
-            [penalty.param_levlimit(i, lmbd) for i in range(x.size)]
-        )
-        mu = np.array([penalty.param_sublimit(i, lmbd) for i in range(x.size)])
-        rho = 1.0 / (datafit.L * self.A_colnorm)
-        eta = tau * rho
-        delta = eta + mu
-        v = np.empty(x.shape)
-        p = np.empty(x.shape)
-
         # BnB upper bound and primal/dual objective values
         ub = bnb.upper_bound
         pv = +np.inf
@@ -121,6 +109,9 @@ class CdBoundingSolver(BnbBoundingSolver):
 
         # ----- Outer active set loop ----- #
 
+        rel_tol_cd = 0.5 * self.rel_gap_tol
+        v = np.empty(problem.n)
+        p = np.empty(problem.n)
         it_cd = 0
         it_as = 0
         while True:
@@ -135,12 +126,8 @@ class CdBoundingSolver(BnbBoundingSolver):
                 it_cd += 1
                 pv_old = pv
 
-                self.cd_loop(
-                    datafit, penalty, A, x, w, u, rho, eta, delta, S, Sb
-                )
-                pv = self.compute_pv(
-                    datafit, penalty, lmbd, x, w, tau, mu, S, Sb
-                )
+                self.cd_loop(datafit, penalty, A, x, w, u, S, Sb)
+                pv = self.compute_pv(datafit, penalty, lmbd, x, w, S, Sb)
 
                 # Inner solver convergence criterion
                 #   - lower bounding: no more progress in primal objective
@@ -152,10 +139,9 @@ class CdBoundingSolver(BnbBoundingSolver):
                     dv = self.compute_dv(
                         datafit, penalty, A, lmbd, u, v, p, S, Sb
                     )
-                    # print(f"dv : {dv}")
                     if (
-                        abs_gap(pv, dv) <= abs_tol
-                        and rel_gap(pv, dv) <= rel_tol
+                        abs_gap(pv, dv) <= bnb.options.abs_tol
+                        and rel_gap(pv, dv) <= bnb.options.rel_tol
                     ):
                         break
 
@@ -168,8 +154,8 @@ class CdBoundingSolver(BnbBoundingSolver):
             flag = False
             for i in np.nonzero(np.logical_and(np.logical_not(S), Sbi))[0]:
                 v[i] = np.dot(A[:, i], u)
-                p[i] = penalty.conjugate_scalar(i, v[i]) - lmbd
-                if np.abs(v[i]) > tau[i]:
+                p[i] = penalty.conjugate(v[i]) - lmbd
+                if np.abs(v[i]) > self.param_slope:
                     flag = True
                     S[i] = True
 
@@ -179,11 +165,11 @@ class CdBoundingSolver(BnbBoundingSolver):
                 break
             if it_as >= self.iter_limit_as:
                 break
-            if bnb.solve_time >= time_limit:
+            if bnb.solve_time >= bnb.options.time_limit:
                 break
             if not flag:
                 dv = self.compute_dv(datafit, penalty, A, lmbd, u, v, p, S, Sb)
-                if rel_gap(pv, dv) < rel_tol:
+                if rel_gap(pv, dv) < bnb.options.rel_tol:
                     break
                 if dv >= ub:
                     break

@@ -27,10 +27,11 @@ class BaseDatafit:
         dict_of_params : dict
             The parameters to instantiate an object of the class.
         """
+        ...
 
     @abstractmethod
     def value(self, x: NDArray) -> float:
-        """Value of function at vector x.
+        """Value of function at x.
 
         Parameters
         ----------
@@ -40,23 +41,25 @@ class BaseDatafit:
         Returns
         -------
         value : float
-            The function value at vector x.
+            The function value at x.
         """
+        ...
 
     @abstractmethod
     def conjugate(self, x: NDArray) -> float:
-        """Value of the convex-conjugate of the function at vector x.
+        """Value of the conjugate of the function at x.
 
         Parameters
         ----------
         x : NDArray, shape (n,)
-            Vector at which the convex-conjugate is evaluated.
+            Vector at which the conjugate is evaluated.
 
         Returns
         -------
         value : float
-            The convex-conjugate value at vector x.
+            The conjugate value at x.
         """
+        ...
 
 
 class ProximableDatafit(BaseDatafit):
@@ -64,7 +67,7 @@ class ProximableDatafit(BaseDatafit):
 
     @abstractmethod
     def prox(self, x: NDArray, eta: float) -> NDArray:
-        """Prox of `eta` times the function evaluated at vector x.
+        """Prox of `eta` times the function at x.
 
         Parameters
         ----------
@@ -76,8 +79,9 @@ class ProximableDatafit(BaseDatafit):
         Returns
         -------
         p : NDArray, shape (n,)
-            The proximity operator at vector x.
+            The proximity operator at x.
         """
+        ...
 
 
 class SmoothDatafit(BaseDatafit):
@@ -87,7 +91,7 @@ class SmoothDatafit(BaseDatafit):
 
     @abstractmethod
     def gradient(self, x: NDArray) -> NDArray:
-        """Value of gradient at vector x.
+        """Value of gradient at x.
 
         Parameters
         ----------
@@ -97,6 +101,6 @@ class SmoothDatafit(BaseDatafit):
         Returns
         -------
         g : NDArray, shape (n,)
-            The gradient at vector x.
+            The gradient at x.
         """
         ...
