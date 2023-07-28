@@ -169,7 +169,7 @@ class CdBoundingSolver(BnbBoundingSolver):
             w = A[:, S1] @ x[S1]
             u = -datafit.gradient(w)
         else:
-            S0 = node.S0
+            S0 = node.S0  # noqa
             S1 = node.S1
             Sb = node.Sb
             x = node.x
@@ -177,9 +177,9 @@ class CdBoundingSolver(BnbBoundingSolver):
             u = node.u
 
         # Working set configuration
-        Sb0 = np.zeros(node.Sb.shape, dtype=np.bool_)
+        Sb0 = np.zeros(node.Sb.shape, dtype=np.bool_)  # noqa
         Sbi = np.copy(Sb)
-        Sb1 = np.zeros(node.Sb.shape, dtype=np.bool_)
+        Sb1 = np.zeros(node.Sb.shape, dtype=np.bool_)  # noqa
         Ws = S1 | (x != 0.0)
 
         # Primal and dual objective values

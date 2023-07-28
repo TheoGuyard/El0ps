@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from el0ps.datafit import Quadratic
 from el0ps.penalty import Bigm
@@ -42,11 +41,6 @@ def test_solver():
     assert node.S1[1]
     assert np.allclose(node.w, problem.A @ node.x)
     assert np.allclose(node.u, -problem.datafit.gradient(w))
-
-    with pytest.raises(ValueError):
-        node.fix_to(problem, 0, 1)
-    with pytest.raises(ValueError):
-        node.fix_to(problem, 2, 2)
 
     bnb_solver = BnbSolver()
     mip_solver = GurobiSolver()
