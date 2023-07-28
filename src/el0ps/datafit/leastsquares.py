@@ -4,8 +4,8 @@ from numpy.typing import NDArray
 from .base import ProximableDatafit, SmoothDatafit
 
 
-class Quadratic(ProximableDatafit, SmoothDatafit):
-    """Quadratic data-fidelity function given by
+class Leastsquares(ProximableDatafit, SmoothDatafit):
+    """Least-squares data-fidelity function given by
 
     .. math:: f(x) = ||x - y||_2^2 / 2m
 
@@ -23,7 +23,7 @@ class Quadratic(ProximableDatafit, SmoothDatafit):
         self.L = 1.0 / y.size
 
     def __str__(self) -> str:
-        return "Quadratic"
+        return "Leastsquares"
 
     def get_spec(self) -> tuple:
         spec = (("y", float64[::1]), ("m", int32), ("L", float64))

@@ -5,7 +5,8 @@ from el0ps.datafit import (
     BaseDatafit,
     ProximableDatafit,
     SmoothDatafit,
-    Quadratic,
+    Leastsquares,
+    Logistic,
 )
 
 m = 100
@@ -13,7 +14,7 @@ y = np.random.randn(m)
 x = np.random.randn(m)
 u = np.random.randn(m)
 base_datafits = [BaseDatafit, ProximableDatafit, SmoothDatafit]
-datafits = [Quadratic(y)]
+datafits = [Leastsquares(y), Logistic(2. * (y > 0.) - 1.)]
 
 
 @pytest.mark.parametrize("datafit", datafits)

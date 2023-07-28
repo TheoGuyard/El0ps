@@ -89,7 +89,6 @@ class BnbBoundingSolver:
         Sbi: NDArray[np.bool_],
         Sb1: NDArray[np.bool_],
     ) -> None:
-
         for i in np.flatnonzero(Sb & ~np.isnan(p)):
             if dv + np.maximum(-p[i], 0.0) > ub:
                 Sb[i] = False
