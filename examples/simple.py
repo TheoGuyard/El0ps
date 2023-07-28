@@ -1,6 +1,6 @@
 import numpy as np
 from el0ps import Problem, compute_lmbd_max
-from el0ps.datafit import Quadratic
+from el0ps.datafit import Leastsquares
 from el0ps.penalty import Bigm
 from el0ps.solver import BnbSolver, GurobiSolver
 
@@ -14,7 +14,7 @@ y = A @ x
 y += np.random.randn(m) * 0.1 * (np.linalg.norm(y)**2 / m)
 M = 1.5 * np.max(np.abs(x))
 
-datafit = Quadratic(y)
+datafit = Leastsquares(y)
 penalty = Bigm(M)
 lmbd = 0.1 * compute_lmbd_max(datafit, penalty, A)
 problem = Problem(datafit, penalty, A, lmbd)

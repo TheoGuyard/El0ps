@@ -1,0 +1,47 @@
+import numpy as np
+from numba import int32, float64
+from numpy.typing import NDArray
+from .base import SmoothDatafit
+
+
+class Logistic(SmoothDatafit):
+    """Logistic data-fidelity function given by
+
+    .. math:: f(x) = sum(log(1 + exp(-y * x))) / m
+
+    where `m` is the size of vector `y` and `*` is the element-wise product.
+
+    Parameters
+    ----------
+    y: NDArray[np.float64]
+        Data vector.
+    """
+
+    def __init__(self, y: NDArray[np.float64]) -> None:
+        assert np.allclose(np.abs(y), 1.0)
+        self.y = y
+        self.m = y.size
+        self.L = 1.0 / (4.0 * y.size)
+
+    def __str__(self) -> str:
+        return "Logistic"
+
+    def get_spec(self) -> tuple:
+        spec = (("y", float64[::1]), ("m", int32), ("L", float64))
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(y=self.y)
+
+    def value(self, x: NDArray[np.float64]) -> float:
+        return np.sum(np.log(1.0 + np.exp(-self.y * x))) / self.m
+
+    def conjugate(self, x: NDArray[np.float64]) -> float:
+        c = (x * self.y) * self.m
+        if not np.all((0.0 < c) & (c < 1.0)):
+            return np.inf
+        r = 1.0 - c
+        return (np.dot(c, np.log(c)) + np.dot(r, np.log(r))) / self.m
+
+    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+        return -(self.m * self.y) / (1.0 + np.exp(self.y * x))

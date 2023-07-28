@@ -12,7 +12,7 @@ class L1norm(ProximablePenalty):
 
     Parameters
     ----------
-    alpha : float, positive
+    alpha: float, positive
         L1-norm weight.
     """
 

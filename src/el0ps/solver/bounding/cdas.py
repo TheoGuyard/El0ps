@@ -273,9 +273,39 @@ class CdBoundingSolver(BnbBoundingSolver):
                 if np.isnan(dv):
                     dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
                 if l1screening:
-                    self.l1screening(datafit, A, x, w, u, v, L, tau, pv, dv, Ws, Sb0, Sbi, Sb1)  # noqa
+                    self.l1screening(
+                        datafit,
+                        A,
+                        x,
+                        w,
+                        u,
+                        v,
+                        L,
+                        tau,
+                        pv,
+                        dv,
+                        Ws,
+                        Sb0,
+                        Sbi,
+                        Sb1,
+                    )  # noqa
                 if l0screening:
-                    self.l0screening(datafit, A, x, w, u, p, ub, dv, S0, S1, Sb, Ws, Sbi, Sb1)  # noqa
+                    self.l0screening(
+                        datafit,
+                        A,
+                        x,
+                        w,
+                        u,
+                        p,
+                        ub,
+                        dv,
+                        S0,
+                        S1,
+                        Sb,
+                        Ws,
+                        Sbi,
+                        Sb1,
+                    )  # noqa
 
         # ----- Post-processing ----- #
 

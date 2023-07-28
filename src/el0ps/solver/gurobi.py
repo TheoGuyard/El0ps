@@ -33,7 +33,7 @@ class GurobiSolver(BaseSolver):
         x_var: gp.MVar,
         f_var: gp.Var,
     ) -> None:
-        if str(problem.datafit) == "Quadratic":
+        if str(problem.datafit) == "Leastsquares":
             r_var = problem.datafit.y - problem.A @ x_var
             model.addConstr(f_var >= (r_var @ r_var) / (2.0 * problem.m))
         else:

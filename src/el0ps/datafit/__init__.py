@@ -1,11 +1,13 @@
 """Data-fidelity functions."""
 
 from .base import BaseDatafit, SmoothDatafit, ProximableDatafit
-from .quadratic import Quadratic
+from .leastsquares import Leastsquares
+from .logistic import Logistic
 
 __all__ = [
     "BaseDatafit",
     "ProximableDatafit",
     "SmoothDatafit",
-    "Quadratic",
+    "Leastsquares",
+    "Logistic",
 ]

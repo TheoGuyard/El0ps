@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from el0ps.penalty import ProximablePenalty, Bigm, L1norm, L2norm
+from el0ps.penalty import (
+    ProximablePenalty,
+    Bigm,
+    BigmL1norm,
+    BigmL2norm,
+    L1norm,
+    L2norm,
+    L1L2norm,
+)
 
 n = 100
 x = np.random.randn(n)
@@ -9,7 +17,15 @@ u = np.random.randn(n)
 lmbd = np.random.rand()
 bigm = np.linalg.norm(x, np.inf)
 alpha = np.random.rand()
-penalties = [Bigm(bigm), L1norm(alpha), L2norm(alpha)]
+beta = np.random.rand()
+penalties = [
+    Bigm(bigm),
+    BigmL1norm(bigm, alpha),
+    BigmL2norm(bigm, alpha),
+    L1norm(alpha),
+    L2norm(alpha),
+    L1L2norm(alpha, beta),
+]
 
 
 @pytest.mark.parametrize("penalty", penalties)

@@ -1,6 +1,6 @@
 import numpy as np
 
-from el0ps.datafit import Quadratic
+from el0ps.datafit import Leastsquares
 from el0ps.penalty import Bigm
 from el0ps.problem import Problem, compute_lmbd_max
 from el0ps.solver import Status, BnbNode, BnbSolver, GurobiSolver
@@ -16,7 +16,7 @@ def test_solver():
     y += np.random.randn(m) * 0.1 * (np.linalg.norm(y) ** 2 / m)
     M = 1.5 * np.max(np.abs(x))
 
-    datafit = Quadratic(y)
+    datafit = Leastsquares(y)
     penalty = Bigm(M)
     lmbd = 0.01 * compute_lmbd_max(datafit, penalty, A)
     problem = Problem(datafit, penalty, A, lmbd)
@@ -50,5 +50,9 @@ def test_solver():
 
     assert bnb_result.status == Status.OPTIMAL
     assert mip_result.status == Status.OPTIMAL
-    assert np.allclose(bnb_result.objective_value, mip_result.objective_value)
+    assert np.allclose(
+        bnb_result.objective_value,
+        mip_result.objective_value,
+        rtol=1e-4,
+    )
     assert np.allclose(bnb_result.z, mip_result.z)

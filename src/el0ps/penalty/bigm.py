@@ -12,7 +12,7 @@ class Bigm(ProximablePenalty):
 
     Parameters
     ----------
-    M : float
+    M: float
         Big-M value.
     """
 

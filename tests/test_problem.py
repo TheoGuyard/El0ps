@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from el0ps.datafit import Quadratic
+from el0ps.datafit import Leastsquares
 from el0ps.penalty import L1norm, L2norm
 from el0ps.problem import Problem, compute_lmbd_max
 
@@ -14,7 +14,7 @@ x = np.random.randn(n)
 w = A @ x
 lmbd = np.random.rand()
 alpha = np.random.rand()
-datafit = Quadratic(y)
+datafit = Leastsquares(y)
 penalty = L2norm(alpha)
 
 
