@@ -51,6 +51,8 @@ class Problem:
             raise ValueError("Parameter `A` must be a two-dimensional array.")
         if A.size == 0:
             raise ValueError("Parameter `A` is empty.")
+        if not A.flags.f_contiguous:
+            A = np.array(A, order='F')
         if not isinstance(lmbd, float):
             raise ValueError("Parameter `lmbd` must be a `float`.")
         if lmbd < 0.0:

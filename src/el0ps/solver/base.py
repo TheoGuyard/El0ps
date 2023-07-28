@@ -9,7 +9,6 @@ from el0ps.problem import Problem
 
 
 class Status(Enum):
-    SOLVE_NOT_CALLED = "SOLVE_NOT_CALLED"
     OTHER_LIMIT = "OTHER_LIMIT"
     NODE_LIMIT = "NODE_LIMIT"
     TIME_LIMIT = "TIME_LIMIT"
@@ -26,7 +25,6 @@ class Results:
     node_count: int
     objective_value: float
     lower_bound: float
-    upper_bound: float
     x: NDArray
     z: NDArray
     trace: dict

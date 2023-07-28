@@ -158,7 +158,6 @@ class GurobiSolver(BaseSolver):
             self.model.Runtime,
             int(self.model.NodeCount),
             self.model.ObjVal,
-            self.model.ObjVal,
             self.model.ObjBound,
             np.array(self.x_var.X),
             np.array(self.z_var.X),

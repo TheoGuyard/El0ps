@@ -2,7 +2,10 @@ import numpy as np
 from typing import Union
 from numpy.typing import NDArray
 from numba import njit
+from el0ps.datafit import BaseDatafit
+from el0ps.penalty import BasePenalty
 from el0ps.problem import Problem
+from el0ps.solver import BnbNode
 from .base import BnbBoundingSolver
 
 
@@ -12,177 +15,261 @@ def softhresh(x: float, eta: float) -> float:
 
 
 @njit
-def abs_gap(pv, dv):
+def abs_gap(pv: float, dv: float) -> float:
     return np.abs(pv - dv)
 
 
 @njit
-def rel_gap(pv, dv):
+def rel_gap(pv: float, dv: float) -> float:
     return np.abs(pv - dv) / (np.abs(pv) + 1e-16)
 
 
+@njit
+def cd_loop(
+    datafit: BaseDatafit,
+    penalty: BasePenalty,
+    A: NDArray[np.float64],
+    lmbd: float,
+    tau: float,
+    mu: float,
+    rho: NDArray[np.float64],
+    eta: NDArray[np.float64],
+    delta: NDArray[np.float64],
+    x: NDArray[np.float64],
+    w: NDArray[np.float64],
+    u: NDArray[np.float64],
+    Ws: NDArray[np.bool_],
+    Sb: NDArray[np.bool_],
+) -> float:
+    for i in np.flatnonzero(Ws):
+        ai = A[:, i]
+        xi = x[i]
+        ci = xi + rho[i] * np.dot(ai, u)
+        if Sb[i] and np.abs(ci) <= delta[i]:
+            x[i] = softhresh(ci, eta[i])
+        else:
+            x[i] = penalty.prox(ci, rho[i])
+        if x[i] != xi:
+            w += (x[i] - xi) * ai
+            u[:] = -datafit.gradient(w)
+    return compute_pv(datafit, penalty, lmbd, tau, mu, x, w, Ws, Sb)
+
+
+@njit
+def compute_pv(
+    datafit: BaseDatafit,
+    penalty: BasePenalty,
+    lmbd: float,
+    tau: float,
+    mu: float,
+    x: NDArray[np.float64],
+    w: NDArray[np.float64],
+    Ws: NDArray[np.bool_],
+    Sb: NDArray[np.bool_],
+) -> float:
+    pv = datafit.value(w)
+    for i in np.flatnonzero(Ws):
+        xi = x[i]
+        if Sb[i] and np.abs(xi) <= mu:
+            pv += tau * np.abs(xi)
+        else:
+            pv += penalty.value(xi) + lmbd
+    return pv
+
+
+@njit
+def compute_dv(
+    datafit: BaseDatafit,
+    penalty: BasePenalty,
+    A: NDArray[np.float64],
+    lmbd: float,
+    u: NDArray[np.float64],
+    v: NDArray[np.float64],
+    p: NDArray[np.float64],
+    Ws: NDArray[np.bool_],
+    Sb: NDArray[np.bool_],
+) -> float:
+    dv = -datafit.conjugate(-u)
+    for i in np.flatnonzero(Ws):
+        v[i] = np.dot(A[:, i], u)
+        p[i] = penalty.conjugate(v[i]) - lmbd
+        dv -= np.maximum(p[i], 0.0) if Sb[i] else p[i]
+    return dv
+
+
+@njit
+def ws_update(
+    penalty: BasePenalty,
+    A: NDArray[np.float64],
+    lmbd: float,
+    tau: float,
+    u: NDArray[np.float64],
+    v: NDArray[np.float64],
+    p: NDArray[np.float64],
+    Ws: NDArray[np.bool_],
+    Sbi: NDArray[np.bool_],
+) -> bool:
+    flag = False
+    for i in np.flatnonzero(~Ws & Sbi):
+        v[i] = np.dot(A[:, i], u)
+        p[i] = penalty.conjugate(v[i]) - lmbd
+        if np.abs(v[i]) > tau:
+            flag = True
+            Ws[i] = True
+    return flag
+
+
 class CdBoundingSolver(BnbBoundingSolver):
-    def __init__(
-        self, rel_gap_tol=1e-4, iter_limit_cd=1_000, iter_limit_as=100
-    ):
-        self.rel_gap_tol = rel_gap_tol
+    def __init__(self, iter_limit_cd=1_000, iter_limit_as=100):
         self.iter_limit_cd = iter_limit_cd
         self.iter_limit_as = iter_limit_as
 
     def setup(
         self,
         problem: Problem,
-        x_init: Union[NDArray, None] = None,
-        S0_init: Union[NDArray, None] = None,
-        S1_init: Union[NDArray, None] = None,
+        x_init: Union[NDArray[np.float64], None] = None,
+        S0_init: Union[NDArray[np.bool_], None] = None,
+        S1_init: Union[NDArray[np.bool_], None] = None,
     ) -> None:
         self.A_colnorm = np.linalg.norm(problem.A, ord=2, axis=0) ** 2
-        self.param_slope = problem.penalty.param_slope(problem.lmbd)
-        self.param_limit = problem.penalty.param_limit(problem.lmbd)
+        self.tau = problem.penalty.param_slope(problem.lmbd)
+        self.mu = problem.penalty.param_limit(problem.lmbd)
         self.rho = 1.0 / (problem.datafit.L * self.A_colnorm)
-        self.eta = self.param_slope * self.rho
-        self.delta = self.eta + self.param_limit
+        self.eta = self.tau * self.rho
+        self.delta = self.eta + self.mu
 
-    def compute_pv(self, datafit, penalty, lmbd, x, w, S, Sb):
-        fval = datafit.value(w)
-        gval = 0.0
-        for i in np.nonzero(S)[0]:
-            xi = x[i]
-            if np.logical_and(Sb[i], np.abs(xi) <= self.param_limit):
-                gval += self.param_slope * np.abs(xi)
-            else:
-                gval += penalty.value(xi) + lmbd
-        return fval + gval
-
-    def compute_dv(self, datafit, penalty, A, lmbd, u, v, p, S, Sb):
-        cfval = datafit.conjugate(-u)
-        cgval = 0.0
-        for i in np.nonzero(S)[0]:
-            v[i] = np.dot(A[:, i], u)
-            p[i] = penalty.conjugate(v[i]) - lmbd
-            cgval += np.maximum(p[i], 0.0) if Sb[i] else p[i]
-        return -cfval - cgval
-
-    def cd_loop(self, datafit, penalty, A, x, w, u, S, Sb):
-        for i in np.nonzero(S)[0]:
-            ai = A[:, i]
-            xi = x[i]
-            ci = xi + self.rho[i] * np.dot(ai, u)
-            if Sb[i] and (np.abs(ci) <= self.delta[i]):
-                x[i] = softhresh(ci, self.eta[i])
-            else:
-                x[i] = penalty.prox(ci, self.rho[i])
-            if x[i] != xi:
-                w += (x[i] - xi) * ai
-                u[:] = -datafit.gradient(w)
-
-    def bound(self, problem, node, bnb, bounding_type):
-        # Problem data
+    def bound(
+        self,
+        problem: Problem,
+        node: BnbNode,
+        upper_bound: float,
+        abs_tol: float,
+        rel_tol: float,
+        l1screening: bool,
+        l0screening: bool,
+        incumbent: bool = False,
+    ):
+        # Working values
         datafit = problem.datafit
         penalty = problem.penalty
         A = problem.A
         lmbd = problem.lmbd
-
-        # Node data
-        if bounding_type == "lower":
+        tau = self.tau
+        mu = self.mu
+        rho = self.rho
+        eta = self.eta
+        delta = self.delta
+        v = np.empty(problem.n)
+        p = np.empty(problem.n)
+        if incumbent:
+            S0 = node.S0 | node.Sb
+            S1 = node.S1
+            Sb = np.zeros(node.Sb.shape, dtype=np.bool_)
+            x = node.x_inc
+            w = A[:, S1] @ x[S1]
+            u = -datafit.gradient(w)
+        else:
+            S0 = node.S0  # noqa
             S1 = node.S1
             Sb = node.Sb
             x = node.x
             w = node.w
             u = node.u
-        else:
-            S1 = node.S1
-            Sb = np.zeros(node.Sb.shape, dtype=bool)
-            x = np.zeros(node.x.shape)
-            x[S1] = node.x[S1]
-            w = A[:, S1] @ x[S1]
-            u = -datafit.gradient(w)
 
-        # Support configuration
+        # Working set configuration
+        Sb0 = np.zeros(node.Sb.shape, dtype=np.bool_)  # noqa
         Sbi = np.copy(Sb)
-        S = np.logical_or(x != 0.0, S1)
+        Sb1 = np.zeros(node.Sb.shape, dtype=np.bool_)  # noqa
+        Ws = S1 | (x != 0.0)
 
-        # BnB upper bound and primal/dual objective values
-        ub = bnb.upper_bound
-        pv = +np.inf
+        # Primal and dual objective values
+        pv = np.inf
         dv = np.nan
 
         # ----- Outer active set loop ----- #
 
-        rel_tol_cd = 0.5 * self.rel_gap_tol
-        v = np.empty(problem.n)
-        p = np.empty(problem.n)
-        it_cd = 0
+        rel_tol_inner = 0.5 * rel_tol
         it_as = 0
         while True:
-            it_as += 1
             v[:] = np.nan
             p[:] = np.nan
             dv = np.nan
 
             # ----- Inner coordinate descent solver ----- #
 
+            it_cd = 0
             while True:
                 it_cd += 1
                 pv_old = pv
-
-                self.cd_loop(datafit, penalty, A, x, w, u, S, Sb)
-                pv = self.compute_pv(datafit, penalty, lmbd, x, w, S, Sb)
-
-                # Inner solver convergence criterion
-                #   - lower bounding: no more progress in primal objective
-                #   - upper bounding: dual gap agrees with target mip gap
-                if bounding_type == "lower":
-                    if rel_gap(pv, pv_old) <= rel_tol_cd:
-                        break
-                else:
-                    dv = self.compute_dv(
-                        datafit, penalty, A, lmbd, u, v, p, S, Sb
-                    )
-                    if (
-                        abs_gap(pv, dv) <= bnb.options.abs_tol
-                        and rel_gap(pv, dv) <= bnb.options.rel_tol
-                    ):
-                        break
+                pv = cd_loop(
+                    datafit,
+                    penalty,
+                    A,
+                    lmbd,
+                    tau,
+                    mu,
+                    rho,
+                    eta,
+                    delta,
+                    x,
+                    w,
+                    u,
+                    Ws,
+                    Sb,
+                )
 
                 # Inner solver stopping criterion
-                if it_cd >= self.iter_limit_cd:
+                #   - in lower bounding: no more progress in primal objective
+                #   - in upper bounding: dual gap below the target mip gap
+                #   - in both cases: maximum number of iterations reached
+                if incumbent:
+                    dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
+                    if (
+                        abs_gap(pv, dv) <= abs_tol
+                        and rel_gap(pv, dv) <= rel_tol
+                    ):
+                        break
+                elif rel_gap(pv, pv_old) <= rel_tol_inner:
+                    break
+                elif it_cd >= self.iter_limit_cd:
                     break
 
             # ----- Active-set update ----- #
 
-            flag = False
-            for i in np.nonzero(np.logical_and(np.logical_not(S), Sbi))[0]:
-                v[i] = np.dot(A[:, i], u)
-                p[i] = penalty.conjugate(v[i]) - lmbd
-                if np.abs(v[i]) > self.param_slope:
-                    flag = True
-                    S[i] = True
+            flag = ws_update(penalty, A, lmbd, tau, u, v, p, Ws, Sbi)
 
             # ----- Stopping criterion ----- #
 
-            if bounding_type == "upper":
-                break
-            if it_as >= self.iter_limit_as:
-                break
-            if bnb.solve_time >= bnb.options.time_limit:
+            # Outer solver stopping criterion
+            #   - in lower bounding: no optimality conditions are violated
+            #     and that one the following condition is met:
+            #       i) the relative tolearance is met
+            #       ii) the dual value is above the best upper bound
+            #       iii) the tolearance of the inner solver is almost zero
+            #     If optimality conditions are not violated but none of the
+            #     above conditions are met, this means that the inner solver
+            #     tolearance must be decreased.
+            #   - in upper bounding: stops since the active set is fixed
+            #   - in both cases: maximum number of iterations reached
+            if incumbent == "upper":
                 break
             if not flag:
-                dv = self.compute_dv(datafit, penalty, A, lmbd, u, v, p, S, Sb)
-                if rel_gap(pv, dv) < bnb.options.rel_tol:
+                dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
+                if rel_gap(pv, dv) < rel_tol:
                     break
-                if dv >= ub:
+                if dv >= upper_bound:
                     break
-                if rel_tol_cd <= 1e-8:
+                if rel_tol_inner <= 1e-8:
                     break
-                rel_tol_cd *= 1e-2
+                rel_tol_inner *= 1e-2
+            if it_as >= self.iter_limit_as:
+                break
 
         # ----- Post-processing ----- #
 
-        if bounding_type == "lower":
-            if np.isnan(dv):
-                dv = self.compute_dv(datafit, penalty, A, lmbd, u, v, p, S, Sb)
-            node.lower_bound = dv
-        else:
+        if incumbent:
             node.upper_bound = pv
-            node.x_inc = np.copy(x)
+        else:
+            if np.isnan(dv):
+                dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
+            node.lower_bound = dv
