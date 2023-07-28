@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union
 from numpy.typing import NDArray
 from numba import njit
-from el0ps.datafit import BaseDatafit
+from el0ps.datafit import SmoothDatafit
 from el0ps.penalty import BasePenalty
 from el0ps.problem import Problem
 from el0ps.solver import BnbNode
@@ -26,7 +26,7 @@ def rel_gap(pv: float, dv: float) -> float:
 
 @njit
 def cd_loop(
-    datafit: BaseDatafit,
+    datafit: SmoothDatafit,
     penalty: BasePenalty,
     A: NDArray[np.float64],
     lmbd: float,
@@ -57,7 +57,7 @@ def cd_loop(
 
 @njit
 def compute_pv(
-    datafit: BaseDatafit,
+    datafit: SmoothDatafit,
     penalty: BasePenalty,
     lmbd: float,
     tau: float,
@@ -79,7 +79,7 @@ def compute_pv(
 
 @njit
 def compute_dv(
-    datafit: BaseDatafit,
+    datafit: SmoothDatafit,
     penalty: BasePenalty,
     A: NDArray[np.float64],
     lmbd: float,
@@ -131,6 +131,7 @@ class CdBoundingSolver(BnbBoundingSolver):
         S0_init: Union[NDArray[np.bool_], None] = None,
         S1_init: Union[NDArray[np.bool_], None] = None,
     ) -> None:
+        self.L = problem.datafit.L
         self.A_colnorm = np.linalg.norm(problem.A, ord=2, axis=0) ** 2
         self.tau = problem.penalty.param_slope(problem.lmbd)
         self.mu = problem.penalty.param_limit(problem.lmbd)
@@ -142,7 +143,7 @@ class CdBoundingSolver(BnbBoundingSolver):
         self,
         problem: Problem,
         node: BnbNode,
-        upper_bound: float,
+        ub: float,
         abs_tol: float,
         rel_tol: float,
         l1screening: bool,
@@ -154,6 +155,7 @@ class CdBoundingSolver(BnbBoundingSolver):
         penalty = problem.penalty
         A = problem.A
         lmbd = problem.lmbd
+        L = self.L
         tau = self.tau
         mu = self.mu
         rho = self.rho
@@ -169,7 +171,7 @@ class CdBoundingSolver(BnbBoundingSolver):
             w = A[:, S1] @ x[S1]
             u = -datafit.gradient(w)
         else:
-            S0 = node.S0  # noqa
+            S0 = node.S0
             S1 = node.S1
             Sb = node.Sb
             x = node.x
@@ -177,9 +179,9 @@ class CdBoundingSolver(BnbBoundingSolver):
             u = node.u
 
         # Working set configuration
-        Sb0 = np.zeros(node.Sb.shape, dtype=np.bool_)  # noqa
+        Sb0 = np.zeros(node.Sb.shape, dtype=np.bool_)
         Sbi = np.copy(Sb)
-        Sb1 = np.zeros(node.Sb.shape, dtype=np.bool_)  # noqa
+        Sb1 = np.zeros(node.Sb.shape, dtype=np.bool_)
         Ws = S1 | (x != 0.0)
 
         # Primal and dual objective values
@@ -257,13 +259,23 @@ class CdBoundingSolver(BnbBoundingSolver):
                 dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
                 if rel_gap(pv, dv) < rel_tol:
                     break
-                if dv >= upper_bound:
+                if dv >= ub:
                     break
                 if rel_tol_inner <= 1e-8:
                     break
                 rel_tol_inner *= 1e-2
             if it_as >= self.iter_limit_as:
                 break
+
+            # ----- Accelerations ----- #
+
+            if not incumbent and (l1screening or l0screening):
+                if np.isnan(dv):
+                    dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
+                if l1screening:
+                    self.l1screening(datafit, A, x, w, u, v, L, tau, pv, dv, Ws, Sb0, Sbi, Sb1)  # noqa
+                if l0screening:
+                    self.l0screening(datafit, A, x, w, u, p, ub, dv, S0, S1, Sb, Ws, Sbi, Sb1)  # noqa
 
         # ----- Post-processing ----- #
 
