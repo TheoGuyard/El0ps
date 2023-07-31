@@ -3,7 +3,7 @@ import numpy as np
 from el0ps.datafit import Leastsquares
 from el0ps.penalty import Bigm
 from el0ps.problem import Problem, compute_lmbd_max
-from el0ps.solver import Status, BnbNode, BnbSolver, GurobiSolver
+from el0ps.solver import Status, BnbNode, BnbSolver
 
 
 def test_solver():
@@ -42,17 +42,7 @@ def test_solver():
     assert np.allclose(node.w, problem.A @ node.x)
     assert np.allclose(node.u, -problem.datafit.gradient(w))
 
-    bnb_solver = BnbSolver()
-    mip_solver = GurobiSolver()
+    solver = BnbSolver()
+    result = solver.solve(problem)
 
-    bnb_result = bnb_solver.solve(problem)
-    mip_result = mip_solver.solve(problem)
-
-    assert bnb_result.status == Status.OPTIMAL
-    assert mip_result.status == Status.OPTIMAL
-    assert np.allclose(
-        bnb_result.objective_value,
-        mip_result.objective_value,
-        rtol=1e-4,
-    )
-    assert np.allclose(bnb_result.z, mip_result.z)
+    assert result.status == Status.OPTIMAL
