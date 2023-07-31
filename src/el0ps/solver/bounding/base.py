@@ -40,7 +40,6 @@ class BnbBoundingSolver:
         problem: Problem,
         node: BnbNode,
         upper_bound: float,
-        abs_tol: float,
         rel_tol: float,
         l1screening: bool,
         l0screening: bool,
@@ -57,8 +56,6 @@ class BnbBoundingSolver:
             Node to bound.
         upper_bound: float
             Best upper bound in the BnB algorithm.
-        abs_tol: float
-            Absolute MIP tolerance of the BnB algorithm.
         rel_tol: float
             Relative MIP tolerance of the BnB algorithm.
         l1screening: bool

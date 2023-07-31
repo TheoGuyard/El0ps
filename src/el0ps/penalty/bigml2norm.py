@@ -46,6 +46,9 @@ class BigmL2norm(ProximablePenalty):
         return np.maximum(
             np.minimum(x / (1.0 + 2.0 * eta * self.alpha), self.M), -self.M
         )
+    
+    def conjugate_scaling_factor(self, x: float) -> float:
+        return 1.
 
     def param_slope(self, lmbd: float) -> float:
         if lmbd < self.alpha * self.M**2:

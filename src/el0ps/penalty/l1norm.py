@@ -38,6 +38,9 @@ class L1norm(ProximablePenalty):
     def prox(self, x: float, eta: float) -> float:
         return np.sign(x) * np.maximum(0.0, np.abs(x) - eta * self.alpha)
 
+    def conjugate_scaling_factor(self, x: float) -> float:
+        return self.alpha / (np.abs(x) + 1e-10)
+
     def param_slope(self, lmbd: float) -> float:
         return self.alpha
 

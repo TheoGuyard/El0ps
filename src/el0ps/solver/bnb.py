@@ -42,8 +42,6 @@ class BnbOptions:
         Branch-and-Bound time limit in seconds.
     node_limit: int
         Branch-and-Bound node limit.
-    abs_tol: float
-        Absolute MIP tolerance.
     rel_tol: float
         Relative MIP tolerance.
     int_tol: float
@@ -64,7 +62,6 @@ class BnbOptions:
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
     time_limit: float = float(sys.maxsize)
     node_limit: int = sys.maxsize
-    abs_tol: float = 1e-8
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
     l1screening: bool = True
@@ -113,13 +110,12 @@ class BnbSolver(BaseSolver):
         self.upper_bound = None
         self.trace = None
 
-    @property
-    def abs_gap(self):
-        return self.upper_bound - self.lower_bound
+    def __str__(self):
+        return "BnbSolver"
 
     @property
     def rel_gap(self):
-        return self.abs_gap / (np.abs(self.upper_bound) + 1e-16)
+        return np.abs(self.upper_bound - self.lower_bound) / (np.abs(self.upper_bound) + 1e-16)
 
     @property
     def solve_time(self):
@@ -137,10 +133,10 @@ class BnbSolver(BaseSolver):
         S1_init: Union[NDArray[np.float64], None] = None,
     ):
         # Sanity checks
-        x_init = x_init if x_init else np.zeros(problem.n)
+        x_init = x_init if x_init is not None else np.zeros(problem.n)
         w_init = problem.A @ x_init
-        S0_init = S0_init if S0_init else np.zeros(problem.n, dtype=np.bool_)
-        S1_init = S1_init if S1_init else np.zeros(problem.n, dtype=np.bool_)
+        S0_init = S0_init if S0_init is not None else np.zeros(problem.n, dtype=np.bool_)
+        S1_init = S1_init if S1_init is not None else np.zeros(problem.n, dtype=np.bool_)
         if not np.all(x_init[S0_init] == 0.0):
             raise ValueError("Arguments `x_init` and `S0_init` missmatch.")
         if not np.all(x_init[S1_init] != 0.0):
@@ -179,7 +175,7 @@ class BnbSolver(BaseSolver):
         self.queue.append(root)
 
     def print_header(self):
-        s = "-" * 68 + "\n"
+        s = "-" * 58 + "\n"
         s += "|"
         s += " {:>6}".format("Nodes")
         s += " {:>6}".format("Timer")
@@ -188,10 +184,9 @@ class BnbSolver(BaseSolver):
         s += " {:>5}".format("Sb")
         s += " {:>6}".format("Lower")
         s += " {:>6}".format("Upper")
-        s += " {:>9}".format("Abs gap")
         s += " {:>9}".format("Rel gap")
         s += "|" + "\n"
-        s += "-" * 68
+        s += "-" * 58
         print(s)
 
     def print_progress(self, node: BnbNode):
@@ -203,13 +198,12 @@ class BnbSolver(BaseSolver):
         s += " {:>5d}".format(node.card_Sb)
         s += " {:>6.2f}".format(self.lower_bound)
         s += " {:>6.2f}".format(self.upper_bound)
-        s += " {:>9.2e}".format(self.abs_gap)
         s += " {:>9.2e}".format(self.rel_gap)
         s += "|"
         print(s)
 
     def print_footer(self):
-        s = "-" * 68
+        s = "-" * 58
         print(s)
 
     def can_continue(self):
@@ -220,9 +214,7 @@ class BnbSolver(BaseSolver):
             self.status = Status.TIME_LIMIT
         elif self.node_count >= self.options.node_limit:
             self.status = Status.NODE_LIMIT
-        elif (self.rel_gap < self.options.rel_tol) and (
-            self.abs_gap < self.options.abs_tol
-        ):
+        elif self.rel_gap < self.options.rel_tol:
             self.status = Status.OPTIMAL
         elif not any(self.queue):
             self.status = Status.OPTIMAL
@@ -257,9 +249,7 @@ class BnbSolver(BaseSolver):
         return node.lower_bound > self.upper_bound
 
     def has_tight_relaxation(self, node: BnbNode):
-        return (node.rel_gap <= self.options.rel_tol) and (
-            node.abs_gap <= self.options.abs_tol
-        )
+        return node.rel_gap <= self.options.rel_tol
 
     def update_trace(self, node: BnbNode):
         for key in self._trace_keys:
@@ -280,7 +270,7 @@ class BnbSolver(BaseSolver):
                 [qnode.lower_bound for qnode in self.queue]
             )
         else:
-            self.lower_bound = np.minimum(node.lower_bound, self.upper_bound)
+            self.lower_bound = self.upper_bound
 
     def branch(self, problem: Problem, node: BnbNode):
         if not np.any(node.Sb):
@@ -331,7 +321,6 @@ class BnbSolver(BaseSolver):
                 problem,
                 node,
                 self.upper_bound,
-                self.options.abs_tol,
                 self.options.rel_tol,
                 self.options.l1screening,
                 self.options.l0screening,
@@ -341,7 +330,6 @@ class BnbSolver(BaseSolver):
                     problem,
                     node,
                     self.upper_bound,
-                    self.options.abs_tol,
                     self.options.rel_tol,
                     self.options.l1screening,
                     self.options.l0screening,
@@ -349,7 +337,7 @@ class BnbSolver(BaseSolver):
                 )
                 if not self.has_tight_relaxation(node):
                     self.branch(problem, node)
-                self.update_bounds(node)
+            self.update_bounds(node)
             if self.options.trace:
                 self.update_trace(node)
             if self.options.verbose:
@@ -363,7 +351,7 @@ class BnbSolver(BaseSolver):
             self.solve_time,
             self.node_count,
             problem.value(self.x),
-            self.lower_bound,
+            self.rel_gap,
             self.x,
             np.array(self.x != 0.0, dtype=float),
             self.trace,

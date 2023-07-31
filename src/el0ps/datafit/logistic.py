@@ -18,7 +18,6 @@ class Logistic(SmoothDatafit):
     """
 
     def __init__(self, y: NDArray[np.float64]) -> None:
-        assert np.allclose(np.abs(y), 1.0)
         self.y = y
         self.m = y.size
         self.L = 1.0 / (4.0 * y.size)
@@ -37,11 +36,11 @@ class Logistic(SmoothDatafit):
         return np.sum(np.log(1.0 + np.exp(-self.y * x))) / self.m
 
     def conjugate(self, x: NDArray[np.float64]) -> float:
-        c = (x * self.y) * self.m
+        c = -(x * self.y) * self.m
         if not np.all((0.0 < c) & (c < 1.0)):
             return np.inf
         r = 1.0 - c
         return (np.dot(c, np.log(c)) + np.dot(r, np.log(r))) / self.m
 
     def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
-        return -(self.m * self.y) / (1.0 + np.exp(self.y * x))
+        return -self.y / (self.m * (1.0 + np.exp(self.y * x)))
