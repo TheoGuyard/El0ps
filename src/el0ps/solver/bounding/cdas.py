@@ -96,7 +96,7 @@ def compute_dv(
         p[i] = penalty.conjugate(v[i]) - lmbd
         sf[i] = penalty.conjugate_scaling_factor(v[i])
     g_sf = np.min(sf)
-    u_sf = g_sf * u 
+    u_sf = g_sf * u
     v_sf = g_sf * v
     dv = -datafit.conjugate(-u_sf)
     for i in nz:

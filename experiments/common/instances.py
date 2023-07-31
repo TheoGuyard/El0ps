@@ -1,24 +1,26 @@
 import warnings
-import cvxpy as cp
 import numpy as np
 import l0learn
 from el0ps.datafit import Leastsquares, Logistic
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
+
 def f1_score(x_true, x):
-    s = x != 0.
-    s_true = x_true != 0.
+    s = x != 0.0
+    s_true = x_true != 0.0
     i = np.sum(s & s_true)
     p = 1.0 if not np.any(s) else i / np.sum(s)
     r = 1.0 if not np.any(s_true) else i / np.sum(s_true)
     f = 0.0 if (p + r) == 0.0 else 2.0 * p * r / (p + r)
     return f
 
+
 def synthetic_x(k, n):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.random.randn(k)
     return x
+
 
 def synthetic_A(m, n, rho, normalize):
     M = np.zeros(n)
@@ -32,6 +34,7 @@ def synthetic_A(m, n, rho, normalize):
         A /= np.linalg.norm(A, axis=0, ord=2)
     return A
 
+
 def synthetic_y(datafit_name, x, A, m, snr):
     if datafit_name == "Leastsquares":
         y = A @ x
@@ -44,16 +47,16 @@ def synthetic_y(datafit_name, x, A, m, snr):
         raise ValueError(f"Unsupported data-fidelity function {datafit_name}")
     return y
 
+
 def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
-    
     bindings = {
-        'Leastsquares': 'SquaredError',
-        'Logistic': 'Logistic',
-        'Bigm': 'L0',
-        'BigmL1norm': 'L0L1',
-        'BigmL2norm': 'L0L2',
-        'L1norm': 'L0L1',
-        'L2norm': 'L0L2',
+        "Leastsquares": "SquaredError",
+        "Logistic": "Logistic",
+        "Bigm": "L0",
+        "BigmL1norm": "L0L1",
+        "BigmL2norm": "L0L2",
+        "L1norm": "L0L1",
+        "L2norm": "L0L2",
     }
 
     assert datafit_name in bindings.keys()
@@ -98,30 +101,30 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         cvfit = l0learn.cvfit(
-            A, 
-            y, 
-            bindings[datafit_name], 
-            bindings[penalty_name], 
-            intercept = False, 
-            num_gamma = 1 if penalty_name == "Bigm" or gamma_true else 10,
-            gamma_max = m * gamma_true if gamma_true else m * 10,
-            gamma_min = m * gamma_true if gamma_true else m * 0.0001,
+            A,
+            y,
+            bindings[datafit_name],
+            bindings[penalty_name],
+            intercept=False,
+            num_gamma=1 if penalty_name == "Bigm" or gamma_true else 10,
+            gamma_max=m * gamma_true if gamma_true else m * 10,
+            gamma_min=m * gamma_true if gamma_true else m * 0.0001,
         )
 
     # Penalty and L0-norm parameters calibration from L0learn path
-    best_x = None
     best_M = None
     best_lmbda = None
     best_gamma = None
     best_cv = np.inf
-    best_f1 = 0.
+    best_f1 = 0.0
     for i, gamma in enumerate(cvfit.gamma):
         for j, lmbda in enumerate(cvfit.lambda_0[i]):
-            x = np.array(cvfit.coeff(lmbda, gamma).todense()).reshape(n+1)[1:]
+            x = np.array(cvfit.coeff(lmbda, gamma).todense()).reshape(n + 1)[
+                1:
+            ]
             cv = cvfit.cv_means[i][j]
-            f1 = 0. if x_true is None else f1_score(x_true, x)
+            f1 = 0.0 if x_true is None else f1_score(x_true, x)
             if f1 >= best_f1 and cv <= best_cv:
-                best_x = np.copy(x)
                 best_M = 1.5 * np.max(np.abs(x))
                 best_lmbda = lmbda / m
                 best_gamma = gamma / m
@@ -141,9 +144,12 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
 
     return datafit, penalty, best_lmbda
 
+
 def synthetic_data(datafit_name, penalty_name, k, m, n, rho, snr, normalize):
     x_true = synthetic_x(k, n)
     A = synthetic_A(m, n, rho, normalize)
     y = synthetic_y(datafit_name, x_true, A, m, snr)
-    datafit, penalty, lmbd = calibrate_objective(datafit_name, penalty_name, A, y, x_true)
+    datafit, penalty, lmbd = calibrate_objective(
+        datafit_name, penalty_name, A, y, x_true
+    )
     return datafit, penalty, A, lmbd, x_true

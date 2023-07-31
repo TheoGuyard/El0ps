@@ -46,9 +46,9 @@ class BigmL1norm(ProximablePenalty):
         return np.sign(x) * np.maximum(
             np.minimum(np.abs(x) - eta * self.alpha, self.M), 0.0
         )
-    
+
     def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.
+        return 1.0
 
     def param_slope(self, lmbd: float) -> float:
         return (lmbd / self.M) + self.alpha

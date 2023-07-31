@@ -73,7 +73,9 @@ class BnbNode:
 
     @property
     def rel_gap(self):
-        return np.abs(self.upper_bound - self.lower_bound) / (np.abs(self.upper_bound) + 1e-16)
+        return np.abs(self.upper_bound - self.lower_bound) / (
+            np.abs(self.upper_bound) + 1e-16
+        )
 
     @property
     def card_S0(self):

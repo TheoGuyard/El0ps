@@ -115,7 +115,9 @@ class BnbSolver(BaseSolver):
 
     @property
     def rel_gap(self):
-        return np.abs(self.upper_bound - self.lower_bound) / (np.abs(self.upper_bound) + 1e-16)
+        return np.abs(self.upper_bound - self.lower_bound) / (
+            np.abs(self.upper_bound) + 1e-16
+        )
 
     @property
     def solve_time(self):
@@ -135,8 +137,16 @@ class BnbSolver(BaseSolver):
         # Sanity checks
         x_init = x_init if x_init is not None else np.zeros(problem.n)
         w_init = problem.A @ x_init
-        S0_init = S0_init if S0_init is not None else np.zeros(problem.n, dtype=np.bool_)
-        S1_init = S1_init if S1_init is not None else np.zeros(problem.n, dtype=np.bool_)
+        S0_init = (
+            S0_init
+            if S0_init is not None
+            else np.zeros(problem.n, dtype=np.bool_)
+        )
+        S1_init = (
+            S1_init
+            if S1_init is not None
+            else np.zeros(problem.n, dtype=np.bool_)
+        )
         if not np.all(x_init[S0_init] == 0.0):
             raise ValueError("Arguments `x_init` and `S0_init` missmatch.")
         if not np.all(x_init[S1_init] != 0.0):

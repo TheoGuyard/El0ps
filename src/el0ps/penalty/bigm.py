@@ -37,9 +37,9 @@ class Bigm(ProximablePenalty):
 
     def prox(self, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.M), -self.M)
-    
+
     def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.
+        return 1.0
 
     def param_slope(self, lmbd: float) -> float:
         return lmbd / self.M

@@ -37,9 +37,9 @@ class L2norm(ProximablePenalty):
 
     def prox(self, x: float, eta: float) -> float:
         return x / (1.0 + 2.0 * eta * self.alpha)
-    
+
     def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.
+        return 1.0
 
     def param_slope(self, lmbd: float) -> float:
         return 2.0 * np.sqrt(lmbd * self.alpha)

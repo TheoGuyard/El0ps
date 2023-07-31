@@ -13,10 +13,10 @@ class GurobiSolver(BaseSolver):
     """Gurobi solver for L0-penalized problems."""
 
     def __init__(
-        self, 
+        self,
         time_limit: float = float(sys.maxsize),
-        rel_tol: float = 1e-4, 
-        int_tol: float = 1e-8, 
+        rel_tol: float = 1e-4,
+        int_tol: float = 1e-8,
         verbose: bool = False,
     ):
         self.options = {
@@ -43,10 +43,10 @@ class GurobiSolver(BaseSolver):
         elif str(problem.datafit) == "Logistic":
             r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
             l_var = model.addMVar(problem.m, vtype="C", name="l", lb=-np.inf)
-            u_var = model.addMVar(problem.m, vtype="C", name="u", lb=0.)
-            v_var = model.addMVar(problem.m, vtype="C", name="v", lb=1.)
+            u_var = model.addMVar(problem.m, vtype="C", name="u", lb=0.0)
+            v_var = model.addMVar(problem.m, vtype="C", name="v", lb=1.0)
             model.addConstr(r_var == -problem.datafit.y * (problem.A @ x_var))
-            model.addConstr(v_var == 1. + u_var)
+            model.addConstr(v_var == 1.0 + u_var)
             for i in range(problem.m):
                 model.addGenConstrExp(r_var[i], u_var[i])
                 model.addGenConstrExp(l_var[i], v_var[i])
@@ -79,8 +79,9 @@ class GurobiSolver(BaseSolver):
             model.addConstr(z_var * s_var >= x_var)
             model.addConstr(z_var * s_var >= -x_var)
             model.addConstr(
-                g_var >= problem.lmbd * sum(z_var) + 
-                problem.penalty.alpha * sum(s_var)
+                g_var
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s_var)
             )
         elif str(problem.penalty) == "BigmL2norm":
             s_var = model.addMVar(problem.n, vtype="C", name="s")
@@ -116,13 +117,13 @@ class GurobiSolver(BaseSolver):
             s2_var = model.addMVar(problem.n, vtype="C", name="s2")
             model.addConstr(z_var * s1_var >= x_var)
             model.addConstr(z_var * s1_var >= -x_var)
-            model.addConstr(s2_var >= 0.)
+            model.addConstr(s2_var >= 0.0)
             model.addConstr(x_var * x_var <= s2_var * z_var)
             model.addConstr(
                 g_var
-                >= problem.lmbd * sum(z_var) + 
-                problem.penalty.alpha * sum(s1_var) +
-                problem.penalty.beta * sum(s2_var)
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s1_var)
+                + problem.penalty.beta * sum(s2_var)
             )
         else:
             raise NotImplementedError(
@@ -228,10 +229,10 @@ class MosekSolver(BaseSolver):
     """Mosek solver for L0-penalized problems."""
 
     def __init__(
-        self, 
+        self,
         time_limit: float = float(sys.maxsize),
-        rel_tol: float = 1e-4, 
-        int_tol: float = 1e-8, 
+        rel_tol: float = 1e-4,
+        int_tol: float = 1e-8,
         verbose: bool = False,
     ):
         self.options = {
@@ -255,42 +256,47 @@ class MosekSolver(BaseSolver):
             r_var = model.variable("r", problem.m, msk.Domain.unbounded())
             model.constraint(
                 msk.Expr.hstack(
-                    msk.Expr.constTerm(np.ones(problem.m)), 
-                    r_var, 
+                    msk.Expr.constTerm(np.ones(problem.m)),
+                    r_var,
                     msk.Expr.sub(
                         problem.datafit.y, msk.Expr.mul(problem.A, x_var)
                     ),
-                ), msk.Domain.inRotatedQCone()
+                ),
+                msk.Domain.inRotatedQCone(),
             )
             model.constraint(
                 msk.Expr.sub(
-                    f_var, msk.Expr.mul(1. / problem.m, msk.Expr.sum(r_var))
-                ), msk.Domain.greaterThan(0.)
+                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(r_var))
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         elif str(problem.datafit) == "Logistic":
             r_var = msk.Expr.mulElm(
                 -problem.datafit.y, msk.Expr.mul(problem.A, x_var)
             )
             l_var = model.variable("l", problem.m, msk.Domain.unbounded())
-            u_var = model.variable("u", problem.n, msk.Domain.greaterThan(0.))
+            u_var = model.variable("u", problem.n, msk.Domain.greaterThan(0.0))
             model.constraint(
                 msk.Expr.hstack(
                     u_var,
                     msk.Expr.constTerm(np.ones(problem.n)),
                     r_var,
-                ),  msk.Domain.inPExpCone()
+                ),
+                msk.Domain.inPExpCone(),
             )
             model.constraint(
                 msk.Expr.hstack(
-                    msk.Expr.add(1., u_var),
+                    msk.Expr.add(1.0, u_var),
                     msk.Expr.constTerm(np.ones(problem.n)),
                     r_var,
-                ),  msk.Domain.inPExpCone()
+                ),
+                msk.Domain.inPExpCone(),
             )
             model.constraint(
                 msk.Expr.sub(
-                    f_var, msk.Expr.mul(1. / problem.m, msk.Expr.sum(l_var))
-                ), msk.Domain.greaterThan(0.)
+                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(l_var))
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         else:
             raise NotImplementedError(
@@ -310,104 +316,123 @@ class MosekSolver(BaseSolver):
         if str(problem.penalty) == "Bigm":
             model.constraint(
                 msk.Expr.sub(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
-                msk.Domain.lessThan(0.)
+                msk.Domain.lessThan(0.0),
             )
             model.constraint(
                 msk.Expr.add(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
-                msk.Domain.greaterThan(0.)
+                msk.Domain.greaterThan(0.0),
             )
             model.constraint(
                 msk.Expr.sub(
                     g_var, msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var))
-                ), msk.Domain.greaterThan(0.)
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL1norm":
             s_var = model.variable("s", problem.n, msk.Domain.unbounded())
             model.constraint(
-                msk.Expr.sub(s_var, x_var), msk.Domain.greaterThan(0.)
+                msk.Expr.sub(s_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.add(s_var, x_var), msk.Domain.greaterThan(0.)
+                msk.Expr.add(s_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
                 msk.Expr.sub(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
-                msk.Domain.lessThan(0.)
+                msk.Domain.lessThan(0.0),
             )
             model.constraint(
                 msk.Expr.add(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
-                msk.Domain.greaterThan(0.)
+                msk.Domain.greaterThan(0.0),
             )
             model.constraint(
                 msk.Expr.sub(
-                    g_var, 
+                    g_var,
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
-                        msk.Expr.mul(problem.penalty.alpha, msk.Expr.sum(s_var))
-                    )
-                ), msk.Domain.greaterThan(0.)
+                        msk.Expr.mul(
+                            problem.penalty.alpha, msk.Expr.sum(s_var)
+                        ),
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL2norm":
-            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.))
+            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.0))
             model.constraint(
-                msk.Expr.hstack(msk.Expr.mul(0.5, s_var), z_var, x_var), 
-                msk.Domain.inRotatedQCone()
+                msk.Expr.hstack(msk.Expr.mul(0.5, s_var), z_var, x_var),
+                msk.Domain.inRotatedQCone(),
             )
             model.constraint(
                 msk.Expr.sub(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
-                msk.Domain.lessThan(0.)
+                msk.Domain.lessThan(0.0),
             )
             model.constraint(
                 msk.Expr.add(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
-                msk.Domain.greaterThan(0.)
+                msk.Domain.greaterThan(0.0),
             )
             model.constraint(
                 msk.Expr.sub(
-                    g_var, 
+                    g_var,
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
-                        msk.Expr.mul(problem.penalty.alpha, msk.Expr.sum(s_var))
-                    )
-                ), msk.Domain.greaterThan(0.)
+                        msk.Expr.mul(
+                            problem.penalty.alpha, msk.Expr.sum(s_var)
+                        ),
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "L2norm":
-            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.))
+            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.0))
             model.constraint(
-                msk.Expr.hstack(msk.Expr.mul(0.5, s_var), z_var, x_var), 
-                msk.Domain.inRotatedQCone()
+                msk.Expr.hstack(msk.Expr.mul(0.5, s_var), z_var, x_var),
+                msk.Domain.inRotatedQCone(),
             )
             model.constraint(
                 msk.Expr.sub(
-                    g_var, 
+                    g_var,
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
-                        msk.Expr.mul(problem.penalty.alpha, msk.Expr.sum(s_var))
-                    )
-                ), msk.Domain.greaterThan(0.)
+                        msk.Expr.mul(
+                            problem.penalty.alpha, msk.Expr.sum(s_var)
+                        ),
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "L1L2norm":
-            s1_var = model.variable("s1", problem.n, msk.Domain.greaterThan(0.))
-            s2_var = model.variable("s2", problem.n, msk.Domain.greaterThan(0.))
-            model.constraint(
-                msk.Expr.sub(s1_var, x_var), msk.Domain.greaterThan(0.)
+            s1_var = model.variable(
+                "s1", problem.n, msk.Domain.greaterThan(0.0)
+            )
+            s2_var = model.variable(
+                "s2", problem.n, msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.add(s1_var, x_var), msk.Domain.greaterThan(0.)
+                msk.Expr.sub(s1_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.hstack(msk.Expr.mul(0.5, s2_var), z_var, x_var), 
-                msk.Domain.inRotatedQCone()
+                msk.Expr.add(s1_var, x_var), msk.Domain.greaterThan(0.0)
+            )
+            model.constraint(
+                msk.Expr.hstack(msk.Expr.mul(0.5, s2_var), z_var, x_var),
+                msk.Domain.inRotatedQCone(),
             )
             model.constraint(
                 msk.Expr.sub(
-                    g_var, 
+                    g_var,
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
                         msk.Expr.add(
-                            msk.Expr.mul(problem.penalty.alpha, msk.Expr.sum(s1_var)),
-                            msk.Expr.mul(problem.penalty.beta, msk.Expr.sum(s2_var)),
-                        )
-                    )
-                ), msk.Domain.greaterThan(0.)
+                            msk.Expr.mul(
+                                problem.penalty.alpha, msk.Expr.sum(s1_var)
+                            ),
+                            msk.Expr.mul(
+                                problem.penalty.beta, msk.Expr.sum(s2_var)
+                            ),
+                        ),
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
             )
         else:
             raise NotImplementedError(
@@ -442,7 +467,9 @@ class MosekSolver(BaseSolver):
         g_var = model.variable("g", 1, msk.Domain.unbounded())
         x_var = model.variable("x", problem.n, msk.Domain.unbounded())
         if relax:
-            z_var = model.variable("z", problem.n, msk.Domain.inRange(0., 1.))
+            z_var = model.variable(
+                "z", problem.n, msk.Domain.inRange(0.0, 1.0)
+            )
         else:
             z_var = model.variable("z", problem.n, msk.Domain.binary())
         self.bind_model_f_var(problem, model, x_var, f_var)
@@ -514,10 +541,10 @@ class L0bnbSolver(BaseSolver):
     """L0bnb solver for L0-penalized problems."""
 
     def __init__(
-        self, 
+        self,
         time_limit: float = float(sys.maxsize),
-        rel_tol: float = 1e-4, 
-        int_tol: float = 1e-8, 
+        rel_tol: float = 1e-4,
+        int_tol: float = 1e-8,
         verbose: bool = False,
     ):
         self.options = {
@@ -548,7 +575,6 @@ class L0bnbSolver(BaseSolver):
         S0_init: Union[NDArray, None] = None,
         S1_init: Union[NDArray, None] = None,
     ) -> Results:
-        
         if S0_init is not None:
             raise ValueError("`S0_init` argument not supported yet.")
         if S1_init is not None:
@@ -563,7 +589,7 @@ class L0bnbSolver(BaseSolver):
 
         if str(problem.penalty) == "Bigm":
             l0 = problem.m * problem.lmbd
-            l2 = 0.
+            l2 = 0.0
             M = problem.penalty.M
         elif str(problem.penalty) == "L2norm":
             l0 = problem.m * problem.lmbd
@@ -580,14 +606,27 @@ class L0bnbSolver(BaseSolver):
                 )
             )
 
-        solver = BNBTree(problem.A, problem.datafit.y, self.options["int_tol"], self.options["rel_tol"])
-        result = solver.solve(l0, l2, M, gap_tol=self.options["rel_tol"], warm_start=x_init, verbose=self.options["verbose"], time_limit=self.options["time_limit"])
-        
+        solver = BNBTree(
+            problem.A,
+            problem.datafit.y,
+            self.options["int_tol"],
+            self.options["rel_tol"],
+        )
+        result = solver.solve(
+            l0,
+            l2,
+            M,
+            gap_tol=self.options["rel_tol"],
+            warm_start=x_init,
+            verbose=self.options["verbose"],
+            time_limit=self.options["time_limit"],
+        )
+
         if result.sol_time < self.options["time_limit"]:
             status = Status.OPTIMAL
         else:
             status = Status.TIME_LIMIT
-        
+
         return Results(
             status,
             result.sol_time,
@@ -601,7 +640,7 @@ class L0bnbSolver(BaseSolver):
 
 
 def precompile(problem, solver):
-    time_limit_precompile = 5.
+    time_limit_precompile = 5.0
     if isinstance(solver, BnbSolver):
         solver.options.time_limit = time_limit_precompile
     elif isinstance(solver, L0bnbSolver):
@@ -614,6 +653,7 @@ def precompile(problem, solver):
         raise ValueError("Unknown solver {}".format(solver))
     solver.solve(problem)
 
+
 def get_solver(solver_name, options={}):
     if solver_name == "el0ps":
         return BnbSolver(**options)
@@ -625,7 +665,8 @@ def get_solver(solver_name, options={}):
         return MosekSolver(**options)
     else:
         raise ValueError("Unknown solver name {}".format(solver_name))
-    
+
+
 def can_handle(solver_name, datafit_name, penalty_name):
     if solver_name == "el0ps":
         handle_datafit = datafit_name in ["Leastsquares", "Logistic"]
