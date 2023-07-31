@@ -8,7 +8,6 @@ from .bnb import (
     BnbOptions,
     BnbSolver,
 )
-from .gurobi import GurobiSolver
 
 
 __all__ = [
@@ -20,5 +19,4 @@ __all__ = [
     "BnbExplorationStrategy",
     "BnbOptions",
     "BnbSolver",
-    "GurobiSolver",
 ]

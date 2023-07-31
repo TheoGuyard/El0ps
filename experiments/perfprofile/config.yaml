@@ -1,0 +1,20 @@
+expname: perfprofile
+dataset:
+  datafit_name: Leastsquares
+  penalty_name: Bigm
+  k           : 2
+  m           : 20
+  n           : 30
+  rho         : 0.1
+  snr         : 10.
+  normalize   : true
+solver_names: 
+  - el0ps
+  - l0bnb
+  - gurobi
+  - mosek
+options:
+  time_limit  : 3600.
+  rel_tol     : 1.e-4 
+  int_tol     : 1.e-8 
+  verbose     : false

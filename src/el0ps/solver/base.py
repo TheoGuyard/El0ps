@@ -24,7 +24,7 @@ class Results:
     solve_time: float
     node_count: int
     objective_value: float
-    lower_bound: float
+    rel_gap: float
     x: NDArray
     z: NDArray
     trace: dict
@@ -36,6 +36,7 @@ class Results:
         s += "  Solve time : {:.6f} seconds\n".format(self.solve_time)
         s += "  Node count : {}\n".format(self.node_count)
         s += "  Objective  : {:.6f}\n".format(self.objective_value)
+        s += "  Rel. gap   : {:.2%}\n".format(self.rel_gap)
         s += "  Non-zeros  : {}".format(int(sum(self.z)))
         return s
 

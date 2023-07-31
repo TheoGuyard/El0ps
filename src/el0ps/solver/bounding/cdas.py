@@ -89,11 +89,19 @@ def compute_dv(
     Ws: NDArray[np.bool_],
     Sb: NDArray[np.bool_],
 ) -> float:
-    dv = -datafit.conjugate(-u)
-    for i in np.flatnonzero(Ws):
+    nz = np.flatnonzero(Ws)
+    sf = np.ones(v.shape)
+    for i in nz:
         v[i] = np.dot(A[:, i], u)
         p[i] = penalty.conjugate(v[i]) - lmbd
-        dv -= np.maximum(p[i], 0.0) if Sb[i] else p[i]
+        sf[i] = penalty.conjugate_scaling_factor(v[i])
+    g_sf = np.min(sf)
+    u_sf = g_sf * u
+    v_sf = g_sf * v
+    dv = -datafit.conjugate(-u_sf)
+    for i in nz:
+        q_sf = penalty.conjugate(v_sf[i]) - lmbd
+        dv -= np.maximum(q_sf, 0.0) if Sb[i] else q_sf
     return dv
 
 
@@ -144,7 +152,6 @@ class CdBoundingSolver(BnbBoundingSolver):
         problem: Problem,
         node: BnbNode,
         ub: float,
-        abs_tol: float,
         rel_tol: float,
         l1screening: bool,
         l0screening: bool,
@@ -226,10 +233,7 @@ class CdBoundingSolver(BnbBoundingSolver):
                 #   - in both cases: maximum number of iterations reached
                 if incumbent:
                     dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
-                    if (
-                        abs_gap(pv, dv) <= abs_tol
-                        and rel_gap(pv, dv) <= rel_tol
-                    ):
+                    if rel_gap(pv, dv) <= rel_tol:
                         break
                 elif rel_gap(pv, pv_old) <= rel_tol_inner:
                     break

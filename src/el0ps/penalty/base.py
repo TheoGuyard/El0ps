@@ -23,7 +23,7 @@ class BasePenalty:
 
         Returns
         -------
-        dict_of_params : dict
+        dict_of_params: dict
             The parameters to instantiate an object of the class.
         """
         ...
@@ -34,12 +34,12 @@ class BasePenalty:
 
         Parameters
         ----------
-        x : float
+        x: float
             Value at which the function is evaluated.
 
         Returns
         -------
-        value : float
+        value: float
             The value of the function at x.
         """
         ...
@@ -50,13 +50,30 @@ class BasePenalty:
 
         Parameters
         ----------
-        x : float
+        x: float
             Value at which the conjugate is evaluated.
 
         Returns
         -------
-        value : float
+        value: float
             The value of the conjugate of the function at x.
+        """
+        ...
+
+    @abstractmethod
+    def conjugate_scaling_factor(self, x: float) -> float:
+        """Return a scalar `sf` such that `sf * x` is within the domain of the
+        convex conjugate of the function.
+
+        Parameters
+        ----------
+        x: float
+            Value to be scaled.
+
+        Returns
+        -------
+        sf: float
+            The scaling factor.
         """
         ...
 
@@ -66,12 +83,12 @@ class BasePenalty:
 
         Parameters
         ----------
-        lmbd : float
+        lmbd: float
             Threshold value.
 
         Returns
         -------
-        value : float
+        value: float
             The maximum value of `x` such that `h(x) <= lmbd`.
         """
         ...
@@ -83,12 +100,12 @@ class BasePenalty:
 
         Parameters
         ----------
-        lmbd : float
+        lmbd: float
             Argument of the function `self.param_slope`.
 
         Returns
         -------
-        value : float
+        value: float
             The minimum value of `x` such that `x` is in the subdifferential of
             the conjugate of the function at `self.param_slope(lmbd)`.
         """
@@ -100,7 +117,7 @@ class BasePenalty:
 
         Returns
         -------
-        value : float
+        value: float
             The maximum value of the conjugate of the function over its domain.
         """
         ...
@@ -115,14 +132,14 @@ class ProximablePenalty(BasePenalty):
 
         Parameters
         ----------
-        x : float
+        x: float
             Value at which the prox is evaluated.
-        eta : float, positive
+        eta: float, positive
             Multiplicative factor in front of the function.
 
         Returns
         -------
-        p : float
+        p: float
             The proximity operator of `eta` times the function at x.
         """
         ...
