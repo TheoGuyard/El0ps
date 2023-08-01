@@ -210,7 +210,6 @@ class GurobiSolver(BaseSolver):
         self.build_model(problem)
         self.set_init(x_init, S0_init, S1_init)
         self.set_options()
-        self.model.write("test.mps")
         self.model.optimize()
 
         return Results(
@@ -556,17 +555,6 @@ class L0bnbSolver(BaseSolver):
 
     def __str__(self):
         return "L0bnbSolver"
-
-    def get_status(self) -> Status:
-        if self.model.Status == gp.GRB.OPTIMAL:
-            status = Status.OPTIMAL
-        elif self.model.Status == gp.GRB.NODE_LIMIT:
-            status = Status.NODE_LIMIT
-        elif self.model.Status == gp.GRB.TIME_LIMIT:
-            status = Status.TIME_LIMIT
-        else:
-            status = Status.OTHER_LIMIT
-        return status
 
     def solve(
         self,
