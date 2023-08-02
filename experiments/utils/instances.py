@@ -1,6 +1,7 @@
 import warnings
-import numpy as np
 import l0learn
+import numpy as np
+import openml as oml
 from el0ps.datafit import Leastsquares, Logistic
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
@@ -119,9 +120,8 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     best_f1 = 0.0
     for i, gamma in enumerate(cvfit.gamma):
         for j, lmbda in enumerate(cvfit.lambda_0[i]):
-            x = np.array(cvfit.coeff(lmbda, gamma).todense()).reshape(n + 1)[
-                1:
-            ]
+            x = cvfit.coeff(lmbda, gamma)
+            x = np.array(x.todense()).reshape(n + 1)[1:]
             cv = cvfit.cv_means[i][j]
             f1 = 0.0 if x_true is None else f1_score(x_true, x)
             if f1 >= best_f1 and cv <= best_cv:
@@ -145,7 +145,9 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     return datafit, penalty, best_lmbda
 
 
-def synthetic_data(datafit_name, penalty_name, k, m, n, rho, snr, normalize):
+def get_data_synthetic(
+    datafit_name, penalty_name, k, m, n, rho, snr, normalize
+):
     x_true = synthetic_x(k, n)
     A = synthetic_A(m, n, rho, normalize)
     y = synthetic_y(datafit_name, x_true, A, m, snr)
@@ -153,3 +155,61 @@ def synthetic_data(datafit_name, penalty_name, k, m, n, rho, snr, normalize):
         datafit_name, penalty_name, A, y, x_true
     )
     return datafit, penalty, A, lmbd, x_true
+
+
+def get_data_openml(
+    datafit_name, penalty_name, dataset_id, dataset_target, normalize
+):
+    dataset = oml.datasets.get_dataset(
+        dataset_id,
+        download_data=False,
+        download_qualities=False,
+        download_features_meta_data=False,
+    )
+    dataset = dataset.get_data(target=dataset_target)
+    A = dataset[0].to_numpy()
+    y = dataset[1].to_numpy().flatten()
+    assert A.ndim == 2
+    assert y.ndim == 1
+    A = A[:, np.linalg.norm(A, axis=0, ord=2) != 0.0]
+    if normalize:
+        A /= np.linalg.norm(A, axis=0, ord=2)
+    if datafit_name == "Logistic":
+        y_cls = np.unique(y)
+        assert y_cls.size == 2
+        y_idx0 = y == y_cls[0]
+        y_idx1 = y == y_cls[1]
+        y = np.zeros(y.size, dtype=float)
+        y[y_idx0] = -1.0
+        y[y_idx1] = 1.0
+    datafit, penalty, lmbd = calibrate_objective(
+        datafit_name, penalty_name, A, y
+    )
+    return datafit, penalty, A, lmbd, None
+
+
+def get_data(dataset):
+    if "datatype" not in dataset.keys():
+        raise ValueError("Key `datatype` not found.")
+
+    if dataset["datatype"] == "synthetic":
+        return get_data_synthetic(
+            dataset["datafit_name"],
+            dataset["penalty_name"],
+            dataset["k"],
+            dataset["m"],
+            dataset["n"],
+            dataset["rho"],
+            dataset["snr"],
+            dataset["normalize"],
+        )
+    elif dataset["datatype"] == "openml":
+        return get_data_openml(
+            dataset["datafit_name"],
+            dataset["penalty_name"],
+            dataset["dataset_id"],
+            dataset["dataset_target"],
+            dataset["normalize"],
+        )
+    else:
+        raise ValueError("Unknown datatype {}".format(dataset["datatype"]))

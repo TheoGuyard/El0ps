@@ -1,5 +1,6 @@
 expname: perfprofile
 dataset:
+  datatype    : synthetic
   datafit_name: Leastsquares
   penalty_name: Bigm
   k           : 2
@@ -7,13 +8,13 @@ dataset:
   n           : 30
   rho         : 0.1
   snr         : 10.
-  normalize   : true
+  normalize   : false
 solver_names: 
   - el0ps
   - l0bnb
   - gurobi
   - mosek
-options:
+solver_options:
   time_limit  : 3600.
   rel_tol     : 1.e-4 
   int_tol     : 1.e-8 

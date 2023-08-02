@@ -135,18 +135,13 @@ class BnbSolver(BaseSolver):
         S1_init: Union[NDArray[np.float64], None] = None,
     ):
         # Sanity checks
-        x_init = x_init if x_init is not None else np.zeros(problem.n)
+        if x_init is None:
+            x_init = np.zeros(problem.n)
         w_init = problem.A @ x_init
-        S0_init = (
-            S0_init
-            if S0_init is not None
-            else np.zeros(problem.n, dtype=np.bool_)
-        )
-        S1_init = (
-            S1_init
-            if S1_init is not None
-            else np.zeros(problem.n, dtype=np.bool_)
-        )
+        if S0_init is None:
+            S0_init = np.zeros(problem.n, dtype=np.bool_)
+        if S1_init is None:
+            S1_init = np.zeros(problem.n, dtype=np.bool_)
         if not np.all(x_init[S0_init] == 0.0):
             raise ValueError("Arguments `x_init` and `S0_init` missmatch.")
         if not np.all(x_init[S1_init] != 0.0):
@@ -164,15 +159,16 @@ class BnbSolver(BaseSolver):
 
         # Root node
         root = BnbNode(
+            -1,
             np.zeros(problem.n, dtype=np.bool_),
             np.zeros(problem.n, dtype=np.bool_),
             np.ones(problem.n, dtype=np.bool_),
-            self.lower_bound,
-            self.upper_bound,
-            np.copy(self.x),
+            -np.inf,
+            np.inf,
+            x_init,
             w_init,
             -problem.datafit.gradient(w_init),
-            np.copy(self.x),
+            np.zeros(problem.n),
         )
 
         # Add initial fixing constraints to root

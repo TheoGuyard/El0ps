@@ -1,0 +1,30 @@
+# dataset_name    dataset_task    dataset_size    dataset_id    dataset_target
+#        pyrim      regression        (74, 26)           217          activity
+#    triazines      regression       (186, 60)           206          activity
+#         mtp2      regression     (274, 1143)           430            oz1143
+#        sonar  classification       (208, 60)            40             Class
+
+
+expname: regpath
+dataset:
+  datatype      : openml
+  datafit_name  : Leastsquares
+  penalty_name  : BigmL2norm
+  dataset_id    : 430
+  dataset_target: oz1143
+  normalize     : false
+solver_names: 
+  - el0ps
+  - l0bnb
+  - gurobi
+  - mosek
+solver_options:
+  time_limit  : 3600.
+  rel_tol     : 1.e-4 
+  int_tol     : 1.e-8 
+  verbose     : false
+path_options:
+  lmbd_ratio_max: 1.e-0
+  lmbd_ratio_min: 1.e-2
+  lmbd_ratio_num: 20
+  warm_start    : true

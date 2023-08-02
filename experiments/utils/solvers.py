@@ -184,8 +184,8 @@ class GurobiSolver(BaseSolver):
             for i in S1_init:
                 self.model.addConstr(self.z_var[i] == 1.0)
         if x_init is not None:
-            for i in range(x_init.shape):
-                self.x_var[i].Start = x_init[i]
+            for i, xi in enumerate(x_init):
+                self.x_var[i].Start = xi
 
     def set_options(self) -> None:
         for k, v in self.options.items():
@@ -210,17 +210,23 @@ class GurobiSolver(BaseSolver):
         self.build_model(problem)
         self.set_init(x_init, S0_init, S1_init)
         self.set_options()
-        self.model.write("test.mps")
         self.model.optimize()
+        self.status = self.get_status()
+        if self.status == Status.OPTIMAL:
+            self.x = np.array(self.x_var.X)
+            self.z = np.array(self.z_var.X)
+        else:
+            self.x = np.zeros(problem.n)
+            self.z = np.zeros(problem.n)
 
         return Results(
-            self.get_status(),
+            self.status,
             self.model.Runtime,
             int(self.model.NodeCount),
-            problem.value(np.array(self.x_var.X)),
+            problem.value(self.x),
             self.model.MIPGap,
-            np.array(self.x_var.X),
-            np.array(self.z_var.X),
+            self.x,
+            self.z,
             None,
         )
 
@@ -507,7 +513,10 @@ class MosekSolver(BaseSolver):
     def get_status(self) -> Status:
         if self.model.getPrimalSolutionStatus() == msk.SolutionStatus.Optimal:
             status = Status.OPTIMAL
-        elif self.model.getSolverIntInfo("mioTime") >= self.options.time_limit:
+        elif (
+            self.model.getSolverDoubleInfo("mioTime")
+            >= self.options["mioMaxTime"]
+        ):
             status = Status.TIME_LIMIT
         else:
             status = Status.OTHER_LIMIT
@@ -524,15 +533,22 @@ class MosekSolver(BaseSolver):
         self.set_init(x_init, S0_init, S1_init)
         self.set_options()
         self.model.solve()
+        self.status = self.get_status()
+        if self.status == Status.OPTIMAL:
+            self.x = np.array(self.x_var.level())
+            self.z = np.array(self.z_var.level())
+        else:
+            self.x = np.zeros(problem.n)
+            self.z = np.zeros(problem.n)
 
         return Results(
-            self.get_status(),
+            self.status,
             self.model.getSolverDoubleInfo("mioTime"),
             self.model.getSolverIntInfo("mioNumBranch"),
             self.model.getSolverDoubleInfo("mioObjInt"),
             self.model.getSolverDoubleInfo("mioObjRelGap"),
-            np.array(self.x_var.level()),
-            np.array(self.z_var.level()),
+            self.x,
+            self.z,
             None,
         )
 
@@ -556,17 +572,6 @@ class L0bnbSolver(BaseSolver):
 
     def __str__(self):
         return "L0bnbSolver"
-
-    def get_status(self) -> Status:
-        if self.model.Status == gp.GRB.OPTIMAL:
-            status = Status.OPTIMAL
-        elif self.model.Status == gp.GRB.NODE_LIMIT:
-            status = Status.NODE_LIMIT
-        elif self.model.Status == gp.GRB.TIME_LIMIT:
-            status = Status.TIME_LIMIT
-        else:
-            status = Status.OTHER_LIMIT
-        return status
 
     def solve(
         self,

@@ -2,23 +2,22 @@ import argparse
 import os
 import pathlib
 import pickle
-import random
-import string
 import sys
 import yaml
+from datetime import datetime
 from el0ps.problem import Problem
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common.instances import synthetic_data  # noqa
-from common.solvers import get_solver, precompile, can_handle  # noqa
+from utils.instances import get_data  # noqa
+from utils.solvers import get_solver, precompile, can_handle  # noqa
 
 
-def exp(config_path):
+def onerun(config_path):
     print("Preprocessing...")
     base_dir = pathlib.Path(__file__).parent.absolute()
     result_dir = pathlib.Path(base_dir, "results")
     result_file = "{}.pickle".format(
-        "".join(random.choice(string.ascii_lowercase) for _ in range(10))
+        datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
     )
     result_path = pathlib.Path(base_dir, result_dir, result_file)
     config_path = pathlib.Path(config_path)
@@ -31,22 +30,13 @@ def exp(config_path):
         config = yaml.load(stream, Loader=yaml.Loader)
 
     print("Generating data...")
-    datafit, penalty, A, lmbd, x_true = synthetic_data(
-        config["dataset"]["datafit_name"],
-        config["dataset"]["penalty_name"],
-        config["dataset"]["k"],
-        config["dataset"]["m"],
-        config["dataset"]["n"],
-        config["dataset"]["rho"],
-        config["dataset"]["snr"],
-        config["dataset"]["normalize"],
-    )
+    datafit, penalty, A, lmbd, x_true = get_data(config["dataset"])
     problem = Problem(datafit, penalty, A, lmbd)
 
     print("Running...")
     results = {}
     for solver_name in config["solver_names"]:
-        solver = get_solver(solver_name, config["options"])
+        solver = get_solver(solver_name, config["solver_options"])
         if can_handle(
             solver_name,
             config["dataset"]["datafit_name"],
@@ -57,7 +47,7 @@ def exp(config_path):
             precompile(problem, solver)
             print("    Solving...")
             result = solver.solve(problem)
-            print(result)
+            print("    Status: {}".format(result.status.value))
         else:
             print("  Skipping {}...".format(solver_name))
             result = None
@@ -75,5 +65,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("config_path")
     args = parser.parse_args()
-
-    exp(args.config_path)
+    onerun(args.config_path)
