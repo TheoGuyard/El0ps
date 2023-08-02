@@ -44,7 +44,11 @@ def figure(config_path, save=False):
                         if result.status == Status.OPTIMAL:
                             all_times[solver_name].append(result.solve_time)
                         else:
-                            print("{} did not converged: {}".format(solver_name, result.status))
+                            print(
+                                "{} did not converged: {}".format(
+                                    solver_name, result.status
+                                )
+                            )
                             notcved += 1
                 matched += 1
         except Exception:
@@ -58,8 +62,12 @@ def figure(config_path, save=False):
     if matched == 0:
         return
 
-    min_times = np.min([np.min(v) if len(v) else np.inf for v in all_times.values()])
-    max_times = np.max([np.max(v) if len(v) else -np.inf for v in all_times.values()])
+    min_times = np.min(
+        [np.min(v) if len(v) else np.inf for v in all_times.values()]
+    )
+    max_times = np.max(
+        [np.max(v) if len(v) else -np.inf for v in all_times.values()]
+    )
     grid_times = np.logspace(
         np.floor(np.log10(min_times)), np.ceil(np.log10(max_times)), 100
     )
@@ -70,9 +78,7 @@ def figure(config_path, save=False):
 
     if save:
         print("Saving...")
-        name = (
-            "_".join([str(v) for v in config["dataset"].values()]) + ".csv"
-        )
+        name = "_".join([str(v) for v in config["dataset"].values()]) + ".csv"
         save_data = pd.DataFrame({"grid_times": grid_times})
         for k, v in perfprofiles.items():
             save_data[k] = v

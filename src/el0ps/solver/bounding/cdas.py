@@ -90,12 +90,12 @@ def compute_dv(
     Sb: NDArray[np.bool_],
 ) -> float:
     nz = np.flatnonzero(Ws)
-    sf = np.ones(v.shape)
+    sf = np.empty(v.shape)
     for i in nz:
         v[i] = np.dot(A[:, i], u)
         p[i] = penalty.conjugate(v[i]) - lmbd
         sf[i] = penalty.conjugate_scaling_factor(v[i])
-    g_sf = np.min(sf)
+    g_sf = 1.0 if nz.size == 0 else np.min(sf[nz])
     u_sf = g_sf * u
     v_sf = g_sf * v
     dv = -datafit.conjugate(-u_sf)
@@ -157,6 +157,16 @@ class CdBoundingSolver(BnbBoundingSolver):
         l0screening: bool,
         incumbent: bool = False,
     ):
+        # Handle the root case and case where the upper-bounding problem yields
+        # the same solutiona s the parent node.
+        if incumbent:
+            if not np.any(node.S1):
+                node.x_inc = np.zeros(problem.n)
+                node.upper_bound = problem.datafit.value(np.zeros(problem.m))
+                return
+            elif node.category == 0:
+                return
+
         # Working values
         datafit = problem.datafit
         penalty = problem.penalty

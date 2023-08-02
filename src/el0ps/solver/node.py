@@ -8,6 +8,8 @@ class BnbNode:
 
     Parameters
     ----------
+    category: int
+        Node category (root: -1, zero: 0, one: 1).
     S0: NDArray[np.bool_]
         Set of indices forced to be zero.
     S1: NDArray[np.bool_]
@@ -28,6 +30,7 @@ class BnbNode:
 
     def __init__(
         self,
+        category: int,
         S0: NDArray,
         S1: NDArray,
         Sb: NDArray,
@@ -38,6 +41,7 @@ class BnbNode:
         u: NDArray,
         x_inc: NDArray,
     ) -> None:
+        self.category = category
         self.S0 = S0
         self.S1 = S1
         self.Sb = Sb
@@ -51,6 +55,7 @@ class BnbNode:
     def __str__(self) -> str:
         s = ""
         s += "BnbNode\n"
+        s += "  Category    : {}".format(self.category)
         s += "  S0/S1/Sb    : {}/{}/{}\n".format(
             np.sum(self.S0), np.sum(self.S1), np.sum(self.Sb)
         )
@@ -60,6 +65,7 @@ class BnbNode:
 
     def __copy__(self):
         return BnbNode(
+            self.category,
             np.copy(self.S0),
             np.copy(self.S1),
             np.copy(self.Sb),
@@ -93,8 +99,10 @@ class BnbNode:
         self.Sb[idx] = False
         if val:
             self.S1[idx] = True
+            self.category = 1
         else:
             self.S0[idx] = True
+            self.category = 0
             if self.x[idx] != 0.0:
                 self.w -= self.x[idx] * problem.A[:, idx]
                 self.u = -problem.datafit.gradient(self.w)
