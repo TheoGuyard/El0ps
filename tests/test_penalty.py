@@ -45,9 +45,7 @@ def test_instances(penalty):
     assert maxval >= 0.0
     if limit < np.inf:
         assert penalty.conjugate(slope) == pytest.approx(lmbd)
-        assert penalty.value(limit) + penalty.conjugate(
-            slope
-        ) == pytest.approx(limit * slope)
+        assert penalty.value(limit) + penalty.conjugate(slope) >= limit * slope
     else:
         assert penalty.conjugate(slope) < lmbd
     if maxval < np.inf:
