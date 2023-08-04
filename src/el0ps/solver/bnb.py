@@ -337,9 +337,9 @@ class BnbSolver(BaseSolver):
                     node,
                     self.upper_bound,
                     self.options.rel_tol,
-                    self.options.l1screening,
-                    self.options.l0screening,
-                    incumbent=True,
+                    False,
+                    False,
+                    True,
                 )
                 if not self.has_tight_relaxation(node):
                     self.branch(problem, node)

@@ -66,33 +66,24 @@ def onerun(config_path):
             lmbd_max = compute_lmbd_max(datafit, penalty, A)
             for i, lmbd_ratio in enumerate(lmbd_ratio_grid):
                 print(
-                    "    Lambda ratio: {:.2e} ({}/{})...".format(
+                    "    Ratio: {:.2e} ({}/{})...".format(
                         lmbd_ratio, i + 1, lmbd_ratio_grid.size
                     )
                 )
                 problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
                 result = solver.solve(problem, x_init=x_init)
                 x_init = np.copy(result.x)
-                print("      Status    : {}".format(result.status.value))
-                print(
-                    "      Solve time: {:.6f} seconds".format(
-                        result.solve_time
-                    )
-                )
-                print(
-                    "      Objective : {:.6f}".format(result.objective_value)
-                )
-                print(
-                    "      Non-zeros : {:d}".format(
-                        int(np.round(np.sum(result.z)))
-                    )
-                )
                 results[solver_name][i] = {
                     "status": result.status,
                     "solve_time": result.solve_time,
                     "objective_value": result.objective_value,
                     "sparsity": np.flatnonzero(result.z).size,
                 }
+                print(
+                    "    {:.6f} {}".format(
+                        result.objective_value, np.sum(result.z)
+                    )
+                )
         else:
             print("  Skipping {}...".format(solver_name))
             results[solver_name][i] = None

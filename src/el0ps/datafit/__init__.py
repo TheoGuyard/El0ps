@@ -3,6 +3,7 @@
 from .base import BaseDatafit, SmoothDatafit, ProximableDatafit
 from .leastsquares import Leastsquares
 from .logistic import Logistic
+from .squaredhinge import Squaredhinge
 
 __all__ = [
     "BaseDatafit",
@@ -10,4 +11,5 @@ __all__ = [
     "SmoothDatafit",
     "Leastsquares",
     "Logistic",
+    "Squaredhinge",
 ]

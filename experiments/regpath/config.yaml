@@ -10,8 +10,8 @@ dataset:
   datatype      : openml
   datafit_name  : Leastsquares
   penalty_name  : BigmL2norm
-  dataset_id    : 430
-  dataset_target: oz1143
+  dataset_id    : 217
+  dataset_target: activity
   normalize     : false
 solver_names: 
   - el0ps

@@ -49,3 +49,6 @@ class L1norm(ProximablePenalty):
 
     def param_maxval(self) -> float:
         return 0.0
+
+    def param_maxzer(self) -> float:
+        return self.alpha

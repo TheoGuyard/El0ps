@@ -49,3 +49,6 @@ class L2norm(ProximablePenalty):
 
     def param_maxval(self) -> float:
         return np.inf
+
+    def param_maxzer(self) -> float:
+        return 0.0

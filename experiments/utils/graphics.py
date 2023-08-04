@@ -5,7 +5,9 @@ def get_solver_name_color(solver_name):
         return "forestgreen"
     elif solver_name == "l0bnb":
         return "orange"
+    elif solver_name == "sbnb":
+        return "orangered"
     elif solver_name == "el0ps":
-        return "tomato"
+        return "darkred"
     else:
         return None

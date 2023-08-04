@@ -2,11 +2,15 @@ import sys
 import gurobipy as gp
 import mosek.fusion as msk
 import numpy as np
+import osqp
+from copy import deepcopy
 from typing import Union
 from numpy.typing import NDArray
 from l0bnb import BNBTree
+from scipy import sparse
 from el0ps import Problem
-from el0ps.solver import BaseSolver, BnbSolver, Status, Results
+from el0ps.solver import BaseSolver, BnbSolver, BnbNode, Status, Results
+from el0ps.solver.bounding import BnbBoundingSolver
 
 
 class GurobiSolver(BaseSolver):
@@ -41,16 +45,33 @@ class GurobiSolver(BaseSolver):
             model.addConstr(r_var == problem.datafit.y - problem.A @ x_var)
             model.addConstr(f_var >= (r_var @ r_var) / (2.0 * problem.m))
         elif str(problem.datafit) == "Logistic":
-            r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
             l_var = model.addMVar(problem.m, vtype="C", name="l", lb=-np.inf)
-            u_var = model.addMVar(problem.m, vtype="C", name="u", lb=0.0)
-            v_var = model.addMVar(problem.m, vtype="C", name="v", lb=1.0)
-            model.addConstr(r_var == -problem.datafit.y * (problem.A @ x_var))
-            model.addConstr(v_var == 1.0 + u_var)
+            s_var = model.addMVar(problem.m, vtype="C", name="s", lb=-np.inf)
+            t_var = model.addMVar(problem.m, vtype="C", name="t", lb=0.0)
+            r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
+            model.addConstr(l_var >= -s_var)
+            model.addConstr(r_var == problem.datafit.y * (problem.A @ x_var))
             for i in range(problem.m):
-                model.addGenConstrExp(r_var[i], u_var[i])
-                model.addGenConstrExp(l_var[i], v_var[i])
-            model.addConstr(f_var >= sum(l_var) / problem.m)
+                model.addGenConstrLog(
+                    t_var[i],
+                    s_var[i],
+                    "FuncPieces=-2 FuncPieceError=1e-8 FuncPieceRatio=0",
+                )
+                model.addGenConstrLogistic(
+                    r_var[i],
+                    t_var[i],
+                    "FuncPieces=-2 FuncPieceError=1e-8 FuncPieceRatio=0",
+                )
+            model.addConstr(f_var >= gp.quicksum(l_var) / problem.m)
+        elif str(problem.datafit) == "Squaredhinge":
+            w_var = model.addMVar(problem.m, vtype="C", name="w", lb=-np.inf)
+            r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
+            s_var = model.addMVar(problem.m, vtype="C", name="s")
+            model.addConstr(w_var == problem.A @ x_var)
+            model.addConstr(r_var == 1.0 - problem.datafit.y * w_var)
+            model.addConstr(s_var >= r_var)
+            model.addConstr(s_var >= 0.0)
+            model.addConstr(f_var >= (s_var @ s_var) / problem.m)
         else:
             raise NotImplementedError(
                 "`GurobiSolver` does not support `{}` yet.".format(
@@ -72,12 +93,10 @@ class GurobiSolver(BaseSolver):
             model.addConstr(g_var >= problem.lmbd * sum(z_var))
         elif str(problem.penalty) == "BigmL1norm":
             s_var = model.addMVar(problem.n, vtype="C", name="s")
-            model.addConstr(s_var >= x_var)
-            model.addConstr(s_var >= -x_var)
-            model.addConstr(x_var <= problem.penalty.M * z_var)
-            model.addConstr(x_var >= -problem.penalty.M * z_var)
             model.addConstr(z_var * s_var >= x_var)
             model.addConstr(z_var * s_var >= -x_var)
+            model.addConstr(x_var <= problem.penalty.M * z_var)
+            model.addConstr(x_var >= -problem.penalty.M * z_var)
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
@@ -125,6 +144,22 @@ class GurobiSolver(BaseSolver):
                 + problem.penalty.alpha * sum(s1_var)
                 + problem.penalty.beta * sum(s2_var)
             )
+        elif str(problem.penalty) == "NeglogTriangular":
+            s_var = model.addMVar(problem.n, vtype="C", name="s")
+            t_var = model.addMVar(problem.n, vtype="C", name="t")
+            u_var = model.addMVar(problem.n, vtype="C", name="u", lb=-np.inf)
+            model.addConstr(z_var * s_var >= x_var)
+            model.addConstr(z_var * s_var >= -x_var)
+            model.addConstr(x_var <= problem.penalty.sigma * z_var)
+            model.addConstr(x_var >= -problem.penalty.sigma * z_var)
+            model.addConstr(t_var == 1.0 - s_var / problem.penalty.sigma)
+            for i in range(problem.n):
+                model.addGenConstrLog(t_var[i], u_var[i])
+            model.addConstr(
+                g_var
+                >= problem.lmbd * sum(z_var)
+                - problem.penalty.alpha * sum(u_var)
+            )
         else:
             raise NotImplementedError(
                 "`GurobiSolver` does not support `{}` yet.".format(
@@ -163,6 +198,7 @@ class GurobiSolver(BaseSolver):
         model.setObjective(f_var + g_var, gp.GRB.MINIMIZE)
         if relax:
             model.relax()
+        model.update()
 
         self.model = model
         self.x_var = x_var
@@ -223,7 +259,7 @@ class GurobiSolver(BaseSolver):
             self.status,
             self.model.Runtime,
             int(self.model.NodeCount),
-            problem.value(self.x),
+            self.model.ObjVal,
             self.model.MIPGap,
             self.x,
             self.z,
@@ -277,30 +313,71 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.datafit) == "Logistic":
-            r_var = msk.Expr.mulElm(
-                -problem.datafit.y, msk.Expr.mul(problem.A, x_var)
-            )
             l_var = model.variable("l", problem.m, msk.Domain.unbounded())
-            u_var = model.variable("u", problem.n, msk.Domain.greaterThan(0.0))
+            u_var = model.variable("u", problem.m, msk.Domain.unbounded())
+            v_var = model.variable("v", problem.m, msk.Domain.unbounded())
+            model.constraint(
+                msk.Expr.add(u_var, v_var),
+                msk.Domain.lessThan(1.0),
+            )
             model.constraint(
                 msk.Expr.hstack(
                     u_var,
-                    msk.Expr.constTerm(np.ones(problem.n)),
-                    r_var,
+                    msk.Expr.constTerm(np.ones(problem.m)),
+                    msk.Expr.sub(
+                        msk.Expr.mulElm(
+                            problem.datafit.y, msk.Expr.mul(problem.A, x_var)
+                        ),
+                        l_var,
+                    ),
                 ),
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
                 msk.Expr.hstack(
-                    msk.Expr.add(1.0, u_var),
-                    msk.Expr.constTerm(np.ones(problem.n)),
-                    r_var,
+                    v_var,
+                    msk.Expr.constTerm(np.ones(problem.m)),
+                    msk.Expr.sub(0.0, l_var),
                 ),
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
                 msk.Expr.sub(
                     f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(l_var))
+                ),
+                msk.Domain.greaterThan(0.0),
+            )
+        elif str(problem.datafit) == "Squaredhinge":
+            r_var = model.variable("r", problem.m, msk.Domain.unbounded())
+            s_var = model.variable("s", problem.m, msk.Domain.unbounded())
+            t_var = model.variable("t", problem.m, msk.Domain.unbounded())
+            model.constraint(
+                msk.Expr.sub(
+                    r_var,
+                    msk.Expr.sub(
+                        1.0,
+                        msk.Expr.mulElm(
+                            problem.datafit.y, msk.Expr.mul(problem.A, x_var)
+                        ),
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
+            )
+            model.constraint(
+                msk.Expr.sub(s_var, r_var), msk.Domain.greaterThan(0.0)
+            )
+            model.constraint(s_var, msk.Domain.greaterThan(0.0))
+            model.constraint(
+                msk.Expr.hstack(
+                    msk.Expr.constTerm(0.5 * np.ones(problem.m)),
+                    t_var,
+                    s_var,
+                ),
+                msk.Domain.inRotatedQCone(),
+            )
+            model.constraint(
+                msk.Expr.sub(
+                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(t_var))
                 ),
                 msk.Domain.greaterThan(0.0),
             )
@@ -440,6 +517,57 @@ class MosekSolver(BaseSolver):
                 ),
                 msk.Domain.greaterThan(0.0),
             )
+        elif str(problem.penalty) == "NeglogTriangular":
+            s_var = model.variable("s", problem.n, msk.Domain.unbounded())
+            t_var = model.variable("t", problem.n, msk.Domain.unbounded())
+            u_var = model.variable("u", problem.n, msk.Domain.unbounded())
+            model.constraint(
+                msk.Expr.sub(s_var, x_var), msk.Domain.greaterThan(0.0)
+            )
+            model.constraint(
+                msk.Expr.add(s_var, x_var), msk.Domain.greaterThan(0.0)
+            )
+            model.constraint(
+                msk.Expr.sub(
+                    x_var, msk.Expr.mul(problem.penalty.sigma, z_var)
+                ),
+                msk.Domain.lessThan(0.0),
+            )
+            model.constraint(
+                msk.Expr.add(
+                    x_var, msk.Expr.mul(problem.penalty.sigma, z_var)
+                ),
+                msk.Domain.greaterThan(0.0),
+            )
+            model.constraint(
+                msk.Expr.sub(
+                    t_var,
+                    msk.Expr.sub(
+                        1.0, msk.Expr.mul(1.0 / problem.penalty.sigma, s_var)
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
+            )
+            model.constraint(
+                msk.Expr.hstack(
+                    u_var,
+                    msk.Expr.constTerm(np.ones(problem.n)),
+                    t_var,
+                ),
+                msk.Domain.inPExpCone(),
+            )
+            model.constraint(
+                msk.Expr.sub(
+                    g_var,
+                    msk.Expr.add(
+                        msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
+                        msk.Expr.mul(
+                            problem.penalty.alpha, msk.Expr.sum(u_var)
+                        ),
+                    ),
+                ),
+                msk.Domain.greaterThan(0.0),
+            )
         else:
             raise NotImplementedError(
                 "`MosekSolver` does not support `{}` yet.".format(
@@ -553,6 +681,165 @@ class MosekSolver(BaseSolver):
         )
 
 
+class OsqpBoundingSolver(BnbBoundingSolver):
+    def __init__(self, eps_rel: float = 1e-4):
+        self.eps_rel = eps_rel
+
+    def setup(
+        self,
+        problem: Problem,
+        x_init: Union[NDArray[np.float64], None] = None,
+        S0_init: Union[NDArray[np.bool_], None] = None,
+        S1_init: Union[NDArray[np.bool_], None] = None,
+    ) -> None:
+        if S0_init is not None:
+            raise ValueError("`S0_init` argument not supported yet.")
+        if S1_init is not None:
+            raise ValueError("`S1_init` argument not supported yet.")
+        if str(problem.datafit) != "Leastsquares":
+            raise ValueError("Only a `Leastsquares` datafit is supported.")
+        if str(problem.penalty) != "Bigm":
+            raise ValueError("Only a `Bigm` penalty is supported.")
+
+        m = problem.m
+        n = problem.n
+        A = problem.A
+        lmbd = problem.lmbd
+        y = problem.datafit.y
+        M = problem.penalty.M
+        On = sparse.eye(n)
+        Om = sparse.eye(m)
+        Zn = sparse.csc_matrix((n, n))
+        on = np.ones(n)
+        zm = np.zeros(m)
+        zn = np.zeros(n)
+        P = sparse.block_diag([Om, Zn, Zn], format="csc")
+        q = np.hstack([zm, (m * lmbd / M) * on, zn])
+        Q = sparse.bmat(
+            [
+                [-Om, None, A],
+                [None, On, None],
+                [None, On, -On],
+                [None, On, On],
+            ],
+            format="csc",
+        )
+        lc = np.hstack([y, -M * on, zn, zn])
+        uc = np.hstack([y, M * on, np.inf * on, np.inf * on])
+        self.model = osqp.OSQP()
+        self.model.setup(P, q, Q, lc, uc, verbose=False, eps_rel=self.eps_rel)
+
+    def bound(
+        self,
+        problem: Problem,
+        node: BnbNode,
+        ub: float,
+        rel_tol: float,
+        l1screening: bool,
+        l0screening: bool,
+        incumbent: bool = False,
+    ):
+        # Handle the root case and case where the upper-bounding problem yields
+        # the same solutiona s the parent node.
+        if incumbent:
+            if not np.any(node.S1):
+                node.x_inc = np.zeros(problem.n)
+                node.upper_bound = problem.datafit.value(np.zeros(problem.m))
+                return
+            elif node.category == 0:
+                return
+
+        # Node data
+        if incumbent:
+            S1 = node.S1
+            Sb = np.zeros(node.Sb.shape, dtype=np.bool_)
+        else:
+            S1 = node.S1
+            Sb = node.Sb
+
+        # Relaxation construction
+        m = problem.m
+        n = problem.n
+        y = problem.datafit.y
+        M = problem.penalty.M
+        A = problem.A
+        lmbd = problem.lmbd
+        on = np.ones(n)
+        zm = np.zeros(m)
+        zn = np.zeros(n)
+        q_new = np.hstack([zm, (m * lmbd / M) * Sb, zn])
+        lc_new = np.hstack([y, -M * (Sb | S1), zn, zn])
+        uc_new = np.hstack([y, M * (Sb | S1), np.inf * on, np.inf * on])
+        self.model.update(q=q_new, l=lc_new, u=uc_new)
+        result = self.model.solve()
+        x = result.x[-n:]
+        w = A[:, S1 | Sb] @ x[S1 | Sb]
+
+        if incumbent:
+            node.x_inc = np.copy(x) * S1
+            node.upper_bound = problem.datafit.value(w) + lmbd * np.sum(S1)
+        else:
+            node.x = np.copy(x)
+            node.w = np.copy(w)
+            node.u = -problem.datafit.gradient(w)
+            node.lower_bound = (
+                -problem.datafit.conjugate(-node.u)
+                - np.sum(
+                    [
+                        np.maximum(
+                            problem.penalty.conjugate(A[:, i].T @ node.u)
+                            - lmbd,
+                            0.0,
+                        )
+                        for i in np.flatnonzero(Sb)
+                    ]
+                )
+                - np.sum(
+                    [
+                        problem.penalty.conjugate(A[:, i].T @ node.u) - lmbd
+                        for i in np.flatnonzero(S1)
+                    ]
+                )
+            )
+
+
+class SbnbSolver(BaseSolver):
+    """Sbnb solver for L0-penalized problems."""
+
+    def __init__(
+        self,
+        time_limit: float = float(sys.maxsize),
+        rel_tol: float = 1e-4,
+        int_tol: float = 1e-8,
+        verbose: bool = False,
+    ):
+        self.options = {
+            "verbose": int(verbose),
+            "time_limit": time_limit,
+            "rel_tol": rel_tol,
+            "int_tol": int_tol,
+        }
+        self.solver = BnbSolver(
+            verbose=verbose,
+            time_limit=time_limit,
+            rel_tol=rel_tol,
+            int_tol=int_tol,
+            bounding_solver=OsqpBoundingSolver(),
+        )
+
+    def __str__(self):
+        return "SbnbSolver"
+
+    def solve(
+        self,
+        problem: Problem,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
+    ) -> Results:
+        return self.solver.solve(problem, x_init, S0_init, S1_init)
+
+
 class L0bnbSolver(BaseSolver):
     """L0bnb solver for L0-penalized problems."""
 
@@ -637,7 +924,7 @@ class L0bnbSolver(BaseSolver):
             result.sol_time,
             solver.number_of_nodes,
             problem.value(result.beta),
-            result.gap,
+            np.abs(result.gap),
             np.array(result.beta),
             np.array(result.beta != 0.0, dtype=float),
             None,
@@ -645,23 +932,28 @@ class L0bnbSolver(BaseSolver):
 
 
 def precompile(problem, solver):
+    solver_copy = deepcopy(solver)
     time_limit_precompile = 5.0
-    if isinstance(solver, BnbSolver):
-        solver.options.time_limit = time_limit_precompile
-    elif isinstance(solver, L0bnbSolver):
-        solver.options["time_limit"] = time_limit_precompile
-    elif isinstance(solver, GurobiSolver):
-        solver.options["TimeLimit"] = time_limit_precompile
-    elif isinstance(solver, MosekSolver):
-        solver.options["mioMaxTime"] = time_limit_precompile
+    if isinstance(solver_copy, BnbSolver):
+        solver_copy.options.time_limit = time_limit_precompile
+    elif isinstance(solver_copy, SbnbSolver):
+        solver_copy.solver.options.time_limit = time_limit_precompile
+    elif isinstance(solver_copy, L0bnbSolver):
+        solver_copy.options["time_limit"] = time_limit_precompile
+    elif isinstance(solver_copy, GurobiSolver):
+        solver_copy.options["TimeLimit"] = time_limit_precompile
+    elif isinstance(solver_copy, MosekSolver):
+        solver_copy.options["mioMaxTime"] = time_limit_precompile
     else:
         raise ValueError("Unknown solver {}".format(solver))
-    solver.solve(problem)
+    solver_copy.solve(problem)
 
 
 def get_solver(solver_name, options={}):
     if solver_name == "el0ps":
         return BnbSolver(**options)
+    if solver_name == "sbnb":
+        return SbnbSolver(**options)
     elif solver_name == "l0bnb":
         return L0bnbSolver(**options)
     elif solver_name == "gurobi":
@@ -674,7 +966,11 @@ def get_solver(solver_name, options={}):
 
 def can_handle(solver_name, datafit_name, penalty_name):
     if solver_name == "el0ps":
-        handle_datafit = datafit_name in ["Leastsquares", "Logistic"]
+        handle_datafit = datafit_name in [
+            "Leastsquares",
+            "Logistic",
+            "Squaredhinge",
+        ]
         handle_penalty = penalty_name in [
             "Bigm",
             "BigmL1norm",
@@ -682,12 +978,20 @@ def can_handle(solver_name, datafit_name, penalty_name):
             "L1norm",
             "L2norm",
             "L1L2norm",
+            "NeglogTriangular",
         ]
+    elif solver_name == "sbnb":
+        handle_datafit = datafit_name in ["Leastsquares"]
+        handle_penalty = penalty_name in ["Bigm"]
     elif solver_name == "l0bnb":
         handle_datafit = datafit_name in ["Leastsquares"]
         handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "L2norm"]
     elif solver_name == "gurobi":
-        handle_datafit = datafit_name in ["Leastsquares", "Logistic"]
+        handle_datafit = datafit_name in [
+            "Leastsquares",
+            "Logistic",
+            "Squaredhinge",
+        ]
         handle_penalty = penalty_name in [
             "Bigm",
             "BigmL1norm",
@@ -695,15 +999,21 @@ def can_handle(solver_name, datafit_name, penalty_name):
             "L1norm",
             "L2norm",
             "L1L2norm",
+            "NeglogTriangular",
         ]
     elif solver_name == "mosek":
-        handle_datafit = datafit_name in ["Leastsquares", "Logistic"]
+        handle_datafit = datafit_name in [
+            "Leastsquares",
+            "Logistic",
+            "Squaredhinge",
+        ]
         handle_penalty = penalty_name in [
             "Bigm",
             "BigmL1norm",
             "BigmL2norm",
             "L2norm",
             "L1L2norm",
+            "NeglogTriangular",
         ]
     else:
         raise ValueError("Unknown solver name {}".format(solver_name))

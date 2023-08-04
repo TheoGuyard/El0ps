@@ -70,7 +70,10 @@ class Problem:
         s += "  Datafit : {}\n".format(self.datafit)
         s += "  Penalty : {}\n".format(self.penalty)
         s += "  Dims    : {} x {}\n".format(self.m, self.n)
-        s += "  Lambda  : {:.4e}".format(self.lmbd)
+        s += "  Lambda  : {:.4e}\n".format(self.lmbd)
+        s += "  Ratio   : {:.4e}".format(
+            self.lmbd / compute_lmbd_max(self.datafit, self.penalty, self.A)
+        )
         return s
 
     def value(self, x: NDArray, Ax: Union[NDArray, None] = None) -> float:
@@ -119,10 +122,6 @@ def compute_lmbd_max(
         of the corresponding `Problem`.
     """
 
-    if not isinstance(datafit, BaseDatafit):
-        raise ValueError("Parameter `datafit` must derive from `BaseDatafit`.")
-    if not isinstance(penalty, BasePenalty):
-        raise ValueError("Parameter `penalty` must derive from `BasePenalty`.")
     if not isinstance(A, np.ndarray):
         raise ValueError("Parameter `A` must be a `np.ndarray`.")
     if A.ndim != 2:

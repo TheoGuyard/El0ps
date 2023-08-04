@@ -122,6 +122,39 @@ class BasePenalty:
         """
         ...
 
+    @abstractmethod
+    def param_maxzer(self) -> float:
+        """Maximum value of x such that the conjugate of the function at x
+        equals zero.
+
+        Returns
+        -------
+        value: float
+            The maximum value of x such that the conjugate of the function at x
+            equals zero.
+        """
+        ...
+
+    def approximate_param_slope(
+        self, lmbd: float, tol: float = 1e-4, maxit: int = 100
+    ) -> float:
+        a = 0.0
+        b = 1.0
+        c = 0.5
+        while self.conjugate(b) < lmbd:
+            b *= 2.0
+        for _ in range(maxit):
+            c = (a + b) / 2.0
+            fa = self.conjugate(a) - lmbd
+            fc = self.conjugate(c) - lmbd
+            if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
+                return c
+            if fc * fa >= 0.0:
+                a = c
+            else:
+                b = c
+        return c
+
 
 class ProximablePenalty(BasePenalty):
     """Base class for proximable penalty functions."""

@@ -1,6 +1,6 @@
 """Base classes for L0-penalized problem solvers and related utilities."""
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
@@ -42,7 +42,7 @@ class Results:
 
 
 @dataclass
-class BaseSolver(metaclass=ABCMeta):
+class BaseSolver:
     """Base class for L0-penalized problem solvers."""
 
     @abstractmethod
