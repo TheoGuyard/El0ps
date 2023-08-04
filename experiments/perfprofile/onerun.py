@@ -47,7 +47,6 @@ def onerun(config_path):
             precompile(problem, solver)
             print("    Solving...")
             result = solver.solve(problem)
-            print("    Status: {}".format(result.status.value))
         else:
             print("  Skipping {}...".format(solver_name))
             result = None

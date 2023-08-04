@@ -1,7 +1,7 @@
 """Branch-and-Bound bounding solvers."""
 
 from .base import BnbBoundingSolver
-from .cdas import CdBoundingSolver
+from .coordinate_descent import CdBoundingSolver
 
 __all__ = [
     "BnbBoundingSolver",
