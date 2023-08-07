@@ -65,11 +65,11 @@ def onerun(config_path):
             x_init = np.zeros(A.shape[1])
             lmbd_max = compute_lmbd_max(datafit, penalty, A)
             for i, lmbd_ratio in enumerate(lmbd_ratio_grid):
-                print(
-                    "    Ratio: {:.2e} ({}/{})...".format(
-                        lmbd_ratio, i + 1, lmbd_ratio_grid.size
-                    )
-                )
+                # print(
+                #     "    Ratio: {:.2e} ({}/{})...".format(
+                #         lmbd_ratio, i + 1, lmbd_ratio_grid.size
+                #     )
+                # )
                 problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
                 result = solver.solve(problem, x_init=x_init)
                 x_init = np.copy(result.x)

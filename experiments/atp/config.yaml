@@ -4,14 +4,12 @@ dataset:
   datafit_name: Leastsquares
   penalty_name: NeglogTriangular
   nnz_proba   : 0.1
-  m           : 20
-  n           : 30
+  m           : 100
+  n           : 300
   snr         : 10.
   t           : 1.
 solver_names: 
   - el0ps
-  - sbnb
-  - l0bnb
   - gurobi
   - mosek
 solver_options:

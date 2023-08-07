@@ -259,7 +259,7 @@ class GurobiSolver(BaseSolver):
             self.status,
             self.model.Runtime,
             int(self.model.NodeCount),
-            self.model.ObjVal,
+            problem.value(self.x),
             self.model.MIPGap,
             self.x,
             self.z,
@@ -541,29 +541,30 @@ class MosekSolver(BaseSolver):
             )
             model.constraint(
                 msk.Expr.sub(
-                    t_var,
-                    msk.Expr.sub(
-                        1.0, msk.Expr.mul(1.0 / problem.penalty.sigma, s_var)
+                    msk.Expr.constTerm(np.ones(problem.n)),
+                    msk.Expr.add(
+                        msk.Expr.mul(1.0 / problem.penalty.sigma, s_var),
+                        t_var,
                     ),
                 ),
                 msk.Domain.greaterThan(0.0),
             )
             model.constraint(
                 msk.Expr.hstack(
-                    u_var,
-                    msk.Expr.constTerm(np.ones(problem.n)),
                     t_var,
+                    msk.Expr.constTerm(np.ones(problem.n)),
+                    u_var,
                 ),
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
-                msk.Expr.sub(
+                msk.Expr.add(
                     g_var,
                     msk.Expr.add(
-                        msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
                         msk.Expr.mul(
                             problem.penalty.alpha, msk.Expr.sum(u_var)
                         ),
+                        msk.Expr.mul(-problem.lmbd, msk.Expr.sum(z_var)),
                     ),
                 ),
                 msk.Domain.greaterThan(0.0),
@@ -673,7 +674,7 @@ class MosekSolver(BaseSolver):
             self.status,
             self.model.getSolverDoubleInfo("mioTime"),
             self.model.getSolverIntInfo("mioNumBranch"),
-            self.model.getSolverDoubleInfo("mioObjInt"),
+            problem.value(self.x),
             self.model.getSolverDoubleInfo("mioObjRelGap"),
             self.x,
             self.z,
