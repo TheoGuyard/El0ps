@@ -25,3 +25,5 @@ htmlcov
 # experiments
 *.pickle
 *.csv
+experiments/scripts/**
+!experiments/scripts/oar.py
