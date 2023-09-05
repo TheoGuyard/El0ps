@@ -8,10 +8,6 @@ import yaml
 
 src_path = "~/Documents/Github/El0ps"
 
-# IGRIDA
-# dst_path = "thguyard@igrida-frontend.irisa.fr:/srv/tempdd/thguyard/repos"
-# logs_dir = "/srv/tempdd/thguyard/logs"
-
 # GRID5000
 dst_path = "tguyard@access.grid5000.fr:nancy/gits"
 logs_dir = "/home/tguyard/logs"
