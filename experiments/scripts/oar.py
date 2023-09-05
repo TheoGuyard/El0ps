@@ -7,8 +7,6 @@ import subprocess
 import yaml
 
 src_path = "~/Documents/Github/El0ps"
-
-# GRID5000
 dst_path = "tguyard@access.grid5000.fr:nancy/gits"
 logs_dir = "/home/tguyard/logs"
 
