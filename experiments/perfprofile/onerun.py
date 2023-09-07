@@ -14,18 +14,8 @@ from utils.solvers import get_solver, precompile, can_handle  # noqa
 
 def onerun(config_path):
     print("Preprocessing...")
-    base_dir = pathlib.Path(__file__).parent.absolute()
-    result_dir = pathlib.Path(base_dir, "results")
-    result_file = "{}.pickle".format(
-        datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-    )
-    result_path = pathlib.Path(base_dir, result_dir, result_file)
     config_path = pathlib.Path(config_path)
-
-    assert result_dir.is_dir()
     assert config_path.is_file()
-    assert not result_path.is_file()
-
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
 
@@ -53,10 +43,16 @@ def onerun(config_path):
         results[solver_name] = result
 
     print("Saving results...")
+    base_dir = pathlib.Path(__file__).parent.absolute()
+    result_dir = pathlib.Path(base_dir, "results")
+    result_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
+    result_file = "{}.pickle".format(result_uuid)
+    result_path = pathlib.Path(base_dir, result_dir, result_file)
+    assert result_dir.is_dir()
+    assert not result_path.is_file()
     with open(result_path, "wb") as file:
         data = {"config": config, "results": results}
         pickle.dump(data, file)
-
     print("  File name: {}".format(result_file))
 
 
