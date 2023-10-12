@@ -252,11 +252,11 @@ class CplexSolver(BaseSolver):
                 self.model.parameters.mip.tolerances.integrality = v
 
     def get_status(self) -> Status:
-        if self.model.solve_details.status_code == 1:
+        if self.model.solve_details.status_code in [1, 101]:
             status = Status.OPTIMAL
-        elif self.model.solve_details.status_code == 10:
+        elif self.model.solve_details.status_code in [10, 105, 106]:
             status = Status.NODE_LIMIT
-        elif self.model.solve_details.status_code == 11:
+        elif self.model.solve_details.status_code in [11, 107, 108]:
             status = Status.TIME_LIMIT
         else:
             status = Status.OTHER_LIMIT
