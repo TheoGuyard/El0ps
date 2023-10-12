@@ -356,9 +356,10 @@ class BnbSolver(BaseSolver):
             self.status,
             self.solve_time,
             self.node_count,
-            problem.value(self.x),
             self.rel_gap,
             self.x,
             np.array(self.x != 0.0, dtype=float),
+            problem.value(self.x),
+            np.sum(np.abs(self.x) <= self.options.int_tol),
             self.trace,
         )

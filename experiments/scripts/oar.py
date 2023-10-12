@@ -120,7 +120,7 @@ def oar_install():
         "module load python",
         "python -m pip install -q -e .[exp]",
     ]
-    for cmd_string in cmd_strings
+    for cmd_string in cmd_strings:
         subprocess.run(cmd_string, shell=True)
 
 
@@ -144,7 +144,7 @@ def oar_make():
 
     for experiment in experiments:
         print("oar make {}".format(experiment["name"]))
-        
+
         # Create the experiment dir
         experiment_dir = script_dir.joinpath(experiment["name"])
         experiment_dir.mkdir()

@@ -45,7 +45,8 @@ class CplexSolver(BaseSolver):
         if str(problem.datafit) == "Leastsquares":
             r_var = model.continuous_var_list(problem.m, name="r", lb=-np.inf)
             model.add_constraints(
-                r_var[j] == problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
+                r_var[j]
+                == problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
                 for j in range(problem.m)
             )
             model.add_constraint(
@@ -56,7 +57,9 @@ class CplexSolver(BaseSolver):
             s_var = model.continuous_var_list(problem.m, name="s")
             model.add_constraints(
                 r_var[j]
-                == 1.0 - problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
+                == 1.0
+                - problem.datafit.y[j]
+                - model.dot(x_var, problem.A[j, :])
                 for j in range(problem.m)
             )
             model.add_constraints(
@@ -259,7 +262,7 @@ class CplexSolver(BaseSolver):
         elif self.model.solve_details.status_code in [11, 107, 108]:
             status = Status.TIME_LIMIT
         else:
-            status = Status.OTHER_LIMIT
+            status = Status.UNKNOWN
         return status
 
     def solve(
@@ -285,10 +288,11 @@ class CplexSolver(BaseSolver):
             self.status,
             self.model.solve_details.time,
             int(self.model.solve_details.nb_iterations),
-            problem.value(self.x),
             self.model.solve_details.mip_relative_gap,
             self.x,
             self.z,
+            problem.value(self.x),
+            np.sum(np.abs(self.x) <= self.options["int_tol"]),
             None,
         )
 
@@ -513,7 +517,7 @@ class GurobiSolver(BaseSolver):
         elif self.model.Status == gp.GRB.TIME_LIMIT:
             status = Status.TIME_LIMIT
         else:
-            status = Status.OTHER_LIMIT
+            status = Status.UNKNOWN
         return status
 
     def solve(
@@ -539,10 +543,11 @@ class GurobiSolver(BaseSolver):
             self.status,
             self.model.Runtime,
             int(self.model.NodeCount),
-            problem.value(self.x),
             self.model.MIPGap,
             self.x,
             self.z,
+            problem.value(self.x),
+            np.sum(np.abs(self.x) <= self.options["IntFeasTol"]),
             None,
         )
 
@@ -928,7 +933,7 @@ class MosekSolver(BaseSolver):
         ):
             status = Status.TIME_LIMIT
         else:
-            status = Status.OTHER_LIMIT
+            status = Status.UNKNOWN
         return status
 
     def solve(
@@ -954,10 +959,11 @@ class MosekSolver(BaseSolver):
             self.status,
             self.model.getSolverDoubleInfo("mioTime"),
             self.model.getSolverIntInfo("mioNumBranch"),
-            problem.value(self.x),
             self.model.getSolverDoubleInfo("mioObjRelGap"),
             self.x,
             self.z,
+            problem.value(self.x),
+            np.sum(np.abs(self.x) <= self.options["mioTolAbsRelaxInt"]),
             None,
         )
 
@@ -1204,10 +1210,11 @@ class L0bnbSolver(BaseSolver):
             status,
             result.sol_time,
             solver.number_of_nodes,
-            problem.value(result.beta),
             np.abs(result.gap),
             np.array(result.beta),
             np.array(result.beta != 0.0, dtype=float),
+            problem.value(result.beta),
+            np.sum(np.abs(result.beta) <= self.options["int_tol"]),
             None,
         )
 
