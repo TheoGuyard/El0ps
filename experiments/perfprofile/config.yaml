@@ -11,6 +11,7 @@ dataset:
   normalize   : false
 solver_names: 
   - el0ps
+  - cplex
   - sbnb
   - l0bnb
   - gurobi

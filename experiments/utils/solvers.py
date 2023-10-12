@@ -4,6 +4,8 @@ import mosek.fusion as msk
 import numpy as np
 import osqp
 from copy import deepcopy
+from docplex.mp.model import Model
+from docplex.mp.dvar import Var
 from typing import Union
 from numpy.typing import NDArray
 from l0bnb import BNBTree
@@ -11,6 +13,284 @@ from scipy import sparse
 from el0ps import Problem
 from el0ps.solver import BaseSolver, BnbSolver, BnbNode, Status, Results
 from el0ps.solver.bounding import BnbBoundingSolver
+
+
+class CplexSolver(BaseSolver):
+    """Cplex solver for L0-penalized problems."""
+
+    def __init__(
+        self,
+        time_limit: float = float(sys.maxsize),
+        rel_tol: float = 1e-4,
+        int_tol: float = 1e-8,
+        verbose: bool = False,
+    ):
+        self.options = {
+            "verbose": int(verbose),
+            "time_limit": time_limit,
+            "rel_tol": rel_tol,
+            "int_tol": int_tol,
+        }
+
+    def __str__(self):
+        return "CplexSolver"
+
+    def bind_model_f_var(
+        self,
+        problem: Problem,
+        model: Model,
+        x_var: Var,
+        f_var: Var,
+    ) -> None:
+        if str(problem.datafit) == "Leastsquares":
+            r_var = model.continuous_var_list(problem.m, name="r", lb=-np.inf)
+            model.add_constraints(
+                r_var[j] == problem.datafit.y[j] - problem.A[j, :] @ x_var
+                for j in range(problem.m)
+            )
+            model.add_constraint(
+                f_var >= model.sumsq(r_var) / (2.0 * problem.m)
+            )
+        elif str(problem.datafit) == "Squaredhinge":
+            r_var = model.continuous_var_list(problem.m, name="r", lb=-np.inf)
+            s_var = model.continuous_var_list(problem.m, name="s")
+            model.add_constraints(
+                r_var[j]
+                == 1.0 - problem.datafit.y[j] - problem.A[j, :] @ x_var
+                for j in range(problem.m)
+            )
+            model.add_constraints(
+                s_var[j] >= r_var[j] for j in range(problem.m)
+            )
+            model.add_constraints(s_var[j] >= 0.0 for j in range(problem.m))
+            model.add_constraint(f_var >= model.sumsq(s_var) / problem.m)
+        else:
+            raise NotImplementedError(
+                "`CplexSolver` does not support `{}` yet.".format(
+                    type(problem.datafit)
+                )
+            )
+
+    def bind_model_g_var(
+        self,
+        problem: Problem,
+        model: Model,
+        x_var: Var,
+        z_var: Var,
+        g_var: Var,
+    ) -> None:
+        if str(problem.penalty) == "Bigm":
+            model.add_constraints(
+                x_var[i] <= problem.penalty.M * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraints(
+                x_var[i] >= -problem.penalty.M * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraint(g_var >= problem.lmbd * sum(z_var))
+        elif str(problem.penalty) == "BigmL1norm":
+            s_var = model.continuous_var_list(problem.n, name="s")
+            model.add_quadratic_constraints(
+                z_var[i] * s_var[i] >= x_var[i] for i in range(problem.n)
+            )
+            model.add_quadratic_constraints(
+                z_var[i] * s_var[i] >= -x_var[i] for i in range(problem.n)
+            )
+            model.add_constraints(
+                x_var[i] <= problem.penalty.M * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraints(
+                x_var[i] >= -problem.penalty.M * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraint(
+                g_var
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s_var)
+            )
+        elif str(problem.penalty) == "BigmL2norm":
+            s_var = model.continuous_var_list(problem.n, name="s")
+            model.add_constraints(
+                x_var[i] <= problem.penalty.M * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraints(
+                x_var[i] >= -problem.penalty.M * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_quadratic_constraints(
+                x_var[i] * x_var[i] <= s_var[i] * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraint(
+                g_var
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s_var)
+            )
+        elif str(problem.penalty) == "L1norm":
+            s_var = model.continuous_var_list(problem.n, name="s")
+            model.add_quadratic_constraints(
+                z_var[i] * s_var[i] >= x_var[i] for i in range(problem.n)
+            )
+            model.add_quadratic_constraints(
+                z_var[i] * s_var[i] >= -x_var[i] for i in range(problem.n)
+            )
+            model.add_constraint(
+                g_var
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s_var)
+            )
+        elif str(problem.penalty) == "L2norm":
+            s_var = model.continuous_var_list(problem.n, name="s")
+            model.add_quadratic_constraints(
+                x_var[i] * x_var[i] <= s_var[i] * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraint(
+                g_var
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s_var)
+            )
+        elif str(problem.penalty) == "L1L2norm":
+            s1_var = model.continuous_var_list(problem.n, name="s1")
+            s2_var = model.continuous_var_list(problem.n, name="s1")
+            model.add_quadratic_constraints(
+                z_var[i] * s1_var[i] >= x_var[i] for i in range(problem.n)
+            )
+            model.add_quadratic_constraints(
+                z_var[i] * s1_var[i] >= -x_var[i] for i in range(problem.n)
+            )
+            model.add_quadratic_constraints(
+                x_var[i] * x_var[i] <= s_var[i] * z_var[i]
+                for i in range(problem.n)
+            )
+            model.add_constraint(
+                g_var
+                >= problem.lmbd * sum(z_var)
+                + problem.penalty.alpha * sum(s1_var)
+                + problem.penalty.beta * sum(s2_var)
+            )
+        else:
+            raise NotImplementedError(
+                "`CplexSolver` does not support `{}` yet.".format(
+                    type(problem.penalty)
+                )
+            )
+
+    def build_model(self, problem: Problem, relax: bool = False) -> None:
+        """Build the following MIP model of the L0-penalized problem
+
+            min f_var + g_var                               (1)
+            st  f_var >= f(A * x_var)                       (2)
+                g_var >= lmbd * norm(x_var, 0) + h(x_var)   (3)
+                f_var real, g_var real, x_var vector        (4)
+
+        Constraint (2) is set by `self._bind_model_f_var()` and constraint (3)
+        is set by `self._bind_model_g_var()`, depending on the Problem data
+        fidelity and penalty functions.
+
+        Paramaters
+        ----------
+        problem: Problem
+            The L0-penalized problem to be solved.
+        relax: bool = False
+            Whether to relax integrality constraints on the binary variable
+            coding the nullity in x.
+        """
+
+        model = Model()
+        f_var = model.continuous_var(name="f", lb=-np.inf)
+        g_var = model.continuous_var(name="g", lb=-np.inf)
+        x_var = model.continuous_var_list(problem.n, name="x", lb=-np.inf)
+        if relax:
+            z_var = model.continuous_var_list(
+                problem.n, name="z", lb=0.0, ub=1.0
+            )
+        else:
+            z_var = model.binary_var_list(problem.n, name="z")
+        self.bind_model_f_var(problem, model, x_var, f_var)
+        self.bind_model_g_var(problem, model, x_var, z_var, g_var)
+        model.minimize(f_var + g_var)
+
+        self.model = model
+        self.x_var = x_var
+        self.z_var = z_var
+        self.f_var = f_var
+        self.g_var = g_var
+
+    def set_init(
+        self,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
+    ) -> None:
+        if S0_init is not None:
+            for i in S0_init:
+                self.model.add_constraint(self.x_var[i] == 0.0)
+                self.model.add_constraint(self.z_var[i] == 0.0)
+        if S1_init is not None:
+            for i in S1_init:
+                self.model.add_constraint(self.z_var[i] == 1.0)
+        if x_init is not None:
+            warmstart = self.model.new_solution()
+            for i, xi in enumerate(x_init):
+                warmstart.add_var_value(self.x_var[i], xi)
+                warmstart.add_var_value(self.z_var[i], xi != 0.0)
+            self.model.add_mip_start(warmstart)
+
+    def set_options(self) -> None:
+        for k, v in self.options.items():
+            if k == "verbose":
+                self.model.parameters.mip.display = v
+            elif k == "time_limit":
+                self.model.parameters.timelimit = v
+            elif k == "rel_tol":
+                self.model.parameters.mip.tolerances.mipgap = v
+            elif k == "int_tol":
+                self.model.parameters.mip.tolerances.integrality = v
+
+    def get_status(self) -> Status:
+        if self.model.solve_details.status_code == 1:
+            status = Status.OPTIMAL
+        elif self.model.solve_details.status_code == 10:
+            status = Status.NODE_LIMIT
+        elif self.model.solve_details.status_code == 11:
+            status = Status.TIME_LIMIT
+        else:
+            status = Status.OTHER_LIMIT
+        return status
+
+    def solve(
+        self,
+        problem: Problem,
+        x_init: Union[NDArray, None] = None,
+        S0_init: Union[NDArray, None] = None,
+        S1_init: Union[NDArray, None] = None,
+    ) -> Results:
+        self.build_model(problem)
+        self.set_init(x_init, S0_init, S1_init)
+        self.set_options()
+        self.model.solve()
+        self.status = self.get_status()
+        if self.status == Status.OPTIMAL:
+            self.x = np.array(self.x_var.solution_value)
+            self.z = np.array(self.z_var.solution_value)
+        else:
+            self.x = np.zeros(problem.n)
+            self.z = np.zeros(problem.n)
+
+        return Results(
+            self.status,
+            self.model.solve_details.time,
+            int(self.model.solve_details.nb_iterations),
+            problem.value(self.x),
+            self.model.solve_details.mip_relative_gap,
+            self.x,
+            self.z,
+            None,
+        )
 
 
 class GurobiSolver(BaseSolver):
@@ -189,7 +469,7 @@ class GurobiSolver(BaseSolver):
         """
 
         model = gp.Model()
-        f_var = model.addVar(vtype="C", name="f")
+        f_var = model.addVar(vtype="C", name="f", lb=-np.inf)
         g_var = model.addVar(vtype="C", name="g")
         x_var = model.addMVar(problem.n, vtype="C", name="x", lb=-np.inf)
         z_var = model.addMVar(problem.n, vtype="B", name="z")
@@ -599,7 +879,7 @@ class MosekSolver(BaseSolver):
 
         model = msk.Model()
         f_var = model.variable("f", 1, msk.Domain.unbounded())
-        g_var = model.variable("g", 1, msk.Domain.unbounded())
+        g_var = model.variable("g", 1, msk.Domain.greaterThan(0.0))
         x_var = model.variable("x", problem.n, msk.Domain.unbounded())
         if relax:
             z_var = model.variable(
@@ -941,6 +1221,8 @@ def precompile(problem, solver):
         solver_copy.solver.options.time_limit = time_limit_precompile
     elif isinstance(solver_copy, L0bnbSolver):
         solver_copy.options["time_limit"] = time_limit_precompile
+    elif isinstance(solver_copy, CplexSolver):
+        solver_copy.options["TimeLimit"] = time_limit_precompile
     elif isinstance(solver_copy, GurobiSolver):
         solver_copy.options["TimeLimit"] = time_limit_precompile
     elif isinstance(solver_copy, MosekSolver):
@@ -957,6 +1239,8 @@ def get_solver(solver_name, options={}):
         return SbnbSolver(**options)
     elif solver_name == "l0bnb":
         return L0bnbSolver(**options)
+    elif solver_name == "cplex":
+        return CplexSolver(**options)
     elif solver_name == "gurobi":
         return GurobiSolver(**options)
     elif solver_name == "mosek":
@@ -987,6 +1271,19 @@ def can_handle(solver_name, datafit_name, penalty_name):
     elif solver_name == "l0bnb":
         handle_datafit = datafit_name in ["Leastsquares"]
         handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "L2norm"]
+    elif solver_name == "cplex":
+        handle_datafit = datafit_name in [
+            "Leastsquares",
+            "Squaredhinge",
+        ]
+        handle_penalty = penalty_name in [
+            "Bigm",
+            "BigmL1norm",
+            "BigmL2norm",
+            "L1norm",
+            "L2norm",
+            "L1L2norm",
+        ]
     elif solver_name == "gurobi":
         handle_datafit = datafit_name in [
             "Leastsquares",
