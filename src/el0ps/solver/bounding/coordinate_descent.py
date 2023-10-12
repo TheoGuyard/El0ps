@@ -6,125 +6,7 @@ from el0ps.datafit import SmoothDatafit
 from el0ps.penalty import BasePenalty
 from el0ps.problem import Problem
 from el0ps.solver import BnbNode
-from .base import BnbBoundingSolver
-
-
-@njit
-def softhresh(x: float, eta: float) -> float:
-    return np.sign(x) * np.maximum(np.abs(x) - eta, 0.0)
-
-
-@njit
-def abs_gap(pv: float, dv: float) -> float:
-    return np.abs(pv - dv)
-
-
-@njit
-def rel_gap(pv: float, dv: float) -> float:
-    return np.abs(pv - dv) / (np.abs(pv) + 1e-16)
-
-
-@njit
-def cd_loop(
-    datafit: SmoothDatafit,
-    penalty: BasePenalty,
-    A: NDArray[np.float64],
-    lmbd: float,
-    tau: float,
-    mu: float,
-    rho: NDArray[np.float64],
-    eta: NDArray[np.float64],
-    delta: NDArray[np.float64],
-    x: NDArray[np.float64],
-    w: NDArray[np.float64],
-    u: NDArray[np.float64],
-    Ws: NDArray[np.bool_],
-    Sb: NDArray[np.bool_],
-) -> float:
-    for i in np.flatnonzero(Ws):
-        ai = A[:, i]
-        xi = x[i]
-        ci = xi + rho[i] * np.dot(ai, u)
-        if Sb[i] and np.abs(ci) <= delta[i]:
-            x[i] = softhresh(ci, eta[i])
-        else:
-            x[i] = penalty.prox(ci, rho[i])
-        if x[i] != xi:
-            w += (x[i] - xi) * ai
-            u[:] = -datafit.gradient(w)
-    return compute_pv(datafit, penalty, lmbd, tau, mu, x, w, Ws, Sb)
-
-
-@njit
-def compute_pv(
-    datafit: SmoothDatafit,
-    penalty: BasePenalty,
-    lmbd: float,
-    tau: float,
-    mu: float,
-    x: NDArray[np.float64],
-    w: NDArray[np.float64],
-    Ws: NDArray[np.bool_],
-    Sb: NDArray[np.bool_],
-) -> float:
-    pv = datafit.value(w)
-    for i in np.flatnonzero(Ws):
-        xi = x[i]
-        if Sb[i] and np.abs(xi) <= mu:
-            pv += tau * np.abs(xi)
-        else:
-            pv += penalty.value(xi) + lmbd
-    return pv
-
-
-@njit
-def compute_dv(
-    datafit: SmoothDatafit,
-    penalty: BasePenalty,
-    A: NDArray[np.float64],
-    lmbd: float,
-    u: NDArray[np.float64],
-    v: NDArray[np.float64],
-    p: NDArray[np.float64],
-    Ws: NDArray[np.bool_],
-    Sb: NDArray[np.bool_],
-) -> float:
-    nz = np.flatnonzero(Ws)
-    sf = np.empty(v.shape)
-    for i in nz:
-        v[i] = np.dot(A[:, i], u)
-        p[i] = penalty.conjugate(v[i]) - lmbd
-        sf[i] = penalty.conjugate_scaling_factor(v[i])
-    g_sf = 1.0 if nz.size == 0 else np.min(sf[nz])
-    u_sf = g_sf * u
-    v_sf = g_sf * v
-    dv = -datafit.conjugate(-u_sf)
-    for i in nz:
-        q_sf = penalty.conjugate(v_sf[i]) - lmbd
-        dv -= np.maximum(q_sf, 0.0) if Sb[i] else q_sf
-    return dv
-
-
-@njit
-def ws_update(
-    penalty: BasePenalty,
-    A: NDArray[np.float64],
-    lmbd: float,
-    tau: float,
-    u: NDArray[np.float64],
-    v: NDArray[np.float64],
-    p: NDArray[np.float64],
-    Ws: NDArray[np.bool_],
-    Sbi: NDArray[np.bool_],
-) -> bool:
-    flag = False
-    for i in np.flatnonzero(~Ws & Sbi):
-        v[i] = np.dot(A[:, i], u)
-        p[i] = penalty.conjugate(v[i]) - lmbd
-        if np.abs(v[i]) > tau:
-            flag = True
-            Ws[i] = True
-    return flag
+from .base import BnbBoundingSolver, softhresh
 
 
 class CdBoundingSolver(BnbBoundingSolver):
@@ -220,7 +102,7 @@ class CdBoundingSolver(BnbBoundingSolver):
             while True:
                 it_cd += 1
                 pv_old = pv
-                pv = cd_loop(
+                self.cd_loop(
                     datafit,
                     penalty,
                     A,
@@ -236,23 +118,28 @@ class CdBoundingSolver(BnbBoundingSolver):
                     Ws,
                     Sb,
                 )
+                pv = self.compute_pv(
+                    datafit, penalty, lmbd, tau, mu, x, w, S1, Sb
+                )
 
                 # Inner solver stopping criterion
                 #   - in lower bounding: no more progress in primal objective
                 #   - in upper bounding: dual gap below the target mip gap
                 #   - in both cases: maximum number of iterations reached
                 if incumbent:
-                    dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
-                    if rel_gap(pv, dv) <= rel_tol:
+                    dv = self.compute_dv(
+                        datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                    )
+                    if self.rel_gap(pv, dv) <= rel_tol:
                         break
-                elif rel_gap(pv, pv_old) <= rel_tol_inner:
+                elif self.rel_gap(pv, pv_old) <= rel_tol_inner:
                     break
                 elif it_cd >= self.iter_limit_cd:
                     break
 
             # ----- Active-set update ----- #
 
-            flag = ws_update(penalty, A, lmbd, tau, u, v, p, Ws, Sbi)
+            flag = self.ws_update(penalty, A, lmbd, tau, u, v, p, Ws, Sbi)
 
             # ----- Stopping criterion ----- #
 
@@ -270,8 +157,10 @@ class CdBoundingSolver(BnbBoundingSolver):
             if incumbent == "upper":
                 break
             if not flag:
-                dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
-                if rel_gap(pv, dv) < rel_tol:
+                dv = self.compute_dv(
+                    datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                )
+                if self.rel_gap(pv, dv) < rel_tol:
                     break
                 if dv >= ub:
                     break
@@ -285,7 +174,9 @@ class CdBoundingSolver(BnbBoundingSolver):
 
             if not incumbent and (l1screening or l0screening):
                 if np.isnan(dv):
-                    dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
+                    dv = self.compute_dv(
+                        datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                    )
                 if l1screening:
                     self.l1screening(
                         datafit,
@@ -327,5 +218,59 @@ class CdBoundingSolver(BnbBoundingSolver):
             node.upper_bound = pv
         else:
             if np.isnan(dv):
-                dv = compute_dv(datafit, penalty, A, lmbd, u, v, p, Ws, Sb)
+                dv = self.compute_dv(
+                    datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                )
             node.lower_bound = dv
+
+    @staticmethod
+    @njit
+    def cd_loop(
+        datafit: SmoothDatafit,
+        penalty: BasePenalty,
+        A: NDArray[np.float64],
+        lmbd: float,
+        tau: float,
+        mu: float,
+        rho: NDArray[np.float64],
+        eta: NDArray[np.float64],
+        delta: NDArray[np.float64],
+        x: NDArray[np.float64],
+        w: NDArray[np.float64],
+        u: NDArray[np.float64],
+        Ws: NDArray[np.bool_],
+        Sb: NDArray[np.bool_],
+    ) -> float:
+        for i in np.flatnonzero(Ws):
+            ai = A[:, i]
+            xi = x[i]
+            ci = xi + rho[i] * np.dot(ai, u)
+            if Sb[i] and np.abs(ci) <= delta[i]:
+                x[i] = softhresh(ci, eta[i])
+            else:
+                x[i] = penalty.prox(ci, rho[i])
+            if x[i] != xi:
+                w += (x[i] - xi) * ai
+                u[:] = -datafit.gradient(w)
+
+    @staticmethod
+    @njit
+    def ws_update(
+        penalty: BasePenalty,
+        A: NDArray[np.float64],
+        lmbd: float,
+        tau: float,
+        u: NDArray[np.float64],
+        v: NDArray[np.float64],
+        p: NDArray[np.float64],
+        Ws: NDArray[np.bool_],
+        Sbi: NDArray[np.bool_],
+    ) -> bool:
+        flag = False
+        for i in np.flatnonzero(~Ws & Sbi):
+            v[i] = np.dot(A[:, i], u)
+            p[i] = penalty.conjugate(v[i]) - lmbd
+            if np.abs(v[i]) > tau:
+                flag = True
+                Ws[i] = True
+        return flag
