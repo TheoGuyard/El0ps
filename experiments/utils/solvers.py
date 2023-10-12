@@ -45,7 +45,7 @@ class CplexSolver(BaseSolver):
         if str(problem.datafit) == "Leastsquares":
             r_var = model.continuous_var_list(problem.m, name="r", lb=-np.inf)
             model.add_constraints(
-                r_var[j] == problem.datafit.y[j] - problem.A[j, :] @ x_var
+                r_var[j] == problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
                 for j in range(problem.m)
             )
             model.add_constraint(
@@ -56,7 +56,7 @@ class CplexSolver(BaseSolver):
             s_var = model.continuous_var_list(problem.m, name="s")
             model.add_constraints(
                 r_var[j]
-                == 1.0 - problem.datafit.y[j] - problem.A[j, :] @ x_var
+                == 1.0 - problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
                 for j in range(problem.m)
             )
             model.add_constraints(
@@ -275,8 +275,8 @@ class CplexSolver(BaseSolver):
         self.model.solve()
         self.status = self.get_status()
         if self.status == Status.OPTIMAL:
-            self.x = np.array(self.x_var.solution_value)
-            self.z = np.array(self.z_var.solution_value)
+            self.x = np.array([xi.solution_value for xi in self.x_var])
+            self.z = np.array([zi.solution_value for zi in self.z_var])
         else:
             self.x = np.zeros(problem.n)
             self.z = np.zeros(problem.n)
