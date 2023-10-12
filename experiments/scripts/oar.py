@@ -116,8 +116,12 @@ def oar_receive():
 
 def oar_install():
     print("oar install")
-    subprocess.run("module load python", shell=True)
-    subprocess.run("python -m pip install -q -e .[exp]", shell=True)
+    cmd_strings = [
+        "module load python",
+        "python -m pip install -q -e .[exp]",
+    ]
+    for cmd_string in cmd_strings
+        subprocess.run(cmd_string, shell=True)
 
 
 def oar_make():
