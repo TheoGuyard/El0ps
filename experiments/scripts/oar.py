@@ -116,8 +116,8 @@ def oar_receive():
 
 def oar_install():
     print("oar install")
-    cmd_str = "python3 -m pip install -q -e .[exp]"
-    subprocess.run(cmd_str, shell=True)
+    subprocess.run("module load python", shell=True)
+    subprocess.run("python -m pip install -q -e .[exp]", shell=True)
 
 
 def oar_make():
@@ -167,7 +167,8 @@ def oar_make():
                 "#OAR --array-param-file {}".format(args_path),
                 "set -xv",
                 "source ~/.profile",
-                "python3 {}/{}/onerun.py $*".format(
+                "module load python julia gurobi cplex",
+                "python {}/{}/onerun.py $*".format(
                     experiments_dir, experiment["name"]
                 ),
             ]
