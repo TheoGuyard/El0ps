@@ -100,6 +100,7 @@ def onerun(config_path):
         pickle.dump(data, file)
     print("  File name: {}".format(result_file))
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("config_path")

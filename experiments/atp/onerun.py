@@ -19,7 +19,7 @@ def onerun(config_path):
     assert config_path.is_file()
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
-        
+
     print("Generating data...")
     datafit, penalty, A, lmbd, x_true = get_data(config["dataset"])
 

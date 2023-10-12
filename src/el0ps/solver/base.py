@@ -9,11 +9,14 @@ from el0ps.problem import Problem
 
 
 class Status(Enum):
-    OTHER_LIMIT = "OTHER_LIMIT"
-    NODE_LIMIT = "NODE_LIMIT"
-    TIME_LIMIT = "TIME_LIMIT"
-    RUNNING = "RUNNING"
-    OPTIMAL = "OPTIMAL"
+    def __str__(self):
+        return str(self.value)
+
+    UNKNOWN = "unknown"
+    NODE_LIMIT = "nodelim"
+    TIME_LIMIT = "timelim"
+    RUNNING = "running"
+    OPTIMAL = "optimal"
 
 
 @dataclass
@@ -23,10 +26,11 @@ class Results:
     status: Status
     solve_time: float
     node_count: int
-    objective_value: float
     rel_gap: float
     x: NDArray
     z: NDArray
+    objective_value: float
+    n_nnz: int
     trace: dict
 
     def __str__(self) -> str:
@@ -35,9 +39,9 @@ class Results:
         s += "  Status     : {}\n".format(self.status.value)
         s += "  Solve time : {:.6f} seconds\n".format(self.solve_time)
         s += "  Node count : {}\n".format(self.node_count)
-        s += "  Objective  : {:.6f}\n".format(self.objective_value)
         s += "  Rel. gap   : {:.2%}\n".format(self.rel_gap)
-        s += "  Non-zeros  : {}".format(int(sum(self.z)))
+        s += "  Objective  : {:.6f}\n".format(self.objective_value)
+        s += "  Non-zeros  : {}".format(self.n_nnz)
         return s
 
 

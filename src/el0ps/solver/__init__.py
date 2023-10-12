@@ -9,7 +9,6 @@ from .bnb import (
     BnbSolver,
 )
 
-
 __all__ = [
     "BaseSolver",
     "Results",
