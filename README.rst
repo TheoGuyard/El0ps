@@ -26,6 +26,8 @@ Get the latest version of the package by running the following command.
 
    $ pip install el0ps
 
+Please report any bug in the `issue page <https://github.com/TheoGuyard/El0ps/issues>`_.
+Feel free to contribute by opening a `pull request <https://github.com/TheoGuyard/El0ps/pulls>`_.
 
 Getting started
 ---------------
