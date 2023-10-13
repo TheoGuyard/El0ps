@@ -24,7 +24,7 @@ def onerun(config_path):
     problem = Problem(datafit, penalty, A, lmbd)
 
     print("Running...")
-    results = {}
+    results = {solver_name: None for solver_name in config["solver_names"]}
     for solver_name in config["solver_names"]:
         solver = get_solver(solver_name, config["solver_options"])
         if can_handle(
