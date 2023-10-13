@@ -13,7 +13,7 @@ El0ps
 
 ``el0ps`` is a Python package allowing to solve L0-penalized problems.
 It is designed to be numerically efficient and supports a wide range of loss and penalty functions.
-You can pick from ``el0ps``'s already-made estimators or customize your own by building on to of the available datafits and penalties template classes.
+You can pick from ``el0ps``'s already-made estimators or customize your own by building on top of the available datafits and penalties template classes.
 
 
 Installation
@@ -25,6 +25,39 @@ Get the latest version of the package by running the following command.
 .. code-block:: shell
 
    $ pip install el0ps
+
+
+Getting started
+---------------
+
+Here is a simple example of how to use ``el0ps`` to solve an L0-penalized problem.
+
+.. code-block:: python
+
+    import numpy as np
+    from sklearn.datasets import make_regression
+    from el0ps import Problem, Path
+    from el0ps.datafit import Leastsquares
+    from el0ps.penalty import Bigm
+    from el0ps.solver import BnbSolver
+
+    # Generate sparse regression data
+    A, y, x = make_regression(n_samples=50, n_features=100, coef=True)
+    M = 10. * np.linalg.norm(x, np.inf)
+
+    # Instantiate the datafit and penalty functions
+    datafit = Leastsquares(y)
+    penalty = Bigm(M)
+
+    # Solve the problem for a fixed lambda using el0ps's BnB solver
+    lmbd = 10.
+    problem = Problem(datafit, penalty, A, lmbd)
+    solver = BnbSolver()
+    result = solver.solve(problem)
+
+    # Fit a regularization path by varying the lambda parameter
+    path = Path()
+    fit_data = path.fit(solver, datafit, penalty, A)
 
 
 Cite
