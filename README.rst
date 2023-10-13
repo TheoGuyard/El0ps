@@ -30,13 +30,13 @@ Get the latest version of the package by running the following command.
 Getting started
 ---------------
 
-Here is a simple example of how to use ``el0ps`` to solve an L0-penalized problem.
+Here is a simple example of how to use ``el0ps`` to solve an L0-penalized problem for a fixed regularization weight.
 
 .. code-block:: python
 
     import numpy as np
     from sklearn.datasets import make_regression
-    from el0ps import Problem, Path
+    from el0ps import Problem
     from el0ps.datafit import Leastsquares
     from el0ps.penalty import Bigm
     from el0ps.solver import BnbSolver
@@ -45,19 +45,23 @@ Here is a simple example of how to use ``el0ps`` to solve an L0-penalized proble
     A, y, x = make_regression(n_samples=50, n_features=100, coef=True)
     M = 10. * np.linalg.norm(x, np.inf)
 
-    # Instantiate the datafit and penalty functions
-    datafit = Leastsquares(y)
-    penalty = Bigm(M)
-
-    # Solve the problem for a fixed lambda using el0ps's BnB solver
-    lmbd = 10.
-    problem = Problem(datafit, penalty, A, lmbd)
+    # Instantiate the datafit and penalty functions and solve the problem
+    # for a fixed L0-regularization weight using el0ps's BnB solver
+    datafit, penalty = Leastsquares(y), Bigm(M)
+    problem = Problem(datafit, penalty, A, 10.)
     solver = BnbSolver()
     result = solver.solve(problem)
 
-    # Fit a regularization path by varying the lambda parameter
+You can also fit a regularization path for the L0-penalized problem as simply as follows.
+
+.. code-block:: python
+
+    from el0ps import Problem, Path
     path = Path()
-    fit_data = path.fit(solver, datafit, penalty, A)
+    data = path.fit(solver, datafit, penalty, A)
+
+The documentation references ``el0ps``'s already-made datafits and penalties other than the ``Leastsquares`` and ``Bigm`` ones.
+We also explain how to create your own estimators by building on top of the available template datafit and penalty classes.
 
 
 Cite
