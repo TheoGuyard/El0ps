@@ -7,7 +7,8 @@ import subprocess
 import yaml
 
 src_path = "~/Documents/Github/El0ps"
-dst_path = "tguyard@access.grid5000.fr:nancy/gits"
+dst_path = "tguyard@access.grid5000.fr:rennes/gits"
+home_dir = "/home/tguyard"
 logs_dir = "/home/tguyard/logs"
 
 base_dir = pathlib.Path(__file__).parent.parent.parent.absolute()
@@ -137,7 +138,7 @@ def oar_make():
     print("oar make run")
     stream = "\n".join(
         [
-            "#!/bin/sh",
+            "# !/bin/sh",
             "expname=$1",
             "repeats=$2",
             "for i in $(seq 1 $repeats);",
@@ -167,7 +168,7 @@ def oar_make():
         # Create the oar file
         stream = "\n".join(
             [
-                "#!/bin/sh",
+                "# !/bin/sh",
                 "#OAR -n el0ps-{}".format(experiment["name"]),
                 "#OAR -O {}/el0ps-{}.%jobid%.stdout".format(
                     logs_dir, experiment["name"]
@@ -180,8 +181,8 @@ def oar_make():
                 "#OAR -q production" if experiment["production"] else "",
                 "#OAR --array-param-file {}".format(args_path),
                 "set -xv",
-                "source ~/.profile",
-                "module load python julia gurobi cplex",
+                "source {}/.profile".format(home_dir),
+                "module load python gurobi cplex",
                 "python {}/{}/onerun.py $*".format(
                     experiments_dir, experiment["name"]
                 ),
