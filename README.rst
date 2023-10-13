@@ -33,6 +33,7 @@ Getting started
 ``el0ps`` allows solving optimization problems of the form
 
 .. math::
+    
     \min_x \ f(Ax) + \lambda\|x\|_0 + h(x)
 
 where :math:`f(\cdot)` is a datafit function, :math:`h(\cdot)` is a penalty function, :math:`A` is a linear operator and :math:`\lambda` is L0-norm regularization weight.
