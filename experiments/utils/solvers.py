@@ -292,7 +292,7 @@ class CplexSolver(BaseSolver):
             self.x,
             self.z,
             problem.value(self.x),
-            np.sum(np.abs(self.x) <= self.options["int_tol"]),
+            np.sum(np.abs(self.x) > self.options["int_tol"]),
             None,
         )
 
@@ -547,7 +547,7 @@ class GurobiSolver(BaseSolver):
             self.x,
             self.z,
             problem.value(self.x),
-            np.sum(np.abs(self.x) <= self.options["IntFeasTol"]),
+            np.sum(np.abs(self.x) > self.options["IntFeasTol"]),
             None,
         )
 
@@ -963,7 +963,7 @@ class MosekSolver(BaseSolver):
             self.x,
             self.z,
             problem.value(self.x),
-            np.sum(np.abs(self.x) <= self.options["mioTolAbsRelaxInt"]),
+            np.sum(np.abs(self.x) > self.options["mioTolAbsRelaxInt"]),
             None,
         )
 
@@ -1214,7 +1214,7 @@ class L0bnbSolver(BaseSolver):
             np.array(result.beta),
             np.array(result.beta != 0.0, dtype=float),
             problem.value(result.beta),
-            np.sum(np.abs(result.beta) <= self.options["int_tol"]),
+            np.sum(np.abs(result.beta) > self.options["int_tol"]),
             None,
         )
 

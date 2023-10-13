@@ -4,9 +4,9 @@ import pathlib
 import pickle
 import sys
 import yaml
-import numpy as np
 from datetime import datetime
 from el0ps.problem import Problem, compute_lmbd_max
+from el0ps.path import Path
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.instances import get_data  # noqa
@@ -24,7 +24,8 @@ def onerun(config_path):
     datafit, penalty, A, lmbd, x_true = get_data(config["dataset"])
 
     print("Precompiling...")
-    precomilation_problem = Problem(datafit, penalty, A, lmbd)
+    lmbd = 0.1 * compute_lmbd_max(datafit, penalty, A)
+    problem = Problem(datafit, penalty, A, lmbd)
     for solver_name in config["solver_names"]:
         solver = get_solver(solver_name, config["solver_options"])
         if can_handle(
@@ -32,18 +33,10 @@ def onerun(config_path):
             config["dataset"]["datafit_name"],
             config["dataset"]["penalty_name"],
         ):
-            precompile(precomilation_problem, solver)
+            precompile(problem, solver)
 
     print("Running...")
-    lmbd_ratio_grid = np.logspace(
-        np.log10(config["path_options"]["lmbd_ratio_max"]),
-        np.log10(config["path_options"]["lmbd_ratio_min"]),
-        config["path_options"]["lmbd_ratio_num"],
-    )
-    results = {
-        solver_name: {i: None for i in range(lmbd_ratio_grid.size)}
-        for solver_name in config["solver_names"]
-    }
+    results = {}
     for solver_name in config["solver_names"]:
         solver = get_solver(solver_name, config["solver_options"])
         if can_handle(
@@ -52,40 +45,21 @@ def onerun(config_path):
             config["dataset"]["penalty_name"],
         ):
             print("  Solver: {}".format(solver_name))
-            x_init = np.zeros(A.shape[1])
-            lmbd_max = compute_lmbd_max(datafit, penalty, A)
-            for i, lmbd_ratio in enumerate(lmbd_ratio_grid):
-                print(
-                    "    Lambda ratio: {:.2e} ({}/{})...".format(
-                        lmbd_ratio, i + 1, lmbd_ratio_grid.size
-                    )
-                )
-                problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
-                result = solver.solve(problem, x_init=x_init)
-                x_init = np.copy(result.x)
-                print("      Status    : {}".format(result.status.value))
-                print(
-                    "      Solve time: {:.6f} seconds".format(
-                        result.solve_time
-                    )
-                )
-                print(
-                    "      Objective : {:.6f}".format(result.objective_value)
-                )
-                print(
-                    "      Non-zeros : {:d}".format(
-                        int(np.round(np.sum(result.z)))
-                    )
-                )
-                results[solver_name][i] = {
-                    "status": result.status,
-                    "solve_time": result.solve_time,
-                    "objective_value": result.objective_value,
-                    "sparsity": np.flatnonzero(result.z).size,
-                }
+            path = Path(
+                lmbd_ratio_max=config["path_options"]["lmbd_ratio_max"],
+                lmbd_ratio_min=config["path_options"]["lmbd_ratio_min"],
+                lmbd_ratio_num=config["path_options"]["lmbd_ratio_num"],
+                stop_if_not_optimal=config["path_options"][
+                    "stop_if_not_optimal"
+                ],
+                verbose=True,
+            )
+            fit_data = path.fit(solver, datafit, penalty, A)
+            del fit_data["x"]
+            results[solver_name] = fit_data
         else:
             print("  Skipping {}...".format(solver_name))
-            results[solver_name][i] = None
+            results[solver_name] = None
 
     print("Saving results...")
     base_dir = pathlib.Path(__file__).parent.absolute()

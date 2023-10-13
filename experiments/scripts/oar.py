@@ -19,7 +19,7 @@ run_path = script_dir.joinpath(run_file)
 experiments = [
     {
         "name": "perfprofile",
-        "walltime": "05:00:00",
+        "walltime": "06:30:00",
         "besteffort": False,
         "production": True,
         "setups": [
@@ -30,13 +30,20 @@ experiments = [
                     "datafit_name": "Leastsquares",
                     "penalty_name": penalty,
                     "k": k,
-                    "m": 250,
-                    "n": 500,
-                    "rho": 0.1,
+                    "m": 100,
+                    "n": 200,
+                    "rho": 0.5,
                     "snr": 10.0,
                     "normalize": True,
                 },
-                "solver_names": ["el0ps", "sbnb", "l0bnb", "mosek"],
+                "solver_names": [
+                    "el0ps",
+                    "sbnb",
+                    "l0bnb",
+                    "cplex",
+                    "gurobi",
+                    "mosek",
+                ],
                 "solver_options": {
                     "time_limit": 3600.0,
                     "rel_tol": 1.0e-4,
@@ -45,7 +52,7 @@ experiments = [
                 },
             }
             for penalty in ["Bigm", "BigmL2norm"]
-            for k in [5, 10]
+            for k in [5, 7, 9]
         ],
     },
     {
@@ -90,11 +97,13 @@ def oar_send():
     print("oar send")
     cmd_str = " ".join(
         [
-            "rsync -am",
+            "rsync -amv",
             "--exclude '.git'",
             "--exclude '.venv'",
             "--exclude '**/results/*.pickle'",
             "--exclude '**/saves/*.csv'",
+            "--exclude '**/__pycache__'",
+            "--exclude '**/.pytest_cache'",
             "{} {}".format(src_path, dst_path),
         ]
     )
@@ -110,7 +119,7 @@ def oar_receive():
         results_dst_path = pathlib.Path(
             experiments_dir, experiment["name"], "results"
         )
-        cmd_str = "rsync -am {} {}".format(results_src_path, results_dst_path)
+        cmd_str = "rsync -amv {} {}".format(results_src_path, results_dst_path)
         subprocess.run(cmd_str, shell=True)
 
 
@@ -125,7 +134,6 @@ def oar_install():
 
 
 def oar_make():
-
     print("oar make run")
     stream = "\n".join(
         [
@@ -134,7 +142,9 @@ def oar_make():
             "repeats=$2",
             "for i in $(seq 1 $repeats);",
             "do",
-            "   oarsub -S {}/$expname/oar.sh".format(script_dir),
+            "   oarsub --project simsmart -S {}/$expname/oar.sh".format(
+                script_dir
+            ),
             "done",
         ]
     )

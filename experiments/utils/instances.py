@@ -3,6 +3,7 @@ import l0learn
 from numba import float64
 import numpy as np
 import openml as oml
+from sklearn.linear_model import ElasticNet, LogisticRegression
 from el0ps.datafit import Leastsquares, Logistic, Squaredhinge
 from el0ps.penalty import (
     ProximablePenalty,
@@ -150,30 +151,43 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
 
     # Calibrate the penalty parameters w.r.t x_truth when it is known
     gamma_true = None
-    # if penalty_name != "Bigm" and x_true is not None:
-    #     s_true = x_true != 0.
-    #     A_true = A[:, s_true]
-    #     cp_x = cp.Variable(np.sum(s_true))
-    #     cp_gamma = cp.Parameter(nonneg=True)
-    #     if datafit_name == "Leastsquares":
-    #         cp_datafit = cp.sum_squares(y - A_true @ cp_x) / m
-    #     elif datafit_name == "Logistic":
-    #         cp_datafit = cp.sum(cp.logistic(-y * (A_true @ cp_x))) / m
-    #     if penalty_name in ["BigmL1norm", "L1norm"]:
-    #         cp_penalty = cp.norm(cp_x, 1)
-    #     elif penalty_name in ["BigmL2norm", "L2norm"]:
-    #         cp_penalty = cp.sum_squares(cp_x)
-    #     cp_objective = cp.Minimize(cp_datafit + cp_gamma * cp_penalty)
-    #     cp_problem = cp.Problem(cp_objective)
-    #     gamma_grid = m * np.logspace(-4, 1, 50)
-    #     best_norm = np.inf
-    #     for gamma_val in gamma_grid:
-    #         cp_gamma.value = gamma_val
-    #         cp_problem.solve()
-    #         test_norm = np.linalg.norm(cp_x.value - x_true[s_true], 2) ** 2
-    #         if test_norm < best_norm:
-    #             best_norm = test_norm
-    #             gamma_true = gamma_val
+    if x_true is not None:
+        s_true = x_true != 0.0
+        A_true = A[:, s_true]
+        clf = None
+        if datafit_name == "Leastsquares":
+            if penalty_name in ["L1norm", "BigmL1norm"]:
+                clf = ElasticNet(l1_ratio=1.0, fit_intercept=False)
+            elif penalty_name in ["L2norm", "BigmL2norm"]:
+                clf = ElasticNet(l1_ratio=0.0, fit_intercept=False)
+        elif datafit_name == "Logistic":
+            if penalty_name in ["L1norm", "BigmL1norm"]:
+                clf = LogisticRegression(penalty="l1", fit_intercept=False)
+            elif penalty_name in ["L2norm", "BigmL2norm"]:
+                clf = LogisticRegression(penalty="l2", fit_intercept=False)
+        if clf is not None:
+            c_best = (
+                np.linalg.norm(
+                    A_true.T @ datafit.gradient(np.zeros(m)), np.inf
+                )
+                / m
+            )
+            v_best = np.inf
+            coef_grid = np.logspace(4, -4, 50) * c_best
+            for coef in coef_grid:
+                if isinstance(clf, ElasticNet):
+                    clf.set_params(alpha=coef)
+                elif isinstance(clf, LogisticRegression):
+                    clf.set_params(C=1.0 / coef)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    clf.fit(A_true, y)
+                x_test = clf.coef_.ravel().copy()
+                v_test = np.linalg.norm(x_true[s_true] - x_test, 2)
+                if v_test < v_best:
+                    v_best = v_test
+                    c_best = coef
+            gamma_true = c_best
 
     # Fit regularization path with L0Learn
     with warnings.catch_warnings():

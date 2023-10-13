@@ -15,7 +15,7 @@ class PathOptions:
     lmbd_ratio_num: int = 10
     max_nnz: int = sys.maxsize
     stop_if_not_optimal: bool = True
-    verbosity: bool = True
+    verbose: bool = True
 
     def validate_types(self):
         for field_name, field_def in self.__dataclass_fields__.items():
@@ -54,18 +54,18 @@ class Path:
         "n_nnz",
     ]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.options = PathOptions(**kwargs)
         self.fit_data = {k: [] for k in self.path_keys}
 
     def reset_fit(self) -> None:
         self.fit_data = {k: [] for k in self.path_keys}
 
-    def display_path_head(self):
+    def display_path_head(self) -> None:
         ruler = "-" * len(self.path_hstr)
         print(f"{ruler}\n{self.path_hstr}\n{ruler}")
 
-    def display_path_info(self):
+    def display_path_info(self) -> None:
         path_istr = self.path_fstr.format(
             *[
                 self.fit_data[k][-1]
@@ -81,10 +81,10 @@ class Path:
         )
         print(path_istr)
 
-    def display_path_foot(self):
+    def display_path_foot(self) -> None:
         print("-" * len(self.path_hstr))
 
-    def can_continue(self):
+    def can_continue(self) -> bool:
         if (
             self.options.stop_if_not_optimal
             and not self.fit_data["status"][-1] == Status.OPTIMAL
@@ -94,7 +94,7 @@ class Path:
             return False
         return True
 
-    def fill_fit_data(self, lmbd_ratio: float, results: Results):
+    def fill_fit_data(self, lmbd_ratio: float, results: Results) -> None:
         for k in self.path_keys:
             if k == "lmbd_ratio":
                 self.fit_data[k].append(lmbd_ratio)
@@ -107,8 +107,8 @@ class Path:
         datafit: BaseDatafit,
         penalty: BasePenalty,
         A: NDArray,
-    ):
-        if self.options.verbosity:
+    ) -> dict:
+        if self.options.verbose:
             self.display_path_head()
 
         lmbd_ratio_grid = np.logspace(
@@ -124,12 +124,12 @@ class Path:
             results = solver.solve(problem, x_init=x_init)
             x_init = np.copy(results.x)
             self.fill_fit_data(lmbd_ratio, results)
-            if self.options.verbosity:
+            if self.options.verbose:
                 self.display_path_info()
             if not self.can_continue():
                 break
 
-        if self.options.verbosity:
+        if self.options.verbose:
             self.display_path_foot()
 
         return self.fit_data
