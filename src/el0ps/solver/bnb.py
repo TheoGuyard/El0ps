@@ -360,6 +360,6 @@ class BnbSolver(BaseSolver):
             self.x,
             np.array(self.x != 0.0, dtype=float),
             problem.value(self.x),
-            np.sum(np.abs(self.x) <= self.options.int_tol),
+            np.sum(np.abs(self.x) > self.options.int_tol),
             self.trace,
         )

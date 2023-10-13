@@ -27,4 +27,4 @@ path_options:
   lmbd_ratio_max: 1.e-0
   lmbd_ratio_min: 1.e-2
   lmbd_ratio_num: 20
-  warm_start    : true
+  stop_if_not_optimal: true
