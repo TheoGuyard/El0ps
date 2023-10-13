@@ -22,6 +22,12 @@ __pycache__/
 .coverage
 htmlcov
 
+# sphinx
+/doc/_build/
+/doc/gen_modules/
+/doc/generated/
+/doc/auto_examples/
+
 # experiments
 *.pickle
 *.csv
