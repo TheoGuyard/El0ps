@@ -56,12 +56,12 @@ You can also fit a regularization path for the L0-penalized problem as simply as
 
 .. code-block:: python
 
-    from el0ps import Problem, Path
+    from el0ps import Path
     path = Path()
     data = path.fit(solver, datafit, penalty, A)
 
 The documentation references ``el0ps``'s already-made datafits and penalties other than the ``Leastsquares`` and ``Bigm`` ones.
-We also explain how to create your own estimators by building on top of the available template datafit and penalty classes.
+We also explain how to create your own estimators by building on top of the available template of datafit and penalty classes.
 
 
 Cite
