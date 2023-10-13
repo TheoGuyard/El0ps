@@ -48,14 +48,14 @@ Please cite the package as follows:
 ..    }
 
 .. |Test Status| image:: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg
-   :target: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml
-.. |Codecov| image:: https://codecov.io/gh/TheoGuyard/el0ps/branch/main/graph/badge.svg
-   :target: https://app.codecov.io/gh/TheoGuyard/El0ps
+    :target: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml
+.. |Codecov| image:: https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6
+    :target: https://codecov.io/gh/TheoGuyard/El0ps
 .. |Documentation| image:: https://img.shields.io/badge/documentation-latest-blue
-   :target: https://el0ps.github.io
+    :target: https://el0ps.github.io
 .. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8%2B-blue
-   :target: https://www.python.org/downloads/release/python-380/
+    :target: https://www.python.org/downloads/release/python-380/
 .. |License| image:: https://img.shields.io/badge/License-AGPL--v3-blue.svg
-   :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
+    :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
 .. |PyPI version| image:: https://badge.fury.io/py/el0ps.svg
-   :target: https://pypi.org/project/el0ps/
+    :target: https://pypi.org/project/el0ps/
