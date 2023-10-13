@@ -30,14 +30,7 @@ Get the latest version of the package by running the following command.
 Getting started
 ---------------
 
-``el0ps`` allows solving optimization problems of the form
-
-.. math::
-    
-    \min_x \ f(Ax) + \lambda\|x\|_0 + h(x)
-
-where :math:`f(\cdot)` is a datafit function, :math:`h(\cdot)` is a penalty function, :math:`A` is a linear operator and :math:`\lambda` is L0-norm regularization weight.
-Here is a simple example showing how to solve an instance of this problem with a Least-squares datafit, a Big-M penalty and a fixed regularization weight using ``el0ps``.
+Here is a simple example showing how to solve an instance of L0-penalized problem for fixed regularization weight using ``el0ps``.
 
 .. code-block:: python
 
