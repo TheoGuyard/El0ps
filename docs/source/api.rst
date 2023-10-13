@@ -1,8 +1,8 @@
-.. _api_documentation:
+.. _api_references:
 
-=================
-API Documentation
-=================
+==============
+API references
+==============
 
 .. currentmodule:: el0ps
 

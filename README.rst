@@ -9,15 +9,15 @@ El0ps
 *-An Exact L0-Problem Solver-*
 
 
-|Python 3.8+| |PyPI version| |License|
+|Test Status| |Codecov| |Documentation| |Python 3.8+| |PyPI version| |License|
 
 ``el0ps`` is a Python package allowing to solve L0-penalized problems.
 It is designed to be numerically efficient and supports a wide range of loss and penalty functions.
 You can pick from ``el0ps``'s already-made estimators or customize your own by building on to of the available datafits and penalties template classes.
 
 
-Quick start
------------
+Installation
+------------
 
 ``el0ps`` is available on `pipy <https://pypi.org>`_. 
 Get the latest version of the package by running the following command.
@@ -25,11 +25,6 @@ Get the latest version of the package by running the following command.
 .. code-block:: shell
 
    $ pip install el0ps
-
-You are now ready to take your first steps with ``el0ps`` in the :ref:`Getting started section <getting_started>`.
-Typical use-cases and workflows are prented in the :ref:`Examples section <examples>`.
-Further details on how the package can be found in the :ref:`User guide section <user_guide>`.
-You can also learn how to customize your own estimators and solvers in the :ref:`Custom estimators and solvers <custom>`.
 
 
 Cite
@@ -50,19 +45,12 @@ Please cite the package as follows:
 ..       year      = {},
 ..    }
 
-
-Documentation tree
-------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   getting_started.rst
-   user_guide.rst
-   custom.rst
-   examples.rst
-   api.rst
-
+.. |Test Status| image:: https://github.com/el0ps/el0ps/actions/workflows/test.yml/badge.svg
+   :target: https://github.com/el0ps/el0ps/actions/workflows/test.yml
+.. |Codecov| image:: https://codecov.io/gh/el0ps/el0ps/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/el0ps/el0ps
+.. |Documentation| image:: https://img.shields.io/badge/documentation-latest-blue
+   :target: https://el0ps.github.io
 .. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8%2B-blue
    :target: https://www.python.org/downloads/release/python-380/
 .. |License| image:: https://img.shields.io/badge/License--AGPL-v3-blue.svg
