@@ -9,7 +9,7 @@ El0ps
 *-An Exact L0-Problem Solver-*
 
 
-|Test Status| |Codecov| |Documentation| |Python 3.8+| |PyPI version| |License|
+|Python 3.8+| |Documentation| |Test Status| |Codecov| |PyPI version| |License|
 
 ``el0ps`` is a Python package allowing to solve L0-penalized problems.
 It is designed to be numerically efficient and supports a wide range of loss and penalty functions.
@@ -47,15 +47,16 @@ Please cite the package as follows:
 ..       year      = {},
 ..    }
 
-.. |Test Status| image:: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg
-    :target: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml
-.. |Codecov| image:: https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6
-    :target: https://codecov.io/gh/TheoGuyard/El0ps
-.. |Documentation| image:: https://img.shields.io/badge/documentation-latest-blue
-    :target: https://el0ps.github.io
+
 .. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8%2B-blue
-    :target: https://www.python.org/downloads/release/python-380/
-.. |License| image:: https://img.shields.io/badge/License-AGPL--v3-blue.svg
-    :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
+   :target: https://www.python.org/downloads/release/python-380/
+.. |Documentation| image:: https://img.shields.io/badge/documentation-latest-blue
+   :target: https://el0ps.github.io
+.. |Test Status| image:: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg
+   :target: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml
+.. |Codecov| image:: https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6
+   :target: https://codecov.io/gh/TheoGuyard/El0ps
 .. |PyPI version| image:: https://badge.fury.io/py/el0ps.svg
-    :target: https://pypi.org/project/el0ps/
+   :target: https://pypi.org/project/el0ps/
+.. |License| image:: https://img.shields.io/badge/License-AGPL--v3-red.svg
+   :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
