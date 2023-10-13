@@ -12,7 +12,7 @@ El0ps
 |Python 3.8+| |Documentation| |Test Status| |Codecov| |PyPI version| |License|
 
 ``el0ps`` is a Python package allowing to solve L0-penalized problems.
-It is designed to be numerically efficient and supports a wide range of loss and penalty functions.
+It is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
 You can pick from ``el0ps``'s already-made estimators or customize your own by building on to of the available datafits and penalties template classes.
 
 

@@ -12,7 +12,7 @@ El0ps
 |Python 3.8+| |Documentation| |Test Status| |Codecov| |PyPI version| |License|
 
 ``el0ps`` is a Python package allowing to solve L0-penalized problems.
-It is designed to be numerically efficient and supports a wide range of loss and penalty functions.
+It is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
 You can pick from ``el0ps``'s already-made estimators or customize your own by building on top of the available datafits and penalties template classes.
 
 
@@ -30,7 +30,13 @@ Get the latest version of the package by running the following command.
 Getting started
 ---------------
 
-Here is a simple example of how to use ``el0ps`` to solve an L0-penalized problem for a fixed regularization weight.
+``el0ps`` allows solving optimization problems of the form
+
+.. math::
+    \min_x \ f(Ax) + \lambda\|x\|_0 + h(x)
+
+where :math:`f(\cdot)` is a datafit function, :math:`h(\cdot)` is a penalty function, :math:`A` is a linear operator and :math:`\lambda` is L0-norm regularization weight.
+Here is a simple example showing how to solve an instance of this problem with a Least-squares datafit, a Big-M penalty and a fixed regularization weight using ``el0ps``.
 
 .. code-block:: python
 
