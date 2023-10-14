@@ -4,18 +4,18 @@ from .base import ProximablePenalty
 
 
 class L1L2norm(ProximablePenalty):
-    """L1L2-norm penalty function given by
+    r"""L1L2-norm penalty function given by
 
-    .. math:: f(x) = alpha * |x| + beta * |x|^2
+    .. math:: h(x) = \alpha|x| + \beta x^2
 
-    where `alpha` and `beta` are positive hyperparameters.
+    with :math:`\alpha>0` and :math:`\beta>0`.
 
     Parameters
     ----------
     alpha: float, positive
         L1-norm weight.
     beta: float, positive
-        L1-norm weight.
+        L2-norm weight.
     """
 
     def __init__(self, alpha: float, beta: float) -> None:

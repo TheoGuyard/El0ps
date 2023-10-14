@@ -4,17 +4,17 @@ from .base import ProximablePenalty
 
 
 class Bigm(ProximablePenalty):
-    """Big-M penalty function given by
+    r"""Big-M penalty function given by
 
-    .. math:: h(x) = 0 if |x| <= M and +inf otherwise
+    .. math:: h(x) = 0 \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x) = +\infty \ \ \text{otherwise}
 
-    where `M` is a positive hyperparameter.
+    with :math:`M>0`.
 
     Parameters
     ----------
     M: float
         Big-M value.
-    """
+    """  # noqa: E501
 
     def __init__(self, M: float) -> None:
         self.M = M

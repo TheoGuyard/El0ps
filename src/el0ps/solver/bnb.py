@@ -15,18 +15,37 @@ from .bounding import BnbBoundingSolver, CdBoundingSolver
 
 
 class BnbExplorationStrategy(Enum):
+    """:class:`.solver.BnbSolver` exploration strategy.
+
+    Attributes
+    ----------
+    BFS: str
+        Breadth-first search.
+    DFS: str
+        Depth-first search.
+    """
+
     BFS = "BFS"
     DFS = "DFS"
     # TODO mixed BFS-DFS
 
 
 class BnbBranchingStrategy(Enum):
+    """:class:`.solver.BnbSolver` exploration strategy.
+
+    Attributes
+    ----------
+    LARGEST: str
+        Select the largest entry in absolute value in the relaxation solution
+        among indices that are still unfixed.
+    """
+
     LARGEST = "LARGEST"
 
 
 @dataclass
 class BnbOptions:
-    """Branch-and-Bound solver options.
+    """:class:`.solver.BnbSolver` options.
 
     Parameters
     ----------
@@ -69,7 +88,7 @@ class BnbOptions:
     verbose: bool = False
     trace: bool = False
 
-    def validate_types(self):
+    def _validate_types(self):
         for field_name, field_def in self.__dataclass_fields__.items():
             actual_type = type(getattr(self, field_name))
             if not issubclass(actual_type, field_def.type):
@@ -80,11 +99,11 @@ class BnbOptions:
                 )
 
     def __post_init__(self):
-        self.validate_types()
+        self._validate_types()
 
 
 class BnbSolver(BaseSolver):
-    """Branch-and-Bound solver for L0-penalized problems."""
+    """Branch-and-Bound solver for :class:`.Problem`."""
 
     _trace_keys = [
         "solve_time",
@@ -115,19 +134,22 @@ class BnbSolver(BaseSolver):
 
     @property
     def rel_gap(self):
+        """Relative gap between the lower and upper bounds."""
         return np.abs(self.upper_bound - self.lower_bound) / (
             np.abs(self.upper_bound) + 1e-16
         )
 
     @property
     def solve_time(self):
+        """Solver solve time in seconds."""
         return time.time() - self.start_time
 
     @property
     def queue_length(self):
+        """Length of the Branch-and-Bound queue."""
         return len(self.queue)
 
-    def setup(
+    def _setup(
         self,
         problem: Problem,
         x_init: Union[NDArray[np.float64], None] = None,
@@ -180,7 +202,7 @@ class BnbSolver(BaseSolver):
         # Initialize the queue with root node
         self.queue.append(root)
 
-    def print_header(self):
+    def _print_header(self):
         s = "-" * 58 + "\n"
         s += "|"
         s += " {:>6}".format("Nodes")
@@ -195,7 +217,7 @@ class BnbSolver(BaseSolver):
         s += "-" * 58
         print(s)
 
-    def print_progress(self, node: BnbNode):
+    def _print_progress(self, node: BnbNode):
         s = "|"
         s += " {:>6d}".format(self.node_count)
         s += " {:>6.2f}".format(self.solve_time)
@@ -208,14 +230,11 @@ class BnbSolver(BaseSolver):
         s += "|"
         print(s)
 
-    def print_footer(self):
+    def _print_footer(self):
         s = "-" * 58
         print(s)
 
-    def can_continue(self):
-        """Update the solver status and return whether it can continue. Before
-        calling this function, the solver status is Status.RUNNING."""
-
+    def _can_continue(self):
         if self.solve_time >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
         elif self.node_count >= self.options.node_limit:
@@ -227,44 +246,30 @@ class BnbSolver(BaseSolver):
 
         return self.status == Status.RUNNING
 
-    def next_node(self):
+    def _next_node(self):
         if self.options.exploration_strategy == BnbExplorationStrategy.DFS:
-            next_node = self.queue.pop()
+            _next_node = self.queue.pop()
         elif self.options.exploration_strategy == BnbExplorationStrategy.BFS:
-            next_node = self.queue.pop(0)
+            _next_node = self.queue.pop(0)
         else:
             raise NotImplementedError
         self.node_count += 1
-        return next_node
+        return _next_node
 
-    def prune(self, node: BnbNode):
-        """Check whether the exploration should continue below the node. The
-        exploration will be stopped if the node is pruned by bound or if its
-        relaxation is infeasible.
-
-        Parameters
-        ----------
-        node : BnbNode
-            The node to test.
-
-        Returns
-        -------
-        decision : bool
-            Whether the exploration should continue below the node.
-        """
+    def _prune(self, node: BnbNode):
         return node.lower_bound > self.upper_bound
 
-    def has_tight_relaxation(self, node: BnbNode):
+    def _has_tight_relaxation(self, node: BnbNode):
         return node.rel_gap <= self.options.rel_tol
 
-    def update_trace(self, node: BnbNode):
+    def _update_trace(self, node: BnbNode):
         for key in self._trace_keys:
             if key.startswith("node_"):
                 self.trace[key].append(getattr(node, key[5:]))
             else:
                 self.trace[key].append(getattr(self, key))
 
-    def update_bounds(self, node):
+    def _update_bounds(self, node):
         if node.upper_bound < self.upper_bound:
             self.upper_bound = node.upper_bound
             self.x = np.copy(node.x_inc)
@@ -278,7 +283,7 @@ class BnbSolver(BaseSolver):
         else:
             self.lower_bound = self.upper_bound
 
-    def branch(self, problem: Problem, node: BnbNode):
+    def _branch(self, problem: Problem, node: BnbNode):
         if not np.any(node.Sb):
             return
         if self.options.branching_strategy == BnbBranchingStrategy.LARGEST:
@@ -300,29 +305,15 @@ class BnbSolver(BaseSolver):
         S0_init: Union[NDArray[np.bool_], None] = None,
         S1_init: Union[NDArray[np.bool_], None] = None,
     ):
-        """Solve a `Problem`.
-
-        Parameters
-        ----------
-        problem: Problem
-            Problem to solve.
-        x_init: Union[NDArray[np.float64], None]
-            Warm-start value of x.
-        S0_init: Union[NDArray[np.bool_], None]
-            Set of indices of x forced to be zero from the beginning.
-        S1_init: Union[NDArray[np.bool_], None]
-            Set of indices of x forced to be non-zero from the beginning.
-        """
-
-        self.setup(problem, x_init, S0_init, S1_init)
+        self._setup(problem, x_init, S0_init, S1_init)
         bounding_solver = self.options.bounding_solver
-        bounding_solver.setup(problem, x_init, S0_init, S1_init)
+        bounding_solver._setup(problem, x_init, S0_init, S1_init)
 
         if self.options.verbose:
-            self.print_header()
+            self._print_header()
 
-        while self.can_continue():
-            node = self.next_node()
+        while self._can_continue():
+            node = self._next_node()
             bounding_solver.bound(
                 problem,
                 node,
@@ -331,7 +322,7 @@ class BnbSolver(BaseSolver):
                 self.options.l1screening,
                 self.options.l0screening,
             )
-            if not self.prune(node):
+            if not self._prune(node):
                 bounding_solver.bound(
                     problem,
                     node,
@@ -341,16 +332,16 @@ class BnbSolver(BaseSolver):
                     False,
                     True,
                 )
-                if not self.has_tight_relaxation(node):
-                    self.branch(problem, node)
-            self.update_bounds(node)
+                if not self._has_tight_relaxation(node):
+                    self._branch(problem, node)
+            self._update_bounds(node)
             if self.options.trace:
-                self.update_trace(node)
+                self._update_trace(node)
             if self.options.verbose:
-                self.print_progress(node)
+                self._print_progress(node)
             del node
         if self.options.verbose:
-            self.print_footer()
+            self._print_footer()
 
         return Results(
             self.status,

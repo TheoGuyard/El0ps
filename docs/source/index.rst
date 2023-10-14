@@ -15,9 +15,9 @@ El0ps
 
 .. math::
 
-   \textstyle\min_{\mathbf{x}} \ f(\mathbf{A}\mathbf{x}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+   \textstyle\min_x f(Ax) + \lambda\|x\|_0 + h(x)
 
-where :math:`f(\cdot)` is a datafit function, :math:`\mathbf{A}` is a linear operator, :math:`h(\cdot)` is a penalty function and :math:`\lambda>0` is the L0-regularization weight.
+where :math:`f(\cdot)` is a datafit function, :math:`A` is a linear operator, :math:`\lambda>0` is the L0-regularization weight and :math:`h(\cdot)` is a penalty function.
 ``el0ps`` is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
 You can pick from ``el0ps``'s already-made datafits and penalties or customize your own by building on top of the available template classes.
 

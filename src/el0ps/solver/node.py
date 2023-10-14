@@ -4,7 +4,7 @@ from el0ps.problem import Problem
 
 
 class BnbNode:
-    """Branch-and-Bound tree node.
+    """:class:`.solver.BnbSolver` tree node.
 
     Parameters
     ----------
@@ -96,6 +96,19 @@ class BnbNode:
         return np.sum(self.Sb)
 
     def fix_to(self, problem: Problem, idx: int, val: bool):
+        """Fix an extry of the node to zero or non-zero. Update the
+        corresponding attributes of the node.
+
+        Parameters
+        ----------
+        problem: Problem
+            The :class:`.Problem` being solved.
+        idx: int
+            Index to fix.
+        val: bool
+            If ``False``, the entry is fixed to zero. If ``True``, the entry is
+            fixed to non-zero.
+        """
         self.Sb[idx] = False
         if val:
             self.S1[idx] = True

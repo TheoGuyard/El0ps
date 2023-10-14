@@ -10,6 +10,28 @@ from el0ps.solver import BaseSolver, Results, Status
 
 @dataclass
 class PathOptions:
+    """``Path`` options.
+
+    Parameters
+    ----------
+    lmbd_ratio_max: float = 1e-0
+        Maximum value of ``lmbd/lmbd_max`` in the path. The value ``lmbd_max``
+        is computed using the :func:`.compute_lmbd_max` function.
+    lmbd_ratio_min: float = 1e-2
+        Minimum value of ``lmbd/lmbd_max`` in the path. The value ``lmbd_max``
+        is computed using the :func:`.compute_lmbd_max` function.
+    lmbd_ratio_num: int = 10
+        Number of different values of ``lmbd`` in the path.
+    max_nnz: int = sys.maxsize
+        Stop the path fitting when a solution with more than ``max_nnz``
+        non-zero coefficients is found.
+    stop_if_not_optimal: bool = True
+        Stop the path fitting when the problem at a given value of ``lmbd`` is
+        not solved to optimality.
+    verbose: bool = True
+        Toogle displays during path fitting.
+    """
+
     lmbd_ratio_max: float = 1e-0
     lmbd_ratio_min: float = 1e-2
     lmbd_ratio_num: int = 10
@@ -17,7 +39,7 @@ class PathOptions:
     stop_if_not_optimal: bool = True
     verbose: bool = True
 
-    def validate_types(self):
+    def _validate_types(self):
         for field_name, field_def in self.__dataclass_fields__.items():
             actual_type = type(getattr(self, field_name))
             if not issubclass(actual_type, field_def.type):
@@ -28,7 +50,7 @@ class PathOptions:
                 )
 
     def __post_init__(self):
-        self.validate_types()
+        self._validate_types()
         if not 0.0 <= self.lmbd_ratio_min <= self.lmbd_ratio_max <= 1.0:
             raise ValueError(
                 "Parameters must satisfy"
@@ -41,9 +63,47 @@ class PathOptions:
 
 
 class Path:
-    path_hstr = "   ratio   status     time    nodes    value     nnz"
-    path_fstr = "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2f} {:>7}"
-    path_keys = [
+    """L0-regularization path.
+
+    The L0-regularization path corresponds to different solutions of a
+    :class:`.Problem` when the regularization parameter ``lmbd`` is varied.
+
+    Parameters
+    ----------
+    kwargs: dict
+        Path options passed to :class:`path.PathOptions`.
+
+    Attributes
+    ----------
+    options: PathOptions
+        Path options.
+    fit_data: dict
+        Path fitting data. The keys are:
+            - ``lmbd_ratio``: Value of ``lmbd/lmbd_max`` in the path. The value
+            ``lmbd_max`` is computed using the :func:`.compute_lmbd_max`.
+
+            - ``status``: The solution status at a given ``lmbd_ratio``.
+
+            - ``solve_time``: The solve time at a given ``lmbd_ratio``.
+
+            - ``node_count``: The number of nodes explored in the solution
+            method at a given ``lmbd_ratio``.
+
+            - ``rel_gap``: The relative gap of obtained in the solution method
+            at a given ``lmbd_ratio``.
+
+            - ``x``: The solution at a given ``lmbd_ratio``.
+
+            - ``objective_value``: The objective value at a given
+            ``lmbd_ratio``.
+
+            - ``n_nnz``: The number of non-zeros in the solution at a given
+            ``lmbd_ratio``.
+    """
+
+    _path_hstr = "   ratio   status     time    nodes    value     nnz"
+    _path_fstr = "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2f} {:>7}"
+    _path_keys = [
         "lmbd_ratio",
         "status",
         "solve_time",
@@ -56,17 +116,14 @@ class Path:
 
     def __init__(self, **kwargs) -> None:
         self.options = PathOptions(**kwargs)
-        self.fit_data = {k: [] for k in self.path_keys}
+        self.fit_data = {k: [] for k in self._path_keys}
 
-    def reset_fit(self) -> None:
-        self.fit_data = {k: [] for k in self.path_keys}
+    def _display_path_head(self) -> None:
+        ruler = "-" * len(self._path_hstr)
+        print(f"{ruler}\n{self._path_hstr}\n{ruler}")
 
-    def display_path_head(self) -> None:
-        ruler = "-" * len(self.path_hstr)
-        print(f"{ruler}\n{self.path_hstr}\n{ruler}")
-
-    def display_path_info(self) -> None:
-        path_istr = self.path_fstr.format(
+    def _display_path_info(self) -> None:
+        path_istr = self._path_fstr.format(
             *[
                 self.fit_data[k][-1]
                 for k in [
@@ -81,10 +138,10 @@ class Path:
         )
         print(path_istr)
 
-    def display_path_foot(self) -> None:
-        print("-" * len(self.path_hstr))
+    def _display_path_foot(self) -> None:
+        print("-" * len(self._path_hstr))
 
-    def can_continue(self) -> bool:
+    def _can_continue(self) -> bool:
         if (
             self.options.stop_if_not_optimal
             and not self.fit_data["status"][-1] == Status.OPTIMAL
@@ -94,8 +151,8 @@ class Path:
             return False
         return True
 
-    def fill_fit_data(self, lmbd_ratio: float, results: Results) -> None:
-        for k in self.path_keys:
+    def _fill_fit_data(self, lmbd_ratio: float, results: Results) -> None:
+        for k in self._path_keys:
             if k == "lmbd_ratio":
                 self.fit_data[k].append(lmbd_ratio)
             else:
@@ -108,8 +165,25 @@ class Path:
         penalty: BasePenalty,
         A: NDArray,
     ) -> dict:
+        """Fit the regularization path.
+
+        Parameters
+        ----------
+        datafit: BaseDatafit
+            Datafit function.
+        penalty: BasePenalty
+            Penalty function.
+        A: NDArray
+            Linear operator.
+
+        Returns
+        -------
+        fit_data: dict
+            The path fitting data stored in ``self.fit_data``.
+        """
+
         if self.options.verbose:
-            self.display_path_head()
+            self._display_path_head()
 
         lmbd_ratio_grid = np.logspace(
             np.log10(self.options.lmbd_ratio_max),
@@ -123,13 +197,17 @@ class Path:
             problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
             results = solver.solve(problem, x_init=x_init)
             x_init = np.copy(results.x)
-            self.fill_fit_data(lmbd_ratio, results)
+            self._fill_fit_data(lmbd_ratio, results)
             if self.options.verbose:
-                self.display_path_info()
-            if not self.can_continue():
+                self._display_path_info()
+            if not self._can_continue():
                 break
 
         if self.options.verbose:
-            self.display_path_foot()
+            self._display_path_foot()
 
         return self.fit_data
+
+    def reset_fit(self) -> None:
+        """Reset the path fitting data."""
+        self.fit_data = {k: [] for k in self._path_keys}

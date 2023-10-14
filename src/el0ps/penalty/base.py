@@ -30,7 +30,7 @@ class BasePenalty:
 
     @abstractmethod
     def value(self, x: float) -> float:
-        """Value of the function at x.
+        """Value of the function at ``x``.
 
         Parameters
         ----------
@@ -40,13 +40,13 @@ class BasePenalty:
         Returns
         -------
         value: float
-            The value of the function at x.
+            The value of the function at ``x``.
         """
         ...
 
     @abstractmethod
     def conjugate(self, x: float) -> float:
-        """Value of the conjugate of the function at x.
+        """Value of the conjugate of the function at ``x``.
 
         Parameters
         ----------
@@ -56,14 +56,14 @@ class BasePenalty:
         Returns
         -------
         value: float
-            The value of the conjugate of the function at x.
+            The value of the conjugate of the function at ``x``.
         """
         ...
 
     @abstractmethod
     def conjugate_scaling_factor(self, x: float) -> float:
-        """Return a scalar `sf` such that `sf * x` is within the domain of the
-        convex conjugate of the function.
+        """Return a scalar ``s`` such that ``s * x`` is within the domain of
+        the conjugate of the function.
 
         Parameters
         ----------
@@ -72,14 +72,14 @@ class BasePenalty:
 
         Returns
         -------
-        sf: float
+        s: float
             The scaling factor.
         """
         ...
 
     @abstractmethod
     def param_slope(self, lmbd: float) -> float:
-        """Maximum value of `x` such that `h(x) <= lmbd`.
+        """Maximum value of ``x`` such that the function is below ``lmbd``.
 
         Parameters
         ----------
@@ -89,7 +89,8 @@ class BasePenalty:
         Returns
         -------
         value: float
-            The maximum value of `x` such that `h(x) <= lmbd`.
+            The maximum value of ``x`` such that the function is below
+            ``lmbd``.
         """
         ...
 
@@ -138,6 +139,16 @@ class BasePenalty:
     def approximate_param_slope(
         self, lmbd: float, tol: float = 1e-4, maxit: int = 100
     ) -> float:
+        """Utility function to approximate the value of :func:`.param_slope`
+        when no closed-form is available.
+
+        Parameters
+        ----------
+        tol: float = 1e-4
+            Tolerance for the approximation.
+        maxit: int = 100
+            Maximum number of bisection iterations.
+        """
         a = 0.0
         b = 1.0
         c = 0.5
@@ -161,7 +172,7 @@ class ProximablePenalty(BasePenalty):
 
     @abstractmethod
     def prox(self, x: float, eta: float) -> float:
-        """Proximity operator of `eta` times the function at x.
+        """Proximity operator of ``eta`` times the function at ``x``.
 
         Parameters
         ----------
@@ -173,6 +184,6 @@ class ProximablePenalty(BasePenalty):
         Returns
         -------
         p: float
-            The proximity operator of `eta` times the function at x.
+            The proximity operator of ``eta`` times the function at ``x``.
         """
         ...

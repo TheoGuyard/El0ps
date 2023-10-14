@@ -13,9 +13,9 @@ El0ps
 
 `el0ps` is a Python package to solve L0-penalized optimization problems of the form
 
-$$\textstyle\min_{\mathbf{x}} \ f(\mathbf{A}\mathbf{x}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
+$$\textstyle\min_x f(Ax) + \lambda\|x\|_0 + h(x)$$
 
-where $f(\cdot)$ is a datafit function, $\mathbf{A}$ is a linear operator, $h(\cdot)$ is a penalty function and $\lambda>0$ is the L0-regularization weight.
+where $f(\cdot)$ is a datafit function, $A$ is a linear operator, $\lambda>0$ is the L0-regularization weight and $h(\cdot)$ is a penalty function.
 `el0ps` is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
 You can pick from `el0ps`'s already-made datafits and penalties or customize your own by building on top of the available template classes.
 

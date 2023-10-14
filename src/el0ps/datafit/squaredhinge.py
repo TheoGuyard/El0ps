@@ -5,11 +5,11 @@ from .base import SmoothDatafit
 
 
 class Squaredhinge(SmoothDatafit):
-    """Squared-Hinge data-fidelity function given by
+    r"""Squared-Hinge datafit function given by
 
-    .. math:: f(x) = ||max(1 - y * x, 0.)||_2^2 / m
+    .. math:: f(x) = \frac{1}{m}\sum_{j=1}^m\max(1 - y_j x_j, 0)^2
 
-    where `m` is the size of vector `y` and `*` is the element-wise product.
+    where ``m`` is the size of the vector ``y``.
 
     Parameters
     ----------

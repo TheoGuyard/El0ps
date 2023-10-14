@@ -10,6 +10,16 @@ from .base import BnbBoundingSolver, softhresh
 
 
 class CdBoundingSolver(BnbBoundingSolver):
+    """Coordinate descent bounding solver.
+
+    Parameters
+    ----------
+    iter_limit_cd: int
+        Maximum number of iterations of the inner coordinate descent solver.
+    iter_limit_as: int
+        Maximum number of iterations of the outer active-set loop.
+    """
+
     def __init__(self, iter_limit_cd=1_000, iter_limit_as=100):
         self.iter_limit_cd = iter_limit_cd
         self.iter_limit_as = iter_limit_as
@@ -102,7 +112,7 @@ class CdBoundingSolver(BnbBoundingSolver):
             while True:
                 it_cd += 1
                 pv_old = pv
-                self.cd_loop(
+                self._cd_loop(
                     datafit,
                     penalty,
                     A,
@@ -128,7 +138,7 @@ class CdBoundingSolver(BnbBoundingSolver):
                 #   - in both cases: maximum number of iterations reached
                 if incumbent:
                     dv = self.compute_dv(
-                        datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                        datafit, penalty, A, lmbd, u, v, p, S1, Sb
                     )
                     if self.rel_gap(pv, dv) <= rel_tol:
                         break
@@ -139,7 +149,7 @@ class CdBoundingSolver(BnbBoundingSolver):
 
             # ----- Active-set update ----- #
 
-            flag = self.ws_update(penalty, A, lmbd, tau, u, v, p, Ws, Sbi)
+            flag = self._ws_update(penalty, A, lmbd, tau, u, v, p, Ws, Sbi)
 
             # ----- Stopping criterion ----- #
 
@@ -158,7 +168,7 @@ class CdBoundingSolver(BnbBoundingSolver):
                 break
             if not flag:
                 dv = self.compute_dv(
-                    datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                    datafit, penalty, A, lmbd, u, v, p, S1, Sb
                 )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
@@ -175,7 +185,7 @@ class CdBoundingSolver(BnbBoundingSolver):
             if not incumbent and (l1screening or l0screening):
                 if np.isnan(dv):
                     dv = self.compute_dv(
-                        datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                        datafit, penalty, A, lmbd, u, v, p, S1, Sb
                     )
                 if l1screening:
                     self.l1screening(
@@ -219,13 +229,13 @@ class CdBoundingSolver(BnbBoundingSolver):
         else:
             if np.isnan(dv):
                 dv = self.compute_dv(
-                    datafit, penalty, A, lmbd, x, u, v, p, S1, Sb
+                    datafit, penalty, A, lmbd, u, v, p, S1, Sb
                 )
             node.lower_bound = dv
 
     @staticmethod
     @njit
-    def cd_loop(
+    def _cd_loop(
         datafit: SmoothDatafit,
         penalty: BasePenalty,
         A: NDArray[np.float64],
@@ -255,7 +265,7 @@ class CdBoundingSolver(BnbBoundingSolver):
 
     @staticmethod
     @njit
-    def ws_update(
+    def _ws_update(
         penalty: BasePenalty,
         A: NDArray[np.float64],
         lmbd: float,

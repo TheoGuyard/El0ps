@@ -30,6 +30,7 @@ language = 'en'
 templates_path = ['_templates']
 exclude_patterns = []
 todo_include_todos = True
+numpydoc_show_class_members = False
 
 
 # -- Options for HTML output -------------------------------------------------

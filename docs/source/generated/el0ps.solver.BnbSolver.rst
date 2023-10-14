@@ -14,18 +14,7 @@
    .. autosummary::
    
       ~BnbSolver.__init__
-      ~BnbSolver.branch
-      ~BnbSolver.can_continue
-      ~BnbSolver.has_tight_relaxation
-      ~BnbSolver.next_node
-      ~BnbSolver.print_footer
-      ~BnbSolver.print_header
-      ~BnbSolver.print_progress
-      ~BnbSolver.prune
-      ~BnbSolver.setup
       ~BnbSolver.solve
-      ~BnbSolver.update_bounds
-      ~BnbSolver.update_trace
    
    
 
