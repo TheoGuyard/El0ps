@@ -10,24 +10,33 @@ from el0ps.penalty import BasePenalty
 
 
 class Problem:
-    """L0-penalized problem of the form
+    r"""L0-penalized problem.
 
-    .. math:: min f(Ax) + lmbd * ||x||_0 + h(x)
+    The problem is defined as
 
-    where `f` is a data-fidelity function, `A` is a matrix encoding a potential
-    linear transformation of the variable `x`, `lmbd` is a positive
-    hyperparameter and `h` is an additional penalty function.
+    .. math:: \textstyle\min_{x} f(Ax) + \lambda \|x\|_0 + h(x)
+
+    where :math:`f(\cdot)` is a datafit function, :math:`A` is a linear
+    operator, :math:`\lambda>0` is the L0-regularization weight and
+    :math:`h(\cdot)` is a penalty function.
 
     Parameters
     ----------
-    datafit : AbstractDatafit
-        Data-fidelity function.
-    penalty : PenaltyFunction
+    datafit: BaseDatafit
+        Datafit function.
+    penalty: BasePenalty
         Penalty function.
-    A : NDArray
-        Linear transformation matrix.
-    lmbd : float, positive
-        L0-norm weight.
+    A: NDArray
+        Linear operator.
+    lmbd: float, positive
+        L0-regularization weight.
+
+    Attributes
+    ----------
+    m: int
+        Number of rows in ``A``.
+    n: int
+        Number of columns in ``A``.
     """
 
     def __init__(
@@ -46,15 +55,13 @@ class Problem:
                 "Parameter `penalty` must derive from `BasePenalty`."
             )
         if not isinstance(A, np.ndarray):
-            raise ValueError("Parameter `A` must be a `np.ndarray`.")
+            raise ValueError("Parameter `A` must derive from `np.ndarray`.")
+        if not isinstance(lmbd, float):
+            raise ValueError("Parameter `lmbd` must derive from `float`.")
         if A.ndim != 2:
             raise ValueError("Parameter `A` must be a two-dimensional array.")
-        if A.size == 0:
-            raise ValueError("Parameter `A` is empty.")
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")
-        if not isinstance(lmbd, float):
-            raise ValueError("Parameter `lmbd` must be a `float`.")
         if lmbd < 0.0:
             raise ValueError("Parameter `lmbd` must be positive.")
 
@@ -71,25 +78,23 @@ class Problem:
         s += "  Penalty : {}\n".format(self.penalty)
         s += "  Dims    : {} x {}\n".format(self.m, self.n)
         s += "  Lambda  : {:.4e}\n".format(self.lmbd)
-        s += "  Ratio   : {:.4e}".format(
-            self.lmbd / compute_lmbd_max(self.datafit, self.penalty, self.A)
-        )
         return s
 
     def value(self, x: NDArray, Ax: Union[NDArray, None] = None) -> float:
-        """Value of the objective function at x.
+        """Value of the objective function of the problem at ``x``.
 
         Parameters
         ----------
-        x : NDArray
+        x: NDArray
             Vector at which the objective function evaluated.
-        Ax : Union[NDArray, None] = None
-            Value of Ax if it is already computed.
+        Ax: Union[NDArray, None] = None
+            Value of ``A @ x`` if it is already computed, allows to save
+            computations.
 
         Returns
         -------
-        value : float
-            The value of the problem objective function at x.
+        value: float
+            The value of the problem objective function at ``x``.
         """
         if Ax is None:
             Ax = self.A @ x
@@ -103,23 +108,23 @@ class Problem:
 def compute_lmbd_max(
     datafit: BaseDatafit, penalty: BasePenalty, A: NDArray
 ) -> float:
-    """Return a value of `lmbd` above which the all-zero vector is always a
-    solution of the corresponding `Problem`.
+    """Return a value of ``lmbd`` above which the all-zero vector is always a
+    solution of the corresponding :class:`.Problem`.
 
     Parameters
     ----------
-    datafit : BaseDatafit
-        Data-fidelity function of the `Problem`.
-    penalty : BasePenalty
-        Penalty function of the `Problem`.
-    A : NDArray
-        Linear transformation matrix of the `Problem`.
+    datafit: BaseDatafit
+        Datafit function.
+    penalty: BasePenalty
+        Penalty function.
+    A: NDArray
+        Linear operator.
 
     Returns
     -------
-    lmbd_max : float
-        A value of `lmbd` above which the all-zero vector is always a solution
-        of the corresponding `Problem`.
+    lmbd_max: float
+        A value of ``lmbd`` above which the all-zero vector is always a
+        solution of the corresponding :class:`.Problem`.
     """
 
     if not isinstance(A, np.ndarray):
@@ -144,7 +149,7 @@ def compute_lmbd_max(
 
 @lru_cache()
 def compiled_clone(instance):
-    """Compile a class instance to a jitclass. Credits: skglm package.
+    """Compile a class instance to a ``jitclass``. Credits: ``skglm`` package.
 
     Parameters
     ----------

@@ -4,11 +4,11 @@ from .base import ProximablePenalty
 
 
 class BigmL1norm(ProximablePenalty):
-    """Big-M constraint plus L1-norm penalty function given by
+    r"""Big-M constraint plus L1-norm penalty function given by
 
-    .. math:: h(x) = alpha * |x| if |x| <= M and +inf otherwise
+    .. math:: h(x) = \alpha|x| \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x)=+\infty \ \ \text{otherwise}
 
-    where `M` and `alpha` are positive hyperparameters.
+    with :math:`M>0` and :math:`\alpha>0`.
 
     Parameters
     ----------
@@ -16,7 +16,7 @@ class BigmL1norm(ProximablePenalty):
         Big-M value.
     alpha: float
         L1-norm weight.
-    """
+    """  # noqa: E501
 
     def __init__(self, M: float, alpha: float) -> None:
         self.M = M

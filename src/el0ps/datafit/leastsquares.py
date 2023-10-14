@@ -5,11 +5,11 @@ from .base import ProximableDatafit, SmoothDatafit
 
 
 class Leastsquares(ProximableDatafit, SmoothDatafit):
-    """Least-squares data-fidelity function given by
+    r"""Least-squares datafit function given by
 
-    .. math:: f(x) = ||x - y||_2^2 / 2m
+    .. math:: f(x) = \frac{1}{2m} \|x - y\|_2^2
 
-    where `m` is the size of vector `y`.
+    where ``m`` is the size of the vector ``y``.
 
     Parameters
     ----------

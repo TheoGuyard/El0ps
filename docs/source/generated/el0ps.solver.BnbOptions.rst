@@ -14,7 +14,6 @@
    .. autosummary::
    
       ~BnbOptions.__init__
-      ~BnbOptions.validate_types
    
    
 

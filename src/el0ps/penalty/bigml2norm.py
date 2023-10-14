@@ -4,11 +4,11 @@ from .base import ProximablePenalty
 
 
 class BigmL2norm(ProximablePenalty):
-    """Big-M constraint plus L2-norm penalty function given by
+    r"""Big-M constraint plus L2-norm penalty function given by
 
-    .. math:: h(x) = alpha * |x|^2 if |x| <= M and +inf otherwise
+    .. math:: h(x) = \alpha x^2 \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x)=+\infty \ \ \text{otherwise}
 
-    where `M` and `alpha` are positive hyperparameters.
+    with :math:`M>0` and :math:`\alpha>0`.
 
     Parameters
     ----------
@@ -16,7 +16,7 @@ class BigmL2norm(ProximablePenalty):
         Big-M value.
     alpha: float
         L2-norm weight.
-    """
+    """  # noqa: E501
 
     def __init__(self, M: float, alpha: float) -> None:
         self.M = M

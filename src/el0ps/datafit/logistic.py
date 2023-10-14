@@ -5,11 +5,11 @@ from .base import SmoothDatafit
 
 
 class Logistic(SmoothDatafit):
-    """Logistic data-fidelity function given by
+    r"""Logistic datafit function given by
 
-    .. math:: f(x) = sum(log(1 + exp(-y * x))) / m
+    .. math:: f(x) = \frac{1}{m} \sum_{j=1}^m \log(1 + \exp(-y_j x_j))
 
-    where `m` is the size of vector `y` and `*` is the element-wise product.
+    where ``m`` is the size of the vector ``y``.
 
     Parameters
     ----------

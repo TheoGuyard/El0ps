@@ -4,11 +4,11 @@ from .base import ProximablePenalty
 
 
 class L1norm(ProximablePenalty):
-    """L1-norm penalty function given by
+    r"""L1-norm penalty function given by
 
-    .. math:: f(x) = alpha * |x|
+    .. math:: f(x) = \alpha |x|
 
-    where `alpha` is a positive hyperparameter.
+    with :math:`\alpha>0`.
 
     Parameters
     ----------

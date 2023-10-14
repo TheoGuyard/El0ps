@@ -14,7 +14,6 @@
    .. autosummary::
    
       ~PathOptions.__init__
-      ~PathOptions.validate_types
    
    
 
