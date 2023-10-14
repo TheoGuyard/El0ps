@@ -307,7 +307,7 @@ class BnbSolver(BaseSolver):
     ):
         self._setup(problem, x_init, S0_init, S1_init)
         bounding_solver = self.options.bounding_solver
-        bounding_solver._setup(problem, x_init, S0_init, S1_init)
+        bounding_solver.setup(problem, x_init, S0_init, S1_init)
 
         if self.options.verbose:
             self._print_header()
