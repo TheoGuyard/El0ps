@@ -92,6 +92,7 @@ def synthetic_x(k, n):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.random.randn(k)
+    x[s] += np.sign(x[s])
     return x
 
 
@@ -100,9 +101,7 @@ def synthetic_A(m, n, rho, normalize):
     N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
     N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
     K = np.power(rho, np.abs(N1 - N2))
-    V = np.random.standard_normal(m * n).reshape(m, n)
-    W = M + V @ np.linalg.cholesky(K).T
-    A = np.reshape(W, (n, m)).T
+    A = np.random.multivariate_normal(M, K, size=m)
     if normalize:
         A /= np.linalg.norm(A, axis=0, ord=2)
     return A
@@ -111,7 +110,8 @@ def synthetic_A(m, n, rho, normalize):
 def synthetic_y(datafit_name, x, A, m, snr):
     if datafit_name == "Leastsquares":
         y = A @ x
-        e = np.random.normal(0, np.std(y) / snr, size=m)
+        e = np.random.randn(m)
+        e *= np.sqrt((y @ y) / (snr * (e @ e)))
         y += e
     elif datafit_name == "Logistic":
         p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))

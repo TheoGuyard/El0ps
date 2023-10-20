@@ -26,7 +26,7 @@ def figure(config_path, save=False):
         config = yaml.load(stream, Loader=yaml.Loader)
 
     print("Recovering results...")
-    all_times = {solver_name: [] for solver_name in config["solver_names"]}
+    all_times = {}
 
     found = 0
     matched = 0
@@ -37,15 +37,23 @@ def figure(config_path, save=False):
         try:
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
-                if file_data["config"] != config:
-                    continue
+                for k in ["dataset", "solver_options"]:
+                    if file_data["config"][k] != config[k]:
+                        continue
                 for solver_name, result in file_data["results"].items():
                     if result is not None:
+                        if solver_name not in all_times.keys():
+                            all_times[solver_name] = []
                         if result.status == Status.OPTIMAL:
                             all_times[solver_name].append(result.solve_time)
+                        elif result.status in [
+                            Status.NODE_LIMIT,
+                            Status.TIME_LIMIT,
+                        ]:
+                            all_times[solver_name].append(np.inf)
                         else:
                             print(
-                                "{} did not converged: {}".format(
+                                "{} convergence issue: {}".format(
                                     solver_name, result.status
                                 )
                             )
@@ -65,14 +73,15 @@ def figure(config_path, save=False):
     min_times = np.min(
         [np.min(v) if len(v) else np.inf for v in all_times.values()]
     )
-    max_times = np.max(
-        [np.max(v) if len(v) else -np.inf for v in all_times.values()]
-    )
+    max_times = config["solver_options"]["time_limit"]
     grid_times = np.logspace(
         np.floor(np.log10(min_times)), np.ceil(np.log10(max_times)), 100
     )
     perfprofiles = {
-        k: [np.sum(v <= grid_time) / len(v) for grid_time in grid_times]
+        k: [
+            0.0 if len(v) == 0 else np.sum(v <= grid_time) / len(v)
+            for grid_time in grid_times
+        ]
         for k, v in all_times.items()
     }
 
