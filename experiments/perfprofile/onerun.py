@@ -33,10 +33,14 @@ def onerun(config_path):
             config["dataset"]["penalty_name"],
         ):
             print("  Solver: {}".format(solver_name))
-            print("    Precompiling...")
-            precompile(problem, solver)
-            print("    Solving...")
-            result = solver.solve(problem)
+            try:
+                print("    Precompiling...")
+                precompile(problem, solver)
+                print("    Solving...")
+                result = solver.solve(problem)
+            except Exception as e:
+                print("    Error: {}".format(e))
+                result = None
         else:
             print("  Skipping {}...".format(solver_name))
             result = None

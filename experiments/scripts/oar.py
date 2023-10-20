@@ -20,7 +20,7 @@ run_path = script_dir.joinpath(run_file)
 experiments = [
     {
         "name": "perfprofile",
-        "walltime": "06:30:00",
+        "walltime": "05:00:00",
         "besteffort": False,
         "production": True,
         "setups": [
@@ -127,8 +127,9 @@ def oar_receive():
 def oar_install():
     print("oar install")
     cmd_strings = [
-        "module load python",
-        "python -m pip install -q -e .[exp]",
+        "module load conda",
+        "conda activate el0ps",
+        "pip install -q -e .[exp]",
     ]
     for cmd_string in cmd_strings:
         subprocess.run(cmd_string, shell=True)
@@ -182,7 +183,8 @@ def oar_make():
                 "#OAR --array-param-file {}".format(args_path),
                 "set -xv",
                 "source {}/.profile".format(home_dir),
-                "module load python gurobi cplex",
+                "module load conda gurobi cplex",
+                "conda activate el0ps",
                 "python {}/{}/onerun.py $*".format(
                     experiments_dir, experiment["name"]
                 ),
