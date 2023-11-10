@@ -24,6 +24,7 @@
 
    .. autosummary::
    
+      ~BnbSolver.abs_gap
       ~BnbSolver.queue_length
       ~BnbSolver.rel_gap
       ~BnbSolver.solve_time
