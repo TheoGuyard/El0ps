@@ -266,8 +266,18 @@ class BnbSolver(BaseSolver):
     def _prune(self, node: BnbNode):
         return node.lower_bound > self.upper_bound
 
-    def _has_tight_relaxation(self, node: BnbNode):
-        return node.rel_gap <= self.options.rel_tol
+    def _has_tight_relaxation(self, problem: Problem, node: BnbNode):
+        if node.rel_gap <= self.options.rel_tol:
+            return True
+        elif np.all(
+            np.logical_or(
+                np.abs(node.x[node.Sb]) <= self.options.int_tol,
+                np.abs(node.x[node.Sb])
+                >= problem.penalty.param_limit(problem.lmbd),
+            )
+        ):
+            return True
+        return False
 
     def _update_trace(self, node: BnbNode):
         for key in self._trace_keys:
@@ -339,7 +349,7 @@ class BnbSolver(BaseSolver):
                     False,
                     True,
                 )
-                if not self._has_tight_relaxation(node):
+                if not self._has_tight_relaxation(problem, node):
                     self._branch(problem, node)
             self._update_bounds(node)
             if self.options.trace:
