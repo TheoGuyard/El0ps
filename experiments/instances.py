@@ -1,81 +1,12 @@
-import warnings
-import l0learn
-from numba import float64
+import pathlib, l0learn, warnings
 import numpy as np
 import openml as oml
+from libsvmdata import fetch_libsvm
+from numba import float64
+from scipy import sparse
 from sklearn.linear_model import ElasticNet, LogisticRegression
 from el0ps.datafit import Leastsquares, Logistic, Squaredhinge
-from el0ps.penalty import (
-    ProximablePenalty,
-    Bigm,
-    BigmL1norm,
-    BigmL2norm,
-    L1norm,
-    L2norm,
-)
-
-
-class NeglogTriangular(ProximablePenalty):
-    """Negative log-likelyhood of the triangular distribution penalty given by
-
-    .. math:: h(x) = -alpha * ln(1 - |x|/sigma) if |x| <= sigma and +inf
-    otherwise
-
-    where `alpha` and `sigma` are positive hyperparameters.
-
-    Parameters
-    ----------
-    alpha: float
-        Penalty weight.
-    sigma: float
-        Distribution spead.
-    """
-
-    def __init__(self, alpha: float, sigma: float) -> None:
-        self.alpha = alpha
-        self.sigma = sigma
-
-    def __str__(self) -> str:
-        return "NeglogTriangular"
-
-    def get_spec(self) -> tuple:
-        spec = (
-            ("alpha", float64),
-            ("sigma", float64),
-        )
-        return spec
-
-    def params_to_dict(self) -> dict:
-        return dict(alpha=self.alpha, sigma=self.sigma)
-
-    def value(self, x: float) -> float:
-        if np.abs(x) <= self.sigma:
-            return -self.alpha * np.log(1.0 - np.abs(x) / self.sigma)
-        else:
-            return np.inf
-
-    def conjugate(self, x: float) -> float:
-        z = np.maximum((self.sigma / self.alpha) * np.abs(x) - 1.0, 0.0)
-        return self.alpha * (z - np.log(z + 1.0))
-
-    def prox(self, x: float, eta: float) -> float:
-        w = self.sigma - np.sqrt(
-            (self.sigma - np.abs(x)) ** 2 + 4.0 * eta * self.alpha
-        )
-        z = 0.5 * (x + np.sign(x) * w)
-        return np.maximum(np.minimum(z, self.sigma), -self.sigma)
-
-    def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.0
-
-    def param_slope(self, lmbd: float) -> float:
-        return self.approximate_param_slope(lmbd)
-
-    def param_limit(self, lmbd: float) -> float:
-        return self.sigma - 1.0 / self.param_slope(lmbd)
-
-    def param_maxval(self) -> float:
-        return np.inf
+from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 
 def f1_score(x_true, x):
@@ -248,6 +179,33 @@ def get_data_synthetic(
     return datafit, penalty, A, lmbd, x_true
 
 
+def get_data_libsvm(datafit_name, penalty_name, dataset_name, normalize):
+    import ssl
+
+    ssl._create_default_https_context = ssl._create_unverified_context
+    A, y = fetch_libsvm(dataset_name)
+    if sparse.issparse(A):
+        A = A.todense()
+    A = A.reshape(*A.shape, order="F")
+    zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
+    if np.any(zero_columns):
+        A = np.array(A[:, np.logical_not(zero_columns)])
+    if normalize:
+        A /= np.linalg.norm(A, axis=0, ord=2)
+    if datafit_name in ["Logistic", "Squaredhinge"]:
+        y_cls = np.unique(y)
+        assert y_cls.size == 2
+        y_idx0 = y == y_cls[0]
+        y_idx1 = y == y_cls[1]
+        y = np.zeros(y.size, dtype=float)
+        y[y_idx0] = -1.0
+        y[y_idx1] = 1.0
+    datafit, penalty, lmbd = calibrate_objective(
+        datafit_name, penalty_name, A, y
+    )
+    return datafit, penalty, A, lmbd, None
+
+
 def get_data_openml(
     datafit_name, penalty_name, dataset_id, dataset_target, normalize
 ):
@@ -258,8 +216,8 @@ def get_data_openml(
         download_features_meta_data=False,
     )
     dataset = dataset.get_data(target=dataset_target)
-    A = dataset[0].to_numpy()
-    y = dataset[1].to_numpy().flatten()
+    A = dataset[0].to_numpy().astype(float)
+    y = dataset[1].to_numpy().flatten().astype(float)
     assert A.ndim == 2
     assert y.ndim == 1
     A = A[:, np.linalg.norm(A, axis=0, ord=2) != 0.0]
@@ -279,50 +237,57 @@ def get_data_openml(
     return datafit, penalty, A, lmbd, None
 
 
-def get_data_atp(nnz_proba, m, n, snr, t):
-    s = np.random.binomial(1, nnz_proba, size=n).astype(bool)
-    k = np.flatnonzero(s).size
-    x_true = np.zeros(n)
-    x_true[s] = np.random.triangular(-t, 0.0, t, size=k)
-    A = synthetic_A(m, n, 0.0, True)
-    y = synthetic_y("Leastsquares", x_true, A, m, snr)
-    e = np.var(y - A @ x_true)
-    datafit = Leastsquares(y)
-    penalty = NeglogTriangular(e / m, t)
-    lmbd = (e / m) * np.log((1.0 - nnz_proba) / nnz_proba)
-    return datafit, penalty, A, lmbd, x_true
+def get_data_lattice(datafit_name, penalty_name, normalize=False):
+    A_path = pathlib.Path(__file__).parent.joinpath(
+        "datasets", "lattice_A.npy"
+    )
+    y_path = pathlib.Path(__file__).parent.joinpath(
+        "datasets", "lattice_y.npy"
+    )
+    A = np.load(A_path)
+    y = np.load(y_path)
+    if normalize:
+        A /= np.linalg.norm(A, axis=0, ord=2)
+    datafit, penalty, lmbd = calibrate_objective(
+        datafit_name, penalty_name, A, y
+    )
+    return datafit, penalty, A, lmbd, None
 
 
 def get_data(dataset):
-    if "datatype" not in dataset.keys():
-        raise ValueError("Key `datatype` not found.")
-
-    if dataset["datatype"] == "synthetic":
+    if "dataset_type" not in dataset.keys():
+        raise ValueError("Key `dataset_type` not found.")
+    if dataset["dataset_type"] == "synthetic":
         return get_data_synthetic(
             dataset["datafit_name"],
             dataset["penalty_name"],
-            dataset["k"],
-            dataset["m"],
-            dataset["n"],
-            dataset["rho"],
-            dataset["snr"],
-            dataset["normalize"],
+            dataset["dataset_opts"]["k"],
+            dataset["dataset_opts"]["m"],
+            dataset["dataset_opts"]["n"],
+            dataset["dataset_opts"]["rho"],
+            dataset["dataset_opts"]["snr"],
+            dataset["dataset_opts"]["normalize"],
         )
-    elif dataset["datatype"] == "openml":
+    elif dataset["dataset_type"] == "libsvm":
+        return get_data_libsvm(
+            dataset["datafit_name"],
+            dataset["penalty_name"],
+            dataset["dataset_opts"]["dataset_name"],
+            dataset["dataset_opts"]["normalize"],
+        )
+    elif dataset["dataset_type"] == "openml":
         return get_data_openml(
             dataset["datafit_name"],
             dataset["penalty_name"],
-            dataset["dataset_id"],
-            dataset["dataset_target"],
-            dataset["normalize"],
+            dataset["dataset_opts"]["dataset_id"],
+            dataset["dataset_opts"]["dataset_target"],
+            dataset["dataset_opts"]["normalize"],
         )
-    elif dataset["datatype"] == "atp":
-        return get_data_atp(
-            dataset["nnz_proba"],
-            dataset["m"],
-            dataset["n"],
-            dataset["snr"],
-            dataset["t"],
+    elif dataset["dataset_type"] == "lattice":
+        return get_data_lattice(
+            dataset["datafit_name"],
+            dataset["penalty_name"],
+            dataset["dataset_opts"]["normalize"],
         )
     else:
-        raise ValueError("Unknown datatype {}".format(dataset["datatype"]))
+        raise ValueError("Unknown datatype {}".format(dataset["dataset_type"]))

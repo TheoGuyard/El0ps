@@ -26,10 +26,10 @@ class CplexSolver(BaseSolver):
         verbose: bool = False,
     ):
         self.options = {
-            "verbose": int(verbose),
             "time_limit": time_limit,
             "rel_tol": rel_tol,
             "int_tol": int_tol,
+            "verbose": verbose,
         }
 
     def __str__(self):
@@ -94,11 +94,11 @@ class CplexSolver(BaseSolver):
             model.add_constraint(g_var >= problem.lmbd * sum(z_var))
         elif str(problem.penalty) == "BigmL1norm":
             s_var = model.continuous_var_list(problem.n, name="s")
-            model.add_quadratic_constraints(
-                z_var[i] * s_var[i] >= x_var[i] for i in range(problem.n)
+            model.add_constraints(
+                s_var[i] >= x_var[i] for i in range(problem.n)
             )
-            model.add_quadratic_constraints(
-                z_var[i] * s_var[i] >= -x_var[i] for i in range(problem.n)
+            model.add_constraints(
+                s_var[i] >= -x_var[i] for i in range(problem.n)
             )
             model.add_constraints(
                 x_var[i] <= problem.penalty.M * z_var[i]
@@ -126,19 +126,6 @@ class CplexSolver(BaseSolver):
             model.add_quadratic_constraints(
                 x_var[i] * x_var[i] <= s_var[i] * z_var[i]
                 for i in range(problem.n)
-            )
-            model.add_constraint(
-                g_var
-                >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
-            )
-        elif str(problem.penalty) == "L1norm":
-            s_var = model.continuous_var_list(problem.n, name="s")
-            model.add_quadratic_constraints(
-                z_var[i] * s_var[i] >= x_var[i] for i in range(problem.n)
-            )
-            model.add_quadratic_constraints(
-                z_var[i] * s_var[i] >= -x_var[i] for i in range(problem.n)
             )
             model.add_constraint(
                 g_var
@@ -240,33 +227,24 @@ class CplexSolver(BaseSolver):
             warmstart = self.model.new_solution()
             for i, xi in enumerate(x_init):
                 warmstart.add_var_value(self.x_var[i], xi)
-                warmstart.add_var_value(self.z_var[i], xi != 0.0)
+                if xi == 0.0:
+                    warmstart.add_var_value(self.z_var[i], 0.0)
+                else:
+                    warmstart.add_var_value(self.z_var[i], 1.0)
             self.model.add_mip_start(warmstart)
 
     def set_options(self) -> None:
-        for k, v in self.options.items():
-            if k == "verbose":
-                self.model.parameters.mip.display = v
-            elif k == "time_limit":
-                self.model.parameters.timelimit = v
-            elif k == "rel_tol":
-                self.model.parameters.mip.tolerances.mipgap = v
-            elif k == "int_tol":
-                self.model.parameters.mip.tolerances.integrality = v
+        self.model.parameters.mip.display = int(self.options["verbose"])
+        self.model.parameters.timelimit = self.options["time_limit"]
+        self.model.parameters.mip.tolerances.mipgap = self.options["rel_tol"]
+        self.model.parameters.mip.tolerances.integrality = self.options[
+            "int_tol"
+        ]
 
     def get_status(self) -> Status:
-        if self.model.solve_details.status_code in [
-            1,
-            101,
-            102,
-            115,
-            129,
-            130,
-        ]:
+        if self.model.get_solve_status().value == 2:
             status = Status.OPTIMAL
-        elif self.model.solve_details.status_code in [10, 105, 106]:
-            status = Status.NODE_LIMIT
-        elif self.model.solve_details.status_code in [11, 107, 108]:
+        elif self.model.solve_details.time > self.options["time_limit"]:
             status = Status.TIME_LIMIT
         else:
             status = Status.UNKNOWN
@@ -290,6 +268,7 @@ class CplexSolver(BaseSolver):
         else:
             self.x = np.zeros(problem.n)
             self.z = np.zeros(problem.n)
+        self.x *= self.z > self.options["int_tol"]
 
         return Results(
             self.status,
@@ -315,10 +294,10 @@ class GurobiSolver(BaseSolver):
         verbose: bool = False,
     ):
         self.options = {
-            "OutputFlag": int(verbose),
-            "TimeLimit": time_limit,
-            "MIPGap": rel_tol,
-            "IntFeasTol": int_tol,
+            "time_limit": time_limit,
+            "rel_tol": rel_tol,
+            "int_tol": int_tol,
+            "verbose": verbose,
         }
 
     def __str__(self):
@@ -384,8 +363,8 @@ class GurobiSolver(BaseSolver):
             model.addConstr(g_var >= problem.lmbd * sum(z_var))
         elif str(problem.penalty) == "BigmL1norm":
             s_var = model.addMVar(problem.n, vtype="C", name="s")
-            model.addConstr(z_var * s_var >= x_var)
-            model.addConstr(z_var * s_var >= -x_var)
+            model.addConstr(s_var >= x_var)
+            model.addConstr(s_var >= -x_var)
             model.addConstr(x_var <= problem.penalty.M * z_var)
             model.addConstr(x_var >= -problem.penalty.M * z_var)
             model.addConstr(
@@ -399,15 +378,6 @@ class GurobiSolver(BaseSolver):
             model.addConstr(x_var <= problem.penalty.M * z_var)
             model.addConstr(x_var >= -problem.penalty.M * z_var)
             model.addConstr(x_var * x_var <= s_var * z_var)
-            model.addConstr(
-                g_var
-                >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
-            )
-        elif str(problem.penalty) == "L1norm":
-            s_var = model.addMVar(problem.n, vtype="C", name="s")
-            model.addConstr(z_var * s_var >= x_var)
-            model.addConstr(z_var * s_var >= -x_var)
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
@@ -515,8 +485,10 @@ class GurobiSolver(BaseSolver):
                 self.x_var[i].Start = xi
 
     def set_options(self) -> None:
-        for k, v in self.options.items():
-            self.model.setParam(k, v)
+        self.model.setParam("OutputFlag", self.options["verbose"])
+        self.model.setParam("TimeLimit", self.options["time_limit"])
+        self.model.setParam("MIPGap", self.options["rel_tol"])
+        self.model.setParam("IntFeasTol", self.options["int_tol"])
 
     def get_status(self) -> Status:
         if self.model.Status == gp.GRB.OPTIMAL:
@@ -545,6 +517,7 @@ class GurobiSolver(BaseSolver):
         else:
             self.x = np.zeros(problem.n)
             self.z = np.zeros(problem.n)
+        self.x *= self.z > self.options["int_tol"]
 
         return Results(
             self.status,
@@ -554,7 +527,7 @@ class GurobiSolver(BaseSolver):
             self.x,
             self.z,
             problem.value(self.x),
-            np.sum(np.abs(self.x) > self.options["IntFeasTol"]),
+            np.sum(np.abs(self.x) > self.options["int_tol"]),
             None,
         )
 
@@ -570,10 +543,10 @@ class MosekSolver(BaseSolver):
         verbose: bool = False,
     ):
         self.options = {
-            "log": int(verbose),
-            "mioMaxTime": time_limit,
-            "mioTolRelGap": rel_tol,
-            "mioTolAbsRelaxInt": int_tol,
+            "time_limit": time_limit,
+            "rel_tol": rel_tol,
+            "int_tol": int_tol,
+            "verbose": verbose,
         }
 
     def __str__(self):
@@ -704,7 +677,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL1norm":
-            s_var = model.variable("s", problem.n, msk.Domain.unbounded())
+            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.0))
             model.constraint(
                 msk.Expr.sub(s_var, x_var), msk.Domain.greaterThan(0.0)
             )
@@ -928,16 +901,17 @@ class MosekSolver(BaseSolver):
             self.x_var.setLevel(x_init)
 
     def set_options(self) -> None:
-        for k, v in self.options.items():
-            self.model.setSolverParam(k, v)
+        self.model.setSolverParam("mioMaxTime", self.options["time_limit"])
+        self.model.setSolverParam("mioTolRelGap", self.options["rel_tol"])
+        self.model.setSolverParam("mioTolAbsRelaxInt", self.options["int_tol"])
+        self.model.setSolverParam("log", int(self.options["verbose"]))
 
     def get_status(self) -> Status:
         if self.model.getPrimalSolutionStatus() == msk.SolutionStatus.Optimal:
             status = Status.OPTIMAL
-        elif (
-            self.model.getSolverDoubleInfo("mioTime")
-            >= self.options["mioMaxTime"]
-        ):
+        elif self.model.getSolverDoubleInfo(
+            "mioTime"
+        ) >= self.model.getParameter("mioMaxTime"):
             status = Status.TIME_LIMIT
         else:
             status = Status.UNKNOWN
@@ -961,6 +935,7 @@ class MosekSolver(BaseSolver):
         else:
             self.x = np.zeros(problem.n)
             self.z = np.zeros(problem.n)
+        self.x *= self.z > self.options["int_tol"]
 
         return Results(
             self.status,
@@ -970,7 +945,7 @@ class MosekSolver(BaseSolver):
             self.x,
             self.z,
             problem.value(self.x),
-            np.sum(np.abs(self.x) > self.options["mioTolAbsRelaxInt"]),
+            np.sum(np.abs(self.x) > self.options["int_tol"]),
             None,
         )
 
@@ -1108,10 +1083,10 @@ class SbnbSolver(BaseSolver):
         verbose: bool = False,
     ):
         self.options = {
-            "verbose": int(verbose),
             "time_limit": time_limit,
             "rel_tol": rel_tol,
             "int_tol": int_tol,
+            "verbose": verbose,
         }
         self.solver = BnbSolver(
             verbose=verbose,
@@ -1145,10 +1120,10 @@ class L0bnbSolver(BaseSolver):
         verbose: bool = False,
     ):
         self.options = {
-            "verbose": int(verbose),
             "time_limit": time_limit,
             "rel_tol": rel_tol,
             "int_tol": int_tol,
+            "verbose": verbose,
         }
 
     def __str__(self):
@@ -1226,26 +1201,6 @@ class L0bnbSolver(BaseSolver):
         )
 
 
-def precompile(problem, solver):
-    solver_copy = deepcopy(solver)
-    time_limit_precompile = 5.0
-    if isinstance(solver_copy, BnbSolver):
-        solver_copy.options.time_limit = time_limit_precompile
-    elif isinstance(solver_copy, SbnbSolver):
-        solver_copy.solver.options.time_limit = time_limit_precompile
-    elif isinstance(solver_copy, L0bnbSolver):
-        solver_copy.options["time_limit"] = time_limit_precompile
-    elif isinstance(solver_copy, CplexSolver):
-        solver_copy.options["TimeLimit"] = time_limit_precompile
-    elif isinstance(solver_copy, GurobiSolver):
-        solver_copy.options["TimeLimit"] = time_limit_precompile
-    elif isinstance(solver_copy, MosekSolver):
-        solver_copy.options["mioMaxTime"] = time_limit_precompile
-    else:
-        raise ValueError("Unknown solver {}".format(solver))
-    solver_copy.solve(problem)
-
-
 def get_solver(solver_name, options={}):
     if solver_name == "el0ps":
         return BnbSolver(**options)
@@ -1294,7 +1249,6 @@ def can_handle(solver_name, datafit_name, penalty_name):
             "Bigm",
             "BigmL1norm",
             "BigmL2norm",
-            "L1norm",
             "L2norm",
             "L1L2norm",
         ]
@@ -1308,7 +1262,6 @@ def can_handle(solver_name, datafit_name, penalty_name):
             "Bigm",
             "BigmL1norm",
             "BigmL2norm",
-            "L1norm",
             "L2norm",
             "L1L2norm",
             "NeglogTriangular",

@@ -1,0 +1,26 @@
+expname: synthetic
+dataset:
+  dataset_type: synthetic
+  dataset_opts: 
+    k         : 5
+    m         : 100
+    n         : 200
+    rho       : 0.9
+    snr       : 10.
+    normalize : true
+  datafit_name: Leastsquares
+  penalty_name: BigmL2norm
+solvers:
+  solvers_name: [el0ps, sbnb, l0bnb, cplex, gurobi, mosek]
+  solvers_opts:
+    time_limit: 3600.
+    rel_tol   : 1.e-4 
+    int_tol   : 1.e-8 
+    verbose   : false
+task:
+  task_type: fitpath
+  task_opts:
+    lmbd_ratio_max: 1.e-0
+    lmbd_ratio_min: 1.e-2
+    lmbd_ratio_num: 20
+    stop_if_not_optimal: true
