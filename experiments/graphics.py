@@ -1,7 +1,8 @@
-import argparse, os, pathlib, pickle, sys, yaml
+import argparse, pathlib, pickle, yaml
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from el0ps.solver import Status
 
 
@@ -22,7 +23,7 @@ def get_solver_name_color(solver_name):
         return None
 
 
-def plot_solve(config_path, save=False):
+def plot_perfprofile(config_path, save=False):
     print("Extracting config...")
     base_dir = pathlib.Path(__file__).parent.absolute()
     results_dir = pathlib.Path(base_dir, "results")
@@ -31,6 +32,7 @@ def plot_solve(config_path, save=False):
     assert config_path.is_file()
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
+    assert config["task"]["task_name"] == "solve"
 
     print("Recovering results...")
     all_solve_time = {
@@ -60,14 +62,9 @@ def plot_solve(config_path, save=False):
                                 all_solve_time[solver_name].append(
                                     result.solve_time
                                 )
-                            elif result.status in [
-                                Status.NODE_LIMIT,
-                                Status.TIME_LIMIT,
-                            ]:
-                                all_solve_time[solver_name].append(np.inf)
                             else:
                                 print(
-                                    "{} convergence issue: {}".format(
+                                    "  {} not converged: {}".format(
                                         solver_name, result.status
                                     )
                                 )
@@ -129,17 +126,16 @@ def plot_solve(config_path, save=False):
         plt.show()
 
 
-def plot_fitpath(config_path, save=False):
+def plot_regpath(config_path, save=False):
     print("Preprocessing...")
     base_dir = pathlib.Path(__file__).parent.absolute()
     result_dir = pathlib.Path(base_dir, "results")
     config_path = pathlib.Path(config_path)
-
     assert result_dir.is_dir()
     assert config_path.is_file()
-
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
+    assert config["task"]["task_name"] == "fitpath"
 
     print("Recovering results...")
     lmbd_ratio_grid = np.logspace(
@@ -147,17 +143,19 @@ def plot_fitpath(config_path, save=False):
         np.log10(config["task"]["task_opts"]["lmbd_ratio_min"]),
         config["task"]["task_opts"]["lmbd_ratio_num"],
     )
-    all_stat = [
-        {"name": "solve_time", "log": True},
-        {"name": "objective_value", "log": True},
-        {"name": "n_nnz", "log": False},
-    ]
+    all_stat = {
+        "solve_time": {"log": True},
+        "objective_value": {"log": False},
+        "datafit_value": {"log": False},
+        "penalty_value": {"log": False},
+        "n_nnz": {"log": False},
+    }
     all_data = {
-        stat["name"]: {
+        stat_name: {
             solver_name: {i: [] for i in range(lmbd_ratio_grid.size)}
             for solver_name in config["solvers"]["solvers_name"]
         }
-        for stat in all_stat
+        for stat_name in all_stat.keys()
     }
 
     found = 0
@@ -180,23 +178,29 @@ def plot_fitpath(config_path, save=False):
                 for solver_name, result in file_data["results"].items():
                     if result is not None:
                         if solver_name in config["solvers"]["solvers_name"]:
-                            for stat_name in all_data.keys():
+                            for stat_name in all_stat.keys():
                                 for i in range(len(result["lmbd_ratio"])):
                                     if result["status"][i] == Status.OPTIMAL:
                                         all_data[stat_name][solver_name][
                                             i
                                         ].append(result[stat_name][i])
                                     else:
+                                        print(
+                                            "  {} not converged: {}".format(
+                                                solver_name,
+                                                result["status"][i],
+                                            )
+                                        )
                                         notcved += 1
                 matched += 1
         except Exception as e:
             print(e)
             errored += 1
 
-    print("{} files founds".format(found))
-    print("{} files matched".format(matched))
-    print("{} files errored".format(errored))
-    print("{} solvers not converged".format(notcved))
+    print("  {} files founds".format(found))
+    print("  {} files matched".format(matched))
+    print("  {} files errored".format(errored))
+    print("  {} solvers not converged".format(notcved))
 
     if matched == 0:
         return
@@ -214,24 +218,29 @@ def plot_fitpath(config_path, save=False):
 
     if save:
         print("Saving...")
-        name = "_".join([str(v) for v in config["dataset"].values()]) + ".csv"
-        tabl = pd.DataFrame({"lmbd_ratio_grid": lmbd_ratio_grid})
-        for name, data in all_data.items():
-            for solver_name, values in data.items():
-                tabl[name + "_" + solver_name] = values
-        path = pathlib.Path(__file__).parent.joinpath("saves", name)
-        tabl.to_csv(path, index=False)
+        save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
+        save_file = "{}_{}.csv".format(config["expname"], save_uuid)
+        info_file = "{}_{}.yaml".format(config["expname"], save_uuid)
+        table = pd.DataFrame({"lmbd_ratio_grid": lmbd_ratio_grid})
+        for stat_name, stat_data in mean_data.items():
+            for solver_name, values in stat_data.items():
+                table[solver_name + "_" + stat_name] = values
+        save_path = pathlib.Path(__file__).parent.joinpath("saves", save_file)
+        info_path = pathlib.Path(__file__).parent.joinpath("saves", info_file)
+        table.to_csv(save_path, index=False)
+        with open(info_path, "w") as file:
+            yaml.dump(config, file)
     else:
         print("Plotting...")
         plt.rcParams["axes.prop_cycle"] = plt.cycler(
             "color", plt.cm.tab20c.colors
         )
         fig, axs = plt.subplots(1, len(mean_data.keys()))
-        for i, stat in enumerate(all_stat):
-            for solver_name in config["solvers"]["solvers_name"]:
+        for i, (stat_name, stat_data) in enumerate(mean_data.items()):
+            for solver_name, values in stat_data.items():
                 axs[i].plot(
                     lmbd_ratio_grid,
-                    mean_data[stat["name"]][solver_name],
+                    values,
                     label=solver_name,
                     color=get_solver_name_color(solver_name),
                 )
@@ -240,9 +249,9 @@ def plot_fitpath(config_path, save=False):
             axs[i].grid(visible=True, which="minor", axis="both", alpha=0.2)
             axs[i].minorticks_on()
             axs[i].set_xlabel("lmbd/lmbd_max")
-            axs[i].set_ylabel(stat["name"])
+            axs[i].set_ylabel(stat_name)
             axs[i].invert_xaxis()
-            if stat["log"]:
+            if all_stat[stat_name]["log"]:
                 axs[i].set_yscale("log")
         axs[0].legend()
         plt.show()
@@ -254,9 +263,9 @@ if __name__ == "__main__":
     parser.add_argument("config_path")
     parser.add_argument("-s", "--save", action="store_true")
     args = parser.parse_args()
-    if args.task == "solve":
-        plot_solve(args.config_path, save=args.save)
-    elif args.task == "fitpath":
-        plot_fitpath(args.config_path, save=args.save)
+    if args.task == "perfprofile":
+        plot_perfprofile(args.config_path, save=args.save)
+    elif args.task == "regpath":
+        plot_regpath(args.config_path, save=args.save)
     else:
         raise NotImplementedError
