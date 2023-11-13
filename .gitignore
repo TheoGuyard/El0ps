@@ -29,7 +29,8 @@ htmlcov
 /doc/auto_examples/
 
 # experiments
-*.pickle
-*.csv
+**/results/*.pickle
+**/saves/*.yaml
+**/saves/*.csv
 experiments/scripts/**
 !experiments/scripts/oar.py

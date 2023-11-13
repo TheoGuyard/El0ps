@@ -11,7 +11,7 @@ dependencies = ["numba", "numpy", "scipy"]
 
 [project.optional-dependencies]
 dev = ["black", "coverage", "flake8", "furo", "numpydoc", "pydoctest", "pytest", "sphinx"]
-exp = ["cplex", "docplex", "gurobipy", "l0bnb", "l0learn", "matplotlib", "Mosek", "openml", "osqp", "pandas", "pyyaml", "scikit-learn"]
+exp = ["cplex", "docplex", "gurobipy", "libsvmdata", "l0bnb", "l0learn", "matplotlib", "Mosek", "openml", "osqp", "pandas", "pyyaml", "scikit-learn"]
 
 [project.urls]
 # "Homepage" = ""

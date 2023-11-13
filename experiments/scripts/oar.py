@@ -17,39 +17,48 @@ script_dir = experiments_dir.joinpath("scripts")
 run_file = "run.sh"
 run_path = script_dir.joinpath(run_file)
 
+
 experiments = [
     {
         "name": "perfprofile",
-        "walltime": "05:00:00",
+        "walltime": "06:15:00",
         "besteffort": False,
         "production": True,
         "setups": [
             {
                 "expname": "perfprofile",
                 "dataset": {
-                    "datatype": "synthetic",
+                    "dataset_type": "synthetic",
+                    "dataset_opts": {
+                        "k": k,
+                        "m": 100,
+                        "n": 200,
+                        "rho": 0.5,
+                        "snr": 10.0,
+                        "normalize": True,
+                    },
                     "datafit_name": "Leastsquares",
                     "penalty_name": penalty,
-                    "k": k,
-                    "m": 100,
-                    "n": 200,
-                    "rho": 0.5,
-                    "snr": 10.0,
-                    "normalize": True,
                 },
-                "solver_names": [
-                    "el0ps",
-                    "sbnb",
-                    "l0bnb",
-                    "cplex",
-                    "gurobi",
-                    "mosek",
-                ],
-                "solver_options": {
-                    "time_limit": 3600.0,
-                    "rel_tol": 1.0e-4,
-                    "int_tol": 1.0e-8,
-                    "verbose": False,
+                "solvers": {
+                    "solvers_name": [
+                        "el0ps",
+                        "sbnb",
+                        "l0bnb",
+                        "cplex",
+                        "gurobi",
+                        "mosek",
+                    ],
+                    "solvers_opts": {
+                        "time_limit": 3600.0,
+                        "rel_tol": 1.0e-4,
+                        "int_tol": 1.0e-8,
+                        "verbose": False,
+                    },
+                },
+                "task": {
+                    "task_type": "solve",
+                    "task_opts": None,
                 },
             }
             for penalty in ["Bigm", "BigmL2norm"]
@@ -57,38 +66,94 @@ experiments = [
         ],
     },
     {
-        "name": "atp",
-        "walltime": "04:30:00",
+        "name": "regpath",
+        "walltime": "01:15:00",
         "besteffort": False,
         "production": True,
         "setups": [
             {
-                "expname": "atp",
+                "expname": "regpath",
                 "dataset": {
-                    "datatype": "atp",
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "NeglogTriangular",
-                    "nnz_proba": 0.1,
-                    "m": 10,
-                    "n": 30,
-                    "snr": 10.0,
-                    "t": t,
+                    "dataset_type": dataset_type,
+                    "dataset_opts": dataset_opts,
+                    "datafit_name": datafit_name,
+                    "penalty_name": "BigmL2norm",
                 },
-                "solver_names": ["el0ps", "gurobi", "mosek"],
-                "solver_options": {
-                    "time_limit": 600.0,
-                    "rel_tol": 1.0e-4,
-                    "int_tol": 1.0e-8,
-                    "verbose": False,
+                "solvers": {
+                    "solvers_name": [
+                        "el0ps",
+                        "sbnb",
+                        "l0bnb",
+                        "cplex",
+                        "gurobi",
+                        "mosek",
+                    ],
+                    "solvers_opts": {
+                        "time_limit": 3600.0,
+                        "rel_tol": 1.0e-4,
+                        "int_tol": 1.0e-8,
+                        "verbose": False,
+                    },
                 },
-                "path_options": {
-                    "lmbd_ratio_max": 1.0e-0,
-                    "lmbd_ratio_min": 1.0e-3,
-                    "lmbd_ratio_num": 10,
-                    "warm_start": True,
+                "task": {
+                    "task_type": "fitpath",
+                    "task_opts": {
+                        "lmbd_ratio_max": 1.0e-0,
+                        "lmbd_ratio_min": 1.0e-2,
+                        "lmbd_ratio_num": 20,
+                        "stop_if_not_optimal": True,
+                    },
                 },
             }
-            for t in [1, 2, 3]
+            for (dataset_type, dataset_opts) in [
+                ("libsvm", {"dataset_name": "sonar", "normalize": False}),
+                ("libsvm", {"dataset_name": "leukemia", "normalize": False}),
+                (
+                    "openml",
+                    {
+                        "dataset_id": 45099,
+                        "dataset_target": "class",
+                        "normalize": False,
+                    },
+                ),
+            ]
+            for datafit_name in ["Logistic", "Squaredhinge"]
+        ],
+    },
+    {
+        "name": "lattice",
+        "walltime": "15:00:00",
+        "besteffort": False,
+        "production": True,
+        "setups": [
+            {
+                "expname": "lattice",
+                "dataset": {
+                    "dataset_type": "lattice",
+                    "dataset_opts": {"normalize": False},
+                    "datafit_name": "Leastsquares",
+                    "penalty_name": "BigmL1norm",
+                },
+                "solvers": {
+                    "solvers_name": [solvers_name],
+                    "solvers_opts": {
+                        "time_limit": 3600.0,
+                        "rel_tol": 1.0e-4,
+                        "int_tol": 1.0e-8,
+                        "verbose": False,
+                    },
+                },
+                "task": {
+                    "task_type": "fitpath",
+                    "task_opts": {
+                        "lmbd_ratio_max": 1.0e-0,
+                        "lmbd_ratio_min": 1.0e-5,
+                        "lmbd_ratio_num": 25,
+                        "stop_if_not_optimal": True,
+                    },
+                },
+            }
+            for solvers_name in ["el0ps", "cplex", "gurobi", "mosek"]
         ],
     },
 ]
@@ -112,16 +177,13 @@ def oar_send():
 
 
 def oar_receive():
-    for experiment in experiments:
-        print("oar receive {}".format(experiment["name"]))
-        results_src_path = pathlib.Path(
-            dst_path, "El0ps", "experiments", experiment["name"], "results/*"
-        )
-        results_dst_path = pathlib.Path(
-            experiments_dir, experiment["name"], "results"
-        )
-        cmd_str = "rsync -amv {} {}".format(results_src_path, results_dst_path)
-        subprocess.run(cmd_str, shell=True)
+    print("oar receive")
+    results_src_path = pathlib.Path(
+        dst_path, "El0ps", "experiments", "results/*"
+    )
+    results_dst_path = pathlib.Path(experiments_dir, "results")
+    cmd_str = "rsync -amv {} {}".format(results_src_path, results_dst_path)
+    subprocess.run(cmd_str, shell=True)
 
 
 def oar_install():
@@ -185,9 +247,7 @@ def oar_make():
                 "source {}/.profile".format(home_dir),
                 "module load conda gurobi cplex",
                 "conda activate el0ps",
-                "python {}/{}/onerun.py $*".format(
-                    experiments_dir, experiment["name"]
-                ),
+                "python {}/onerun.py $*".format(experiments_dir),
             ]
         )
         oar_path = experiment_dir.joinpath("oar.sh")

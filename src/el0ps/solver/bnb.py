@@ -133,6 +133,11 @@ class BnbSolver(BaseSolver):
         return "BnbSolver"
 
     @property
+    def abs_gap(self):
+        """Absolute gap between the lower and upper bounds."""
+        return np.abs(self.upper_bound - self.lower_bound)
+
+    @property
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return np.abs(self.upper_bound - self.lower_bound) / (
@@ -203,7 +208,7 @@ class BnbSolver(BaseSolver):
         self.queue.append(root)
 
     def _print_header(self):
-        s = "-" * 58 + "\n"
+        s = "-" * 68 + "\n"
         s += "|"
         s += " {:>6}".format("Nodes")
         s += " {:>6}".format("Timer")
@@ -212,9 +217,10 @@ class BnbSolver(BaseSolver):
         s += " {:>5}".format("Sb")
         s += " {:>6}".format("Lower")
         s += " {:>6}".format("Upper")
+        s += " {:>9}".format("Abs gap")
         s += " {:>9}".format("Rel gap")
         s += "|" + "\n"
-        s += "-" * 58
+        s += "-" * 68
         print(s)
 
     def _print_progress(self, node: BnbNode):
@@ -226,12 +232,13 @@ class BnbSolver(BaseSolver):
         s += " {:>5d}".format(node.card_Sb)
         s += " {:>6.2f}".format(self.lower_bound)
         s += " {:>6.2f}".format(self.upper_bound)
-        s += " {:>9.2e}".format(self.rel_gap)
+        s += " {:>9.2e}".format(self.abs_gap)
+        s += " {:>9.2%}".format(self.rel_gap)
         s += "|"
         print(s)
 
     def _print_footer(self):
-        s = "-" * 58
+        s = "-" * 68
         print(s)
 
     def _can_continue(self):
@@ -259,8 +266,18 @@ class BnbSolver(BaseSolver):
     def _prune(self, node: BnbNode):
         return node.lower_bound > self.upper_bound
 
-    def _has_tight_relaxation(self, node: BnbNode):
-        return node.rel_gap <= self.options.rel_tol
+    def _has_tight_relaxation(self, problem: Problem, node: BnbNode):
+        if node.rel_gap <= self.options.rel_tol:
+            return True
+        elif np.all(
+            np.logical_or(
+                np.abs(node.x[node.Sb]) <= self.options.int_tol,
+                np.abs(node.x[node.Sb])
+                >= problem.penalty.param_limit(problem.lmbd),
+            )
+        ):
+            return True
+        return False
 
     def _update_trace(self, node: BnbNode):
         for key in self._trace_keys:
@@ -332,7 +349,7 @@ class BnbSolver(BaseSolver):
                     False,
                     True,
                 )
-                if not self._has_tight_relaxation(node):
+                if not self._has_tight_relaxation(problem, node):
                     self._branch(problem, node)
             self._update_bounds(node)
             if self.options.trace:

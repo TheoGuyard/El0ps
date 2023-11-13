@@ -111,6 +111,8 @@ class Path:
         "rel_gap",
         "x",
         "objective_value",
+        "datafit_value",
+        "penalty_value",
         "n_nnz",
     ]
 
@@ -151,10 +153,20 @@ class Path:
             return False
         return True
 
-    def _fill_fit_data(self, lmbd_ratio: float, results: Results) -> None:
+    def _fill_fit_data(
+        self, lmbd_ratio: float, problem: Problem, results: Results
+    ) -> None:
         for k in self._path_keys:
             if k == "lmbd_ratio":
                 self.fit_data[k].append(lmbd_ratio)
+            elif k == "datafit_value":
+                self.fit_data[k].append(
+                    problem.datafit.value(problem.A @ results.x)
+                )
+            elif k == "penalty_value":
+                self.fit_data[k].append(
+                    np.sum([problem.penalty.value(xi) for xi in results.x])
+                )
             else:
                 self.fit_data[k].append(getattr(results, k))
 
@@ -197,7 +209,7 @@ class Path:
             problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
             results = solver.solve(problem, x_init=x_init)
             x_init = np.copy(results.x)
-            self._fill_fit_data(lmbd_ratio, results)
+            self._fill_fit_data(lmbd_ratio, problem, results)
             if self.options.verbose:
                 self._display_path_info()
             if not self._can_continue():
