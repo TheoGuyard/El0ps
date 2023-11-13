@@ -23,8 +23,7 @@ def f1_score(x_true, x):
 def synthetic_x(k, n):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
-    x[s] = np.random.randn(k)
-    x[s] += np.sign(x[s])
+    x[s] = np.sign(np.random.randn(s.size))
     return x
 
 
