@@ -1,4 +1,9 @@
-import argparse, pathlib, pickle, os, sys, yaml
+import argparse
+import pathlib
+import pickle
+import os
+import sys
+import yaml
 from copy import deepcopy
 from datetime import datetime
 from el0ps.problem import Problem, compute_lmbd_max

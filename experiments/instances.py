@@ -1,8 +1,9 @@
-import pathlib, l0learn, warnings
+import pathlib
+import l0learn
+import warnings
 import numpy as np
 import openml as oml
 from libsvmdata import fetch_libsvm
-from numba import float64
 from scipy import sparse
 from sklearn.linear_model import ElasticNet, LogisticRegression
 from el0ps.datafit import Leastsquares, Logistic, Squaredhinge

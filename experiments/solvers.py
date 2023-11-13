@@ -3,7 +3,6 @@ import gurobipy as gp
 import mosek.fusion as msk
 import numpy as np
 import osqp
-from copy import deepcopy
 from docplex.mp.model import Model
 from docplex.mp.dvar import Var
 from typing import Union

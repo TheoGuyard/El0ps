@@ -165,7 +165,7 @@ class Path:
                 )
             elif k == "penalty_value":
                 self.fit_data[k].append(
-                    np.sum(problem.penalty.value(xi) for xi in results.x)
+                    np.sum([problem.penalty.value(xi) for xi in results.x])
                 )
             else:
                 self.fit_data[k].append(getattr(results, k))

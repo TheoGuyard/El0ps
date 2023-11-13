@@ -1,4 +1,10 @@
-import argparse, pathlib, random, shutil, string, subprocess, yaml
+import argparse
+import pathlib
+import random
+import shutil
+import string
+import subprocess
+import yaml
 
 src_path = "~/Documents/Github/El0ps"
 dst_path = "tguyard@access.grid5000.fr:rennes/gits"
