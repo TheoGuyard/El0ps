@@ -51,7 +51,8 @@ def plot_perfprofile(config_path, save=False):
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
                 if (
-                    file_data["config"]["dataset"] != config["dataset"]
+                    file_data["config"]["expname"] != config["expname"]
+                    or file_data["config"]["dataset"] != config["dataset"]
                     or file_data["config"]["solvers"]["solvers_opts"]
                     != config["solvers"]["solvers_opts"]
                     or file_data["config"]["task"] != config["task"]
@@ -77,6 +78,8 @@ def plot_perfprofile(config_path, save=False):
 
     print("  {} files founds".format(found))
     print("  {} files matched".format(matched))
+    for solver_name, values in all_solve_time.items():
+        print(f"    {len(values)} datapoints for {solver_name}")
     print("  {} files errored".format(errored))
     print("  {} not converged".format(notcved))
 
@@ -170,7 +173,8 @@ def plot_regpath(config_path, save=False):
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
                 if (
-                    file_data["config"]["dataset"] != config["dataset"]
+                    file_data["config"]["expname"] != config["expname"]
+                    or file_data["config"]["dataset"] != config["dataset"]
                     or file_data["config"]["solvers"]["solvers_opts"]
                     != config["solvers"]["solvers_opts"]
                     or file_data["config"]["task"] != config["task"]

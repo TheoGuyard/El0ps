@@ -14,7 +14,7 @@ from experiments.instances import get_data  # noqa
 from experiments.solvers import get_solver, can_handle  # noqa
 
 
-def onerun(config_path):
+def onerun(config_path, nosave=False):
     print("Loading configuration...")
     config_path = pathlib.Path(config_path)
     assert config_path.is_file()
@@ -25,7 +25,6 @@ def onerun(config_path):
     datafit, penalty, A, lmbd, x_true = get_data(config["dataset"])
 
     print("Precompiling...")
-    lmbd = 0.3 * compute_lmbd_max(datafit, penalty, A)
     problem = Problem(datafit, penalty, A, lmbd)
     for solver_name in config["solvers"]["solvers_name"]:
         if can_handle(
@@ -87,22 +86,24 @@ def onerun(config_path):
             result = None
         results[solver_name] = result
 
-    print("Saving results...")
-    base_dir = pathlib.Path(__file__).parent.absolute()
-    result_dir = pathlib.Path(base_dir, "results")
-    result_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-    result_file = "{}.pickle".format(result_uuid)
-    result_path = pathlib.Path(base_dir, result_dir, result_file)
-    assert result_dir.is_dir()
-    assert not result_path.is_file()
-    with open(result_path, "wb") as file:
-        data = {"config": config, "results": results}
-        pickle.dump(data, file)
-    print("  File name: {}".format(result_file))
+    if not nosave:
+        print("Saving results...")
+        base_dir = pathlib.Path(__file__).parent.absolute()
+        result_dir = pathlib.Path(base_dir, "results")
+        result_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
+        result_file = "{}.pickle".format(result_uuid)
+        result_path = pathlib.Path(base_dir, result_dir, result_file)
+        assert result_dir.is_dir()
+        assert not result_path.is_file()
+        with open(result_path, "wb") as file:
+            data = {"config": config, "results": results}
+            pickle.dump(data, file)
+        print("  File name: {}".format(result_file))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("config_path")
+    parser.add_argument("--nosave", action="store_true")
     args = parser.parse_args()
-    onerun(args.config_path)
+    onerun(args.config_path, nosave=args.nosave)
