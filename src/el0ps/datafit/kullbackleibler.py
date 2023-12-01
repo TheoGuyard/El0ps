@@ -48,7 +48,7 @@ class Kullbackleibler(SmoothDatafit):
         if not np.all(u < 1.):
             return np.inf
         return np.sum(
-            self.y * (self.log_yy - np.log(1. - u))  - self.e * u
+            self.y * (self.log_yy - np.log(1. - u)) - self.e * u
         ) / self.m
 
     def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
