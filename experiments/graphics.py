@@ -35,11 +35,11 @@ def plot_perfprofile(config_path, save=False):
     assert config_path.is_file()
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
-    assert config["task"]["task_name"] == "solve"
+    assert config["task"]["task_type"] == "solve"
 
     print("Recovering results...")
     all_solve_time = {
-        solver_name: [] for solver_name in config["solvers_names"]
+        solver_name: [] for solver_name in config["solvers"]["solvers_name"]
     }
     found = 0
     matched = 0
@@ -78,6 +78,8 @@ def plot_perfprofile(config_path, save=False):
 
     print("  {} files founds".format(found))
     print("  {} files matched".format(matched))
+    for solver_name, values in all_solve_time.items():
+        print(f"    {len(values)} datapoints for {solver_name}")
     print("  {} files errored".format(errored))
     print("  {} not converged".format(notcved))
 
@@ -87,7 +89,7 @@ def plot_perfprofile(config_path, save=False):
     min_times = np.min(
         [np.min(v) if len(v) else np.inf for v in all_solve_time.values()]
     )
-    max_times = config["solvers_opts"]["time_limit"]
+    max_times = config["solvers"]["solvers_opts"]["time_limit"]
     grid_times = np.logspace(
         np.floor(np.log10(min_times)),
         np.ceil(np.log10(max_times)),
@@ -138,7 +140,7 @@ def plot_regpath(config_path, save=False):
     assert config_path.is_file()
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
-    assert config["task"]["task_name"] == "fitpath"
+    assert config["task"]["task_type"] == "fitpath"
 
     print("Recovering results...")
     lmbd_ratio_grid = np.logspace(
@@ -262,7 +264,7 @@ def plot_regpath(config_path, save=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("task", choices=["solve", "fitpath"])
+    parser.add_argument("task", choices=["perfprofile", "regpath"])
     parser.add_argument("config_path")
     parser.add_argument("-s", "--save", action="store_true")
     args = parser.parse_args()

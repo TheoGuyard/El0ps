@@ -910,7 +910,7 @@ class MosekSolver(BaseSolver):
             status = Status.OPTIMAL
         elif self.model.getSolverDoubleInfo(
             "mioTime"
-        ) >= self.model.getParameter("mioMaxTime"):
+        ) >= self.options["time_limit"]:
             status = Status.TIME_LIMIT
         else:
             status = Status.UNKNOWN

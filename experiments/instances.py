@@ -23,8 +23,7 @@ def f1_score(x_true, x):
 def synthetic_x(k, n):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
-    x[s] = np.random.randn(k)
-    x[s] += np.sign(x[s])
+    x[s] = np.sign(np.random.randn(s.size))
     return x
 
 
@@ -43,7 +42,7 @@ def synthetic_y(datafit_name, x, A, m, snr):
     if datafit_name == "Leastsquares":
         y = A @ x
         e = np.random.randn(m)
-        e *= np.sqrt((y @ y) / (snr * (e @ e)))
+        e *= (y @ y) / (np.sqrt(snr) * (e @ e))
         y += e
     elif datafit_name == "Logistic":
         p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
@@ -81,46 +80,6 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     elif datafit_name == "Squaredhinge":
         datafit = Squaredhinge(y)
 
-    # Calibrate the penalty parameters w.r.t x_truth when it is known
-    gamma_true = None
-    if x_true is not None:
-        s_true = x_true != 0.0
-        A_true = A[:, s_true]
-        clf = None
-        if datafit_name == "Leastsquares":
-            if penalty_name in ["L1norm", "BigmL1norm"]:
-                clf = ElasticNet(l1_ratio=1.0, fit_intercept=False)
-            elif penalty_name in ["L2norm", "BigmL2norm"]:
-                clf = ElasticNet(l1_ratio=0.0, fit_intercept=False)
-        elif datafit_name == "Logistic":
-            if penalty_name in ["L1norm", "BigmL1norm"]:
-                clf = LogisticRegression(penalty="l1", fit_intercept=False)
-            elif penalty_name in ["L2norm", "BigmL2norm"]:
-                clf = LogisticRegression(penalty="l2", fit_intercept=False)
-        if clf is not None:
-            c_best = (
-                np.linalg.norm(
-                    A_true.T @ datafit.gradient(np.zeros(m)), np.inf
-                )
-                / m
-            )
-            v_best = np.inf
-            coef_grid = np.logspace(4, -4, 50) * c_best
-            for coef in coef_grid:
-                if isinstance(clf, ElasticNet):
-                    clf.set_params(alpha=coef)
-                elif isinstance(clf, LogisticRegression):
-                    clf.set_params(C=1.0 / coef)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    clf.fit(A_true, y)
-                x_test = clf.coef_.ravel().copy()
-                v_test = np.linalg.norm(x_true[s_true] - x_test, 2)
-                if v_test < v_best:
-                    v_best = v_test
-                    c_best = coef
-            gamma_true = c_best
-
     # Fit regularization path with L0Learn
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -130,9 +89,6 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
             bindings[datafit_name],
             bindings[penalty_name],
             intercept=False,
-            num_gamma=1 if penalty_name == "Bigm" or gamma_true else 10,
-            gamma_max=m * gamma_true if gamma_true else m * 10,
-            gamma_min=m * gamma_true if gamma_true else m * 0.0001,
         )
 
     # Penalty and L0-norm parameters calibration from L0learn path
