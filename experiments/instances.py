@@ -87,10 +87,10 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
             y,
             bindings[datafit_name],
             bindings[penalty_name],
-            intercept=False,
-            num_gamma=100,
-            gamma_max=m * 1e4,
-            gamma_min=m * 1e-4,
+            intercept = False,
+            num_gamma = 1 if bindings[penalty_name] == "L0" else 100,
+            gamma_max = 0.0 if bindings[penalty_name] == "L0" else m * 1e4,
+            gamma_min = 0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
         )
 
     # Penalty and L0-norm parameters calibration from L0learn path
