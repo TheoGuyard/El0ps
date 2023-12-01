@@ -5,7 +5,7 @@ import numpy as np
 import openml as oml
 from libsvmdata import fetch_libsvm
 from scipy import sparse
-from el0ps.datafit import KullbackLeibler, Leastsquares, Logistic, Squaredhinge
+from el0ps.datafit import Kullbackleibler, Leastsquares, Logistic, Squaredhinge
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 

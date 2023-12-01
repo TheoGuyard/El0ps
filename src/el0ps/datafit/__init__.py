@@ -1,7 +1,7 @@
 """Data-fidelity functions."""
 
 from .base import BaseDatafit, SmoothDatafit, ProximableDatafit
-from .kullbackleibler import KullbackLeibler
+from .kullbackleibler import Kullbackleibler
 from .leastsquares import Leastsquares
 from .logistic import Logistic
 from .squaredhinge import Squaredhinge
@@ -10,7 +10,7 @@ __all__ = [
     "BaseDatafit",
     "ProximableDatafit",
     "SmoothDatafit",
-    "KullbackLeibler",
+    "Kullbackleibler",
     "Leastsquares",
     "Logistic",
     "Squaredhinge",

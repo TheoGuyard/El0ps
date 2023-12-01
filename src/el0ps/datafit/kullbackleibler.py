@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 from .base import SmoothDatafit
 
 
-class KullbackLeibler(SmoothDatafit):
+class Kullbackleibler(SmoothDatafit):
     r"""Kullback-Leibler datafit function given by
 
     .. math:: f(x) = \frac{1}{m} \sum_{j=1}^m y_ij \log(y_j / (x_j + e)) + x_j + e - y_j
