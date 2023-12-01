@@ -89,6 +89,9 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
             bindings[datafit_name],
             bindings[penalty_name],
             intercept=False,
+            num_gamma = 100,
+            gamma_max = m * 1e+4,
+            gamma_min = m * 1e-4,
         )
 
     # Penalty and L0-norm parameters calibration from L0learn path
@@ -101,9 +104,9 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
         for j, lmbda in enumerate(cvfit.lambda_0[i]):
             x = cvfit.coeff(lmbda, gamma)
             x = np.array(x.todense()).reshape(n + 1)[1:]
-            cv = cvfit.cv_means[i][j]
+            cv = cvfit.cv_means[i][j][0]
             f1 = 0.0 if x_true is None else f1_score(x_true, x)
-            if f1 >= best_f1 and cv <= best_cv:
+            if f1 >= best_f1 and cv < best_cv:
                 best_M = 1.5 * np.max(np.abs(x))
                 best_lmbda = lmbda / m
                 best_gamma = gamma / m

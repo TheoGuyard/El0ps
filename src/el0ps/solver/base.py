@@ -1,11 +1,18 @@
 """Base classes for L0-penalized problem solvers and related utilities."""
 
+import numpy as np
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
+from numba import njit
 from numpy.typing import NDArray
 from el0ps.problem import Problem
+
+
+@njit
+def rel_gap(ub, lb):
+    return np.abs(ub - lb) / (np.abs(ub) + 1e-16)
 
 
 class Status(Enum):

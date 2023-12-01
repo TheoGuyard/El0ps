@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Union
 from numpy.typing import NDArray
 from el0ps.problem import Problem
-from .base import BaseSolver, Results, Status
+from .base import BaseSolver, Results, Status, rel_gap
 from .node import BnbNode
 from .bounding import BnbBoundingSolver, CdBoundingSolver
 
@@ -23,10 +23,16 @@ class BnbExplorationStrategy(Enum):
         Breadth-first search.
     DFS: str
         Depth-first search.
+    BBS: str
+        Best-bound search.
+    WBS: str
+        Worst-bound search.
     """
 
     BFS = "BFS"
     DFS = "DFS"
+    BBS = "BBS"
+    WBS = "WBS"
     # TODO mixed BFS-DFS
 
 
@@ -140,9 +146,7 @@ class BnbSolver(BaseSolver):
     @property
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
-        return np.abs(self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + 1e-16
-        )
+        return rel_gap(self.upper_bound, self.lower_bound)
 
     @property
     def solve_time(self):
@@ -258,13 +262,25 @@ class BnbSolver(BaseSolver):
             _next_node = self.queue.pop()
         elif self.options.exploration_strategy == BnbExplorationStrategy.BFS:
             _next_node = self.queue.pop(0)
+        elif self.options.exploration_strategy == BnbExplorationStrategy.BBS:
+            _next_node = self.queue.pop(
+                np.argmax([qnode.lower_bound for qnode in self.queue])
+            )
+        elif self.options.exploration_strategy == BnbExplorationStrategy.WBS:
+            _next_node = self.queue.pop(
+                np.argmin([qnode.lower_bound for qnode in self.queue])
+            )
         else:
             raise NotImplementedError
         self.node_count += 1
         return _next_node
 
     def _prune(self, node: BnbNode):
-        return node.lower_bound > self.upper_bound
+        if self.upper_bound < node.lower_bound:
+            return True
+        if rel_gap(self.upper_bound, node.lower_bound) <= self.options.rel_tol:
+            return True
+        return False
 
     def _has_tight_relaxation(self, problem: Problem, node: BnbNode):
         if node.rel_gap <= self.options.rel_tol:
@@ -290,15 +306,11 @@ class BnbSolver(BaseSolver):
         if node.upper_bound < self.upper_bound:
             self.upper_bound = node.upper_bound
             self.x = np.copy(node.x_inc)
-            for node in self.queue:
-                if node.lower_bound > self.upper_bound:
-                    self.queue.remove(node)
+        self.queue = [qnode for qnode in self.queue if not self._prune(qnode)]
         if self.queue:
             self.lower_bound = np.min(
                 [qnode.lower_bound for qnode in self.queue]
             )
-        else:
-            self.lower_bound = self.upper_bound
 
     def _branch(self, problem: Problem, node: BnbNode):
         if not np.any(node.Sb):
@@ -351,7 +363,7 @@ class BnbSolver(BaseSolver):
                 )
                 if not self._has_tight_relaxation(problem, node):
                     self._branch(problem, node)
-            self._update_bounds(node)
+                self._update_bounds(node)
             if self.options.trace:
                 self._update_trace(node)
             if self.options.verbose:
