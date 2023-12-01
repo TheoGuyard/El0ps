@@ -6,7 +6,7 @@ import sys
 import yaml
 from copy import deepcopy
 from datetime import datetime
-from el0ps.problem import Problem, compute_lmbd_max
+from el0ps.problem import Problem
 from el0ps.path import Path
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

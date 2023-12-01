@@ -5,7 +5,6 @@ import numpy as np
 import openml as oml
 from libsvmdata import fetch_libsvm
 from scipy import sparse
-from sklearn.linear_model import ElasticNet, LogisticRegression
 from el0ps.datafit import Leastsquares, Logistic, Squaredhinge
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
@@ -89,9 +88,9 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
             bindings[datafit_name],
             bindings[penalty_name],
             intercept=False,
-            num_gamma = 100,
-            gamma_max = m * 1e+4,
-            gamma_min = m * 1e-4,
+            num_gamma=100,
+            gamma_max=m * 1e4,
+            gamma_min=m * 1e-4,
         )
 
     # Penalty and L0-norm parameters calibration from L0learn path

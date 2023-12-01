@@ -11,7 +11,15 @@ from numpy.typing import NDArray
 from l0bnb import BNBTree
 from scipy import sparse
 from el0ps import Problem
-from el0ps.solver import BaseSolver, BnbSolver, BnbNode, Status, Results, BnbBranchingStrategy, BnbExplorationStrategy
+from el0ps.solver import (
+    BaseSolver,
+    BnbSolver,
+    BnbNode,
+    Status,
+    Results,
+    BnbBranchingStrategy,
+    BnbExplorationStrategy,
+)
 from el0ps.solver.bounding import BnbBoundingSolver
 
 
@@ -909,9 +917,10 @@ class MosekSolver(BaseSolver):
     def get_status(self) -> Status:
         if self.model.getPrimalSolutionStatus() == msk.SolutionStatus.Optimal:
             status = Status.OPTIMAL
-        elif self.model.getSolverDoubleInfo(
-            "mioTime"
-        ) >= self.options["time_limit"]:
+        elif (
+            self.model.getSolverDoubleInfo("mioTime")
+            >= self.options["time_limit"]
+        ):
             status = Status.TIME_LIMIT
         else:
             status = Status.UNKNOWN
@@ -1206,20 +1215,24 @@ def extract_extra_options(solver_name):
         pattern = r"\[([^]]*)\]"
         match = re.search(pattern, solver_name)
         if match:
-            options_str = match.group(1) 
+            options_str = match.group(1)
             if options_str:
-                option_pairs = options_str.split(',')  
+                option_pairs = options_str.split(",")
                 options_dict = {}
                 for pair in option_pairs:
-                    k, v = pair.split('=')
-                    if k in ['l0screening', 'l1screening', 'verbose', 'trace']:
-                        options_dict[k] = v in ['true', 'True']
-                    elif k == 'exploration_strategy':
-                        options_dict['exploration_strategy'] = BnbExplorationStrategy[v]
-                    elif k == 'exploration_depth_switch':
-                        options_dict['exploration_depth_switch'] = int(v)
-                    elif k == 'branching_strategy':
-                        options_dict['branching_strategy'] = BnbBranchingStrategy[v]
+                    k, v = pair.split("=")
+                    if k in ["l0screening", "l1screening", "verbose", "trace"]:
+                        options_dict[k] = v in ["true", "True"]
+                    elif k == "exploration_strategy":
+                        options_dict[
+                            "exploration_strategy"
+                        ] = BnbExplorationStrategy[v]
+                    elif k == "exploration_depth_switch":
+                        options_dict["exploration_depth_switch"] = int(v)
+                    elif k == "branching_strategy":
+                        options_dict[
+                            "branching_strategy"
+                        ] = BnbBranchingStrategy[v]
                 return options_dict
     return {}
 
