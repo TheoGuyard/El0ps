@@ -20,7 +20,7 @@ def get_solver_name_color(solver_name):
         return "orange"
     elif solver_name == "sbnb":
         return "orangered"
-    elif solver_name == "el0ps":
+    elif solver_name.startswith("el0ps"):
         return "darkred"
     else:
         return None
@@ -150,6 +150,7 @@ def plot_regpath(config_path, save=False):
     )
     all_stat = {
         "solve_time": {"log": True},
+        "node_count": {"log": True},
         "objective_value": {"log": False},
         "datafit_value": {"log": False},
         "penalty_value": {"log": False},

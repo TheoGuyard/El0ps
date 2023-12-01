@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 from el0ps.problem import Problem
+from .base import rel_gap
 
 
 class BnbNode:
@@ -79,9 +80,7 @@ class BnbNode:
 
     @property
     def rel_gap(self):
-        return np.abs(self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + 1e-16
-        )
+        return rel_gap(self.upper_bound, self.lower_bound)
 
     @property
     def card_S0(self):
