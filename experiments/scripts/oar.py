@@ -31,9 +31,9 @@ experiments = [
                     "dataset_type": "synthetic",
                     "dataset_opts": {
                         "k": k,
-                        "m": 150,
-                        "n": 300,
-                        "rho": 0.1,
+                        "m": 100,
+                        "n": 200,
+                        "rho": 0.5,
                         "snr": 10.0,
                         "normalize": True,
                     },

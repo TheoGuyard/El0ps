@@ -42,7 +42,7 @@ def synthetic_y(datafit_name, x, A, m, snr):
     if datafit_name == "Leastsquares":
         y = A @ x
         e = np.random.randn(m)
-        e *= np.sqrt((y @ y) / (snr * (e @ e)))
+        e *= (y @ y) / (np.sqrt(snr) * (e @ e))
         y += e
     elif datafit_name == "Logistic":
         p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
