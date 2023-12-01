@@ -1260,6 +1260,7 @@ def can_handle(solver_name, datafit_name, penalty_name):
             "Leastsquares",
             "Logistic",
             "Squaredhinge",
+            "Kullbackleibler",
         ]
         handle_penalty = penalty_name in [
             "Bigm",

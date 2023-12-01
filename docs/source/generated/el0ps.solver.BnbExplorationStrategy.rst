@@ -19,5 +19,7 @@
    
       ~BnbExplorationStrategy.BFS
       ~BnbExplorationStrategy.DFS
+      ~BnbExplorationStrategy.BBS
+      ~BnbExplorationStrategy.WBS
    
    

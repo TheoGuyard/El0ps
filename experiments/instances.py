@@ -5,7 +5,7 @@ import numpy as np
 import openml as oml
 from libsvmdata import fetch_libsvm
 from scipy import sparse
-from el0ps.datafit import Leastsquares, Logistic, Squaredhinge
+from el0ps.datafit import KullbackLeibler, Leastsquares, Logistic, Squaredhinge
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 
@@ -26,19 +26,23 @@ def synthetic_x(k, n):
     return x
 
 
-def synthetic_A(m, n, rho, normalize):
+def synthetic_A(datafit_name, m, n, rho, normalize):
     M = np.zeros(n)
     N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
     N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
     K = np.power(rho, np.abs(N1 - N2))
     A = np.random.multivariate_normal(M, K, size=m)
+    if datafit_name == "Kullbackleibler":
+        A = np.abs(A)
     if normalize:
         A /= np.linalg.norm(A, axis=0, ord=2)
     return A
 
 
 def synthetic_y(datafit_name, x, A, m, snr):
-    if datafit_name == "Leastsquares":
+    if datafit_name == "Kullbackleibler":
+        y = np.random.poisson(-snr * (A @ x), m)
+    elif datafit_name == "Leastsquares":
         y = A @ x
         e = np.random.randn(m)
         e *= (y @ y) / (np.sqrt(snr) * (e @ e))
@@ -130,7 +134,7 @@ def get_data_synthetic(
     datafit_name, penalty_name, k, m, n, rho, snr, normalize
 ):
     x_true = synthetic_x(k, n)
-    A = synthetic_A(m, n, rho, normalize)
+    A = synthetic_A(datafit_name, m, n, rho, normalize)
     y = synthetic_y(datafit_name, x_true, A, m, snr)
     datafit, penalty, lmbd = calibrate_objective(
         datafit_name, penalty_name, A, y, x_true
