@@ -1,0 +1,28 @@
+expname: icml_ablation
+dataset:
+  dataset_type: synthetic
+  dataset_opts: 
+    k         : 5
+    m         : 500
+    n         : 1_000
+    rho       : 0.5
+    snr       : 10.
+    normalize : true
+  datafit_name: Leastsquares
+  penalty_name: Bigm
+solvers:
+  solvers_name:
+    - el0ps[l0screening=False]
+    - el0ps
+  solvers_opts:
+    time_limit: 600.0
+    rel_tol   : 1.e-4 
+    int_tol   : 1.e-8 
+    verbose   : false
+task:
+  task_type: fitpath
+  task_opts:
+    lmbd_ratio_max: 1.e-0
+    lmbd_ratio_min: 1.e-3
+    lmbd_ratio_num: 31
+    stop_if_not_optimal: true

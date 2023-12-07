@@ -156,6 +156,54 @@ experiments = [
             for solvers_name in ["el0ps", "cplex", "gurobi", "mosek"]
         ],
     },
+    {
+        "name": "icml_ablation",
+        "walltime": "04:00:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [
+            {
+                "expname": "icml_ablation",
+                "dataset": {
+                    "dataset_type": "synthetic",
+                    "dataset_opts": {
+                            "k"        : k,
+                            "m"        : 500,
+                            "n"        : 1_000,
+                            "rho"      : 0.5,
+                            "snr"      : 10.,
+                            "normalize": True,
+                    },
+                    "datafit_name": datafit_name,
+                    "penalty_name": penalty_name,
+                },
+                "solvers": {
+                    "solvers_name": [
+                        "el0ps[l0screening=False]",
+                        "el0ps",
+                    ],
+                    "solvers_opts": {
+                        "time_limit": 600.0,
+                        "rel_tol": 1.0e-4,
+                        "int_tol": 1.0e-8,
+                        "verbose": False,
+                    },
+                },
+                "task": {
+                    "task_type": "fitpath",
+                    "task_opts": {
+                        "lmbd_ratio_max": 1.0e-0,
+                        "lmbd_ratio_min": 1.0e-3,
+                        "lmbd_ratio_num": 31,
+                        "stop_if_not_optimal": True,
+                    },
+                },
+            }
+            for datafit_name in ["Leastsquares"]
+            for penalty_name in ["Bigm"]
+            for k in [5, 10, 15]
+        ],
+    },
 ]
 
 
@@ -242,6 +290,7 @@ def oar_make():
                 "#OAR -l walltime={}".format(experiment["walltime"]),
                 "#OAR -t besteffort" if experiment["besteffort"] else "",
                 "#OAR -q production" if experiment["production"] else "",
+                "#OAR -p gpu_count=0",
                 "#OAR --array-param-file {}".format(args_path),
                 "set -xv",
                 "source {}/.profile".format(home_dir),
