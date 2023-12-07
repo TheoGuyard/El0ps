@@ -1239,7 +1239,7 @@ def extract_extra_options(solver_name):
 
 def get_solver(solver_name, options={}):
     if solver_name.startswith("el0ps"):
-        return BnbSolver(**(options | extract_extra_options(solver_name)))
+        return BnbSolver(**{**options, **extract_extra_options(solver_name)})
     elif solver_name == "sbnb":
         return SbnbSolver(**options)
     elif solver_name == "l0bnb":

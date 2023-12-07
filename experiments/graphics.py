@@ -9,21 +9,7 @@ from datetime import datetime
 from el0ps.solver import Status
 
 
-def get_solver_name_color(solver_name):
-    if solver_name == "mosek":
-        return "royalblue"
-    elif solver_name == "cplex":
-        return "skyblue"
-    elif solver_name == "gurobi":
-        return "forestgreen"
-    elif solver_name == "l0bnb":
-        return "orange"
-    elif solver_name == "sbnb":
-        return "orangered"
-    elif solver_name.startswith("el0ps"):
-        return "darkred"
-    else:
-        return None
+plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.tab10.colors)
 
 
 def plot_perfprofile(config_path, save=False):
@@ -119,7 +105,6 @@ def plot_perfprofile(config_path, save=False):
                 grid_times,
                 perfprofile,
                 label=solver_name,
-                color=get_solver_name_color(solver_name),
             )
         axs.set_xscale("log")
         axs.grid(visible=True, which="major", axis="both")
@@ -238,9 +223,6 @@ def plot_regpath(config_path, save=False):
             yaml.dump(config, file)
     else:
         print("Plotting...")
-        plt.rcParams["axes.prop_cycle"] = plt.cycler(
-            "color", plt.cm.tab20c.colors
-        )
         fig, axs = plt.subplots(1, len(mean_data.keys()))
         for i, (stat_name, stat_data) in enumerate(mean_data.items()):
             for solver_name, values in stat_data.items():
@@ -248,7 +230,6 @@ def plot_regpath(config_path, save=False):
                     lmbd_ratio_grid,
                     values,
                     label=solver_name,
-                    color=get_solver_name_color(solver_name),
                 )
             axs[i].set_xscale("log")
             axs[i].grid(visible=True, which="major", axis="both")

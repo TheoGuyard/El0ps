@@ -84,18 +84,16 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
         datafit = Squaredhinge(y)
 
     # Fit regularization path with L0Learn
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        cvfit = l0learn.cvfit(
-            A,
-            y,
-            bindings[datafit_name],
-            bindings[penalty_name],
-            intercept = False,
-            num_gamma = 1 if bindings[penalty_name] == "L0" else 100,
-            gamma_max = 0.0 if bindings[penalty_name] == "L0" else m * 1e4,
-            gamma_min = 0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
-        )
+    cvfit = l0learn.cvfit(
+        A,
+        y,
+        bindings[datafit_name],
+        bindings[penalty_name],
+        intercept = False,
+        num_gamma = 1 if bindings[penalty_name] == "L0" else 100,
+        gamma_max = 0.0 if bindings[penalty_name] == "L0" else m * 1e4,
+        gamma_min = 0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
+    )
 
     # Penalty and L0-norm parameters calibration from L0learn path
     best_M = None
