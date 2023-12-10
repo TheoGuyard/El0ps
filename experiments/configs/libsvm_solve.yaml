@@ -3,6 +3,7 @@ dataset:
   dataset_type  : libsvm
   dataset_opts  : 
     dataset_name: sonar
+    interactions: false
     normalize   : false
   datafit_name  : Leastsquares
   penalty_name  : BigmL2norm

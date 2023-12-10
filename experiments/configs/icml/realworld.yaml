@@ -1,16 +1,18 @@
-expname: libsvm
+expname: icml_realworld
 dataset:
   dataset_type  : libsvm
   dataset_opts  : 
-    dataset_name: sonar
+    dataset_name: heart
     interactions: false
     normalize   : false
-  datafit_name  : Leastsquares
-  penalty_name  : BigmL2norm
+  datafit_name  : Logistic
+  penalty_name  : L2norm
 solvers:
-  solvers_name: [el0ps, sbnb, l0bnb, cplex, gurobi, mosek]
+  solvers_name:
+    - el0ps[l0screening=False]
+    - el0ps
   solvers_opts:
-    time_limit: 3600.
+    time_limit: 600.0
     rel_tol   : 1.e-4 
     int_tol   : 1.e-8 
     verbose   : false
@@ -18,6 +20,6 @@ task:
   task_type: fitpath
   task_opts:
     lmbd_ratio_max: 1.e-0
-    lmbd_ratio_min: 1.e-2
-    lmbd_ratio_num: 20
+    lmbd_ratio_min: 1.e-5
+    lmbd_ratio_num: 51
     stop_if_not_optimal: true

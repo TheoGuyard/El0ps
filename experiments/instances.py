@@ -140,17 +140,30 @@ def get_data_synthetic(
     return datafit, penalty, A, lmbd, x_true
 
 
-def get_data_libsvm(datafit_name, penalty_name, dataset_name, normalize):
+def get_data_libsvm(
+        datafit_name, penalty_name, dataset_name, interactions, normalize
+    ):
     import ssl
 
     ssl._create_default_https_context = ssl._create_unverified_context
     A, y = fetch_libsvm(dataset_name)
     if sparse.issparse(A):
         A = A.todense()
-    A = A.reshape(*A.shape, order="F")
     zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
     if np.any(zero_columns):
         A = np.array(A[:, np.logical_not(zero_columns)])
+    if interactions:
+        A = np.hstack([A,
+                np.array(
+                    [
+                        A[:, i] * A[:, j]
+                        for i in range(A.shape[1])
+                        for j in range(i + 1, A.shape[1])
+                    ]
+                ).T,
+            ]
+        )
+    A = A.reshape(*A.shape, order="F")
     if normalize:
         A /= np.linalg.norm(A, axis=0, ord=2)
     if datafit_name in ["Logistic", "Squaredhinge"]:
@@ -234,6 +247,7 @@ def get_data(dataset):
             dataset["datafit_name"],
             dataset["penalty_name"],
             dataset["dataset_opts"]["dataset_name"],
+            dataset["dataset_opts"]["interactions"],
             dataset["dataset_opts"]["normalize"],
         )
     elif dataset["dataset_type"] == "openml":
