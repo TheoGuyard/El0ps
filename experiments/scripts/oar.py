@@ -204,6 +204,52 @@ experiments = [
             for k in [5, 10, 15]
         ],
     },
+    {
+        "name": "icml_realworld",
+        "walltime": "04:00:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [
+            {
+                "expname": "icml_realworld",
+                "dataset": {
+                    "dataset_type": "libsvm",
+                    "dataset_opts": {
+                            "dataset_name": dataset_name,
+                            "interactions": interactions,
+                            "normalize": True,
+                    },
+                    "datafit_name": datafit_name,
+                    "penalty_name": penalty_name,
+                },
+                "solvers": {
+                    "solvers_name": [
+                        "el0ps[l0screening=False]",
+                        "el0ps",
+                    ],
+                    "solvers_opts": {
+                        "time_limit": 600.0,
+                        "rel_tol": 1.0e-4,
+                        "int_tol": 1.0e-8,
+                        "verbose": False,
+                    },
+                },
+                "task": {
+                    "task_type": "fitpath",
+                    "task_opts": {
+                        "lmbd_ratio_max": 1.0e-0,
+                        "lmbd_ratio_min": 1.0e-5,
+                        "lmbd_ratio_num": 51,
+                        "stop_if_not_optimal": True,
+                    },
+                },
+            }
+            for dataset_name in ["breast-cancer", "heart"]
+            for interactions in [False, True]
+            for datafit_name in ["Logistic", "Squaredhinge"]
+            for penalty_name in ["BigmL2norm"]
+        ],
+    },
 ]
 
 

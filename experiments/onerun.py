@@ -23,9 +23,10 @@ def onerun(config_path, nosave=False):
 
     print("Generating data...")
     datafit, penalty, A, lmbd, x_true = get_data(config["dataset"])
+    problem = Problem(datafit, penalty, A, lmbd)
+    print(problem)
 
     print("Precompiling...")
-    problem = Problem(datafit, penalty, A, lmbd)
     for solver_name in config["solvers"]["solvers_name"]:
         if can_handle(
             solver_name,
