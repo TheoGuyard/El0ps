@@ -78,27 +78,7 @@ class Path:
     options: PathOptions
         Path options.
     fit_data: dict
-        Path fitting data. The keys are:
-            - ``lmbd_ratio``: Value of ``lmbd/lmbd_max`` in the path. The value
-            ``lmbd_max`` is computed using the :func:`.compute_lmbd_max`.
-
-            - ``status``: The solution status at a given ``lmbd_ratio``.
-
-            - ``solve_time``: The solve time at a given ``lmbd_ratio``.
-
-            - ``iter_count``: The number of nodes explored in the solution
-            method at a given ``lmbd_ratio``.
-
-            - ``rel_gap``: The relative gap of obtained in the solution method
-            at a given ``lmbd_ratio``.
-
-            - ``x``: The solution at a given ``lmbd_ratio``.
-
-            - ``objective_value``: The objective value at a given
-            ``lmbd_ratio``.
-
-            - ``n_nnz``: The number of non-zeros in the solution at a given
-            ``lmbd_ratio``.
+        Path fitting data, see `_path_keys` attributes for the keys considered.
     """
 
     _path_hstr = "   ratio   status     time    nodes    value     nnz"
