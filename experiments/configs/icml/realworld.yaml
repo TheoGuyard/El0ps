@@ -1,12 +1,13 @@
 expname: icml_realworld
 dataset:
-  dataset_type  : libsvm
-  dataset_opts  : 
-    dataset_name: heart
-    interactions: false
-    normalize   : false
-  datafit_name  : Logistic
-  penalty_name  : L2norm
+  dataset_type: hardcoded
+  dataset_opts: 
+    dataset_name  : lattice
+  process_opts: 
+    interactions  : false
+    normalize     : false
+  datafit_name  : Logcosh
+  penalty_name  : BigmL2norm
 solvers:
   solvers_name:
     - el0ps[l0screening=False]

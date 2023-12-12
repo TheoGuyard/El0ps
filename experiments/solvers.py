@@ -1256,21 +1256,8 @@ def get_solver(solver_name, options={}):
 
 def can_handle(solver_name, datafit_name, penalty_name):
     if solver_name.startswith("el0ps"):
-        handle_datafit = datafit_name in [
-            "Leastsquares",
-            "Logistic",
-            "Squaredhinge",
-            "Kullbackleibler",
-        ]
-        handle_penalty = penalty_name in [
-            "Bigm",
-            "BigmL1norm",
-            "BigmL2norm",
-            "L1norm",
-            "L2norm",
-            "L1L2norm",
-            "NeglogTriangular",
-        ]
+        handle_datafit = True
+        handle_penalty = True
     elif solver_name == "sbnb":
         handle_datafit = datafit_name in ["Leastsquares"]
         handle_penalty = penalty_name in ["Bigm"]

@@ -21,6 +21,10 @@ class BnbNode:
         BnbNode lower bound.
     upper_bound: float
         BnbNode upper bound.
+    time_lower_bound: float
+        Time to compute the lower bound.
+    time_upper_bound: float
+        Time to compute the upper bound.
     x: NDArray[np.float64]
         Relaxation solution.
     w: NDArray[np.float64]
@@ -37,6 +41,8 @@ class BnbNode:
         Sb: NDArray,
         lower_bound: float,
         upper_bound: float,
+        time_lower_bound: float,
+        time_upper_bound: float,
         x: NDArray,
         w: NDArray,
         u: NDArray,
@@ -48,6 +54,8 @@ class BnbNode:
         self.Sb = Sb
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+        self.time_lower_bound = time_lower_bound
+        self.time_upper_bound = time_upper_bound
         self.x = x
         self.w = w
         self.u = u
@@ -72,6 +80,8 @@ class BnbNode:
             np.copy(self.Sb),
             self.lower_bound,
             self.upper_bound,
+            self.time_lower_bound,
+            self.time_upper_bound,
             np.copy(self.x),
             np.copy(self.w),
             np.copy(self.u),

@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from typing import Union
 from numpy.typing import NDArray
@@ -49,12 +50,16 @@ class CdBoundingSolver(BnbBoundingSolver):
         l0screening: bool,
         incumbent: bool = False,
     ):
+
+        start_time = time.time()
+
         # Handle the root case and case where the upper-bounding problem yields
         # the same solutiona s the parent node.
         if incumbent:
             if not np.any(node.S1):
                 node.x_inc = np.zeros(problem.n)
                 node.upper_bound = problem.datafit.value(np.zeros(problem.m))
+                node.time_upper_bound = time.time() - start_time
                 return
             elif node.category == 0:
                 return
@@ -226,12 +231,14 @@ class CdBoundingSolver(BnbBoundingSolver):
 
         if incumbent:
             node.upper_bound = pv
+            node.time_upper_bound = time.time() - start_time
         else:
             if np.isnan(dv):
                 dv = self.compute_dv(
                     datafit, penalty, A, lmbd, u, v, p, S1, Sb
                 )
             node.lower_bound = dv
+            node.time_lower_bound = time.time() - start_time
 
     @staticmethod
     @njit

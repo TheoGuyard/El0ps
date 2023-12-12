@@ -20,143 +20,6 @@ run_path = script_dir.joinpath(run_file)
 
 experiments = [
     {
-        "name": "perfprofile",
-        "walltime": "06:15:00",
-        "besteffort": False,
-        "production": True,
-        "setups": [
-            {
-                "expname": "perfprofile",
-                "dataset": {
-                    "dataset_type": "synthetic",
-                    "dataset_opts": {
-                        "k": k,
-                        "m": 100,
-                        "n": 200,
-                        "rho": 0.5,
-                        "snr": 10.0,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": penalty,
-                },
-                "solvers": {
-                    "solvers_name": [
-                        "el0ps",
-                        "sbnb",
-                        "l0bnb",
-                        "cplex",
-                        "gurobi",
-                        "mosek",
-                    ],
-                    "solvers_opts": {
-                        "time_limit": 3600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-                "task": {
-                    "task_type": "solve",
-                    "task_opts": None,
-                },
-            }
-            for penalty in ["Bigm", "BigmL2norm"]
-            for k in [5, 7, 9]
-        ],
-    },
-    {
-        "name": "regpath",
-        "walltime": "01:15:00",
-        "besteffort": False,
-        "production": True,
-        "setups": [
-            {
-                "expname": "regpath",
-                "dataset": {
-                    "dataset_type": dataset_type,
-                    "dataset_opts": dataset_opts,
-                    "datafit_name": datafit_name,
-                    "penalty_name": "BigmL2norm",
-                },
-                "solvers": {
-                    "solvers_name": [
-                        "el0ps",
-                        "sbnb",
-                        "l0bnb",
-                        "cplex",
-                        "gurobi",
-                        "mosek",
-                    ],
-                    "solvers_opts": {
-                        "time_limit": 3600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-                "task": {
-                    "task_type": "fitpath",
-                    "task_opts": {
-                        "lmbd_ratio_max": 1.0e-0,
-                        "lmbd_ratio_min": 1.0e-2,
-                        "lmbd_ratio_num": 20,
-                        "stop_if_not_optimal": True,
-                    },
-                },
-            }
-            for (dataset_type, dataset_opts) in [
-                ("libsvm", {"dataset_name": "sonar", "normalize": False}),
-                ("libsvm", {"dataset_name": "leukemia", "normalize": False}),
-                (
-                    "openml",
-                    {
-                        "dataset_id": 45099,
-                        "dataset_target": "class",
-                        "normalize": False,
-                    },
-                ),
-            ]
-            for datafit_name in ["Logistic", "Squaredhinge"]
-        ],
-    },
-    {
-        "name": "lattice",
-        "walltime": "15:00:00",
-        "besteffort": False,
-        "production": True,
-        "setups": [
-            {
-                "expname": "lattice",
-                "dataset": {
-                    "dataset_type": "lattice",
-                    "dataset_opts": {"normalize": False},
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "BigmL1norm",
-                },
-                "solvers": {
-                    "solvers_name": [solvers_name],
-                    "solvers_opts": {
-                        "time_limit": 3600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-                "task": {
-                    "task_type": "fitpath",
-                    "task_opts": {
-                        "lmbd_ratio_max": 1.0e-0,
-                        "lmbd_ratio_min": 1.0e-5,
-                        "lmbd_ratio_num": 25,
-                        "stop_if_not_optimal": True,
-                    },
-                },
-            }
-            for solvers_name in ["el0ps", "cplex", "gurobi", "mosek"]
-        ],
-    },
-    {
         "name": "icml_ablation",
         "walltime": "04:00:00",
         "besteffort": True,
@@ -167,20 +30,25 @@ experiments = [
                 "dataset": {
                     "dataset_type": "synthetic",
                     "dataset_opts": {
-                            "k"        : k,
-                            "m"        : 500,
-                            "n"        : 1_000,
-                            "rho"      : 0.5,
-                            "snr"      : 10.,
-                            "normalize": True,
+                        "model": "linear",
+                        "k": k,
+                        "m": 500,
+                        "n": 1_000,
+                        "rho": rho,
+                        "snr": 10.0,
+                        "normalize": True,
                     },
-                    "datafit_name": datafit_name,
-                    "penalty_name": penalty_name,
+                    "process_opts": {
+                        "interactions": False,
+                        "normalize": False,
+                    },
+                    "datafit_name": "Leastsquares",
+                    "penalty_name": "Bigm",
                 },
                 "solvers": {
                     "solvers_name": [
-                        "el0ps[l0screening=False]",
-                        "el0ps",
+                        "el0ps[trace=True,l0screening=False]",
+                        "el0ps[trace=True]",
                     ],
                     "solvers_opts": {
                         "time_limit": 600.0,
@@ -193,15 +61,14 @@ experiments = [
                     "task_type": "fitpath",
                     "task_opts": {
                         "lmbd_ratio_max": 1.0e-0,
-                        "lmbd_ratio_min": 1.0e-3,
-                        "lmbd_ratio_num": 31,
+                        "lmbd_ratio_min": 1.0e-5,
+                        "lmbd_ratio_num": 51,
                         "stop_if_not_optimal": True,
                     },
                 },
             }
-            for datafit_name in ["Leastsquares"]
-            for penalty_name in ["Bigm"]
             for k in [5, 10, 15]
+            for rho in [0.1, 0.9]
         ],
     },
     {
@@ -213,11 +80,11 @@ experiments = [
             {
                 "expname": "icml_realworld",
                 "dataset": {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {
-                            "dataset_name": dataset_name,
-                            "interactions": interactions,
-                            "normalize": True,
+                    "dataset_type": dataset_type,
+                    "dataset_opts": dataset_opts,
+                    "process_opts": {
+                        "interactions": interactions,
+                        "normalize": normalize,
                     },
                     "datafit_name": datafit_name,
                     "penalty_name": penalty_name,
@@ -244,10 +111,13 @@ experiments = [
                     },
                 },
             }
-            for dataset_name in ["breast-cancer", "heart"]
+            for (dataset_type, dataset_opts) in [
+                ("hardcoded", {"dataset_name": "lattice"})
+            ]
             for interactions in [False, True]
-            for datafit_name in ["Logistic", "Squaredhinge"]
-            for penalty_name in ["BigmL2norm"]
+            for normalize in [False, True]
+            for datafit_name in ["Leastsquares", "Logcosh"]
+            for penalty_name in ["Bigm", "BigmL2norm"]
         ],
     },
 ]

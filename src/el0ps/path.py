@@ -86,7 +86,7 @@ class Path:
 
             - ``solve_time``: The solve time at a given ``lmbd_ratio``.
 
-            - ``node_count``: The number of nodes explored in the solution
+            - ``iter_count``: The number of nodes explored in the solution
             method at a given ``lmbd_ratio``.
 
             - ``rel_gap``: The relative gap of obtained in the solution method
@@ -107,13 +107,14 @@ class Path:
         "lmbd_ratio",
         "status",
         "solve_time",
-        "node_count",
+        "iter_count",
         "rel_gap",
         "x",
         "objective_value",
         "datafit_value",
         "penalty_value",
         "n_nnz",
+        "trace",
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -132,7 +133,7 @@ class Path:
                     "lmbd_ratio",
                     "status",
                     "solve_time",
-                    "node_count",
+                    "iter_count",
                     "objective_value",
                     "n_nnz",
                 ]

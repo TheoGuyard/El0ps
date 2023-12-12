@@ -10,7 +10,7 @@ from el0ps.problem import Problem
 from el0ps.path import Path
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from experiments.instances import get_data  # noqa
+from experiments.instances import get_data, calibrate_objective  # noqa
 from experiments.solvers import get_solver, can_handle  # noqa
 
 
@@ -22,7 +22,17 @@ def onerun(config_path, nosave=False):
         config = yaml.load(stream, Loader=yaml.Loader)
 
     print("Generating data...")
-    datafit, penalty, A, lmbd, x_true = get_data(config["dataset"])
+    A, y, x_true = get_data(config["dataset"])
+
+    print("Calibrating parameters...")
+    datafit, penalty, lmbd = calibrate_objective(
+        config["dataset"]["datafit_name"],
+        config["dataset"]["penalty_name"],
+        A,
+        y,
+        x_true,
+    )
+
     problem = Problem(datafit, penalty, A, lmbd)
     print(problem)
 
