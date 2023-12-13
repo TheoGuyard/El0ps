@@ -25,7 +25,7 @@
    
       ~Results.status
       ~Results.solve_time
-      ~Results.node_count
+      ~Results.iter_count
       ~Results.rel_gap
       ~Results.x
       ~Results.z

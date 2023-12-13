@@ -34,7 +34,7 @@ experiments = [
                         "k": k,
                         "m": 500,
                         "n": 1_000,
-                        "rho": rho,
+                        "rho": 0.9,
                         "snr": 10.0,
                         "normalize": True,
                     },
@@ -47,6 +47,8 @@ experiments = [
                 },
                 "solvers": {
                     "solvers_name": [
+                        "el0ps[trace=True,dualpruning=False,l0screening=False]",
+                        "el0ps[trace=True,dualpruning=False]",
                         "el0ps[trace=True,l0screening=False]",
                         "el0ps[trace=True]",
                     ],
@@ -67,8 +69,7 @@ experiments = [
                     },
                 },
             }
-            for k in [5, 10, 15]
-            for rho in [0.1, 0.9]
+            for k in [5, 6, 7]
         ],
     },
     {

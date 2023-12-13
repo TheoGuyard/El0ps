@@ -102,7 +102,7 @@ def onerun(config_path, nosave=False):
         base_dir = pathlib.Path(__file__).parent.absolute()
         result_dir = pathlib.Path(base_dir, "results")
         result_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-        result_file = "{}.pickle".format(result_uuid)
+        result_file = "{}_{}.pickle".format(config["expname"], result_uuid)
         result_path = pathlib.Path(base_dir, result_dir, result_file)
         assert result_dir.is_dir()
         assert not result_path.is_file()

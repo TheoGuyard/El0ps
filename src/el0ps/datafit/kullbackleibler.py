@@ -32,7 +32,10 @@ class Kullbackleibler(SmoothDatafit):
 
     def get_spec(self) -> tuple:
         spec = (
-            ("y", float64[::1]), ("e", float64), ("m", int32), ("L", float64)
+            ("y", float64[::1]),
+            ("e", float64),
+            ("m", int32),
+            ("L", float64),
         )
         return spec
 
@@ -40,17 +43,18 @@ class Kullbackleibler(SmoothDatafit):
         return dict(y=self.y, e=self.e)
 
     def value(self, x: NDArray[np.float64]) -> float:
-        z = np.maximum(x, 0.) + self.e
+        z = np.maximum(x, 0.0) + self.e
         return np.sum(self.y * np.log(self.y / z) + z - self.y) / self.m
 
     def conjugate(self, x: NDArray[np.float64]) -> float:
         u = self.m * x
-        if not np.all(u < 1.):
+        if not np.all(u < 1.0):
             return np.inf
-        return np.sum(
-            self.y * (self.log_yy - np.log(1. - u)) - self.e * u
-        ) / self.m
+        return (
+            np.sum(self.y * (self.log_yy - np.log(1.0 - u)) - self.e * u)
+            / self.m
+        )
 
     def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
-        z = np.maximum(x, 0.) + self.e
+        z = np.maximum(x, 0.0) + self.e
         return (1.0 - self.y / z) / self.m

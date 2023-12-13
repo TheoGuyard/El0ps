@@ -71,6 +71,8 @@ class BnbOptions:
         Relative MIP tolerance.
     int_tol: float
         Integrality tolerance for a float.
+    dualpruning: bool
+        Whether to use dual-pruning.
     l1screening: bool
         Whether to use screening acceleration.
     l0screening: bool
@@ -89,6 +91,7 @@ class BnbOptions:
     node_limit: int = sys.maxsize
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
+    dualpruning: bool = True
     l1screening: bool = True
     l0screening: bool = True
     verbose: bool = False
@@ -189,7 +192,8 @@ class BnbSolver(BaseSolver):
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
         self.upper_bound = problem.value(x_init, w_init)
-        self.trace = {key: [] for key in self._trace_keys}
+        if self.options.trace:
+            self.trace = {key: [] for key in self._trace_keys}
 
         # Root node
         root = BnbNode(
@@ -199,8 +203,8 @@ class BnbSolver(BaseSolver):
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
             np.inf,
-            0.,
-            0.,
+            0.0,
+            0.0,
             x_init,
             w_init,
             -problem.datafit.gradient(w_init),
@@ -271,6 +275,7 @@ class BnbSolver(BaseSolver):
             node,
             self.upper_bound,
             self.options.rel_tol,
+            self.options.dualpruning,
             self.options.l1screening,
             self.options.l0screening,
         )
@@ -281,6 +286,7 @@ class BnbSolver(BaseSolver):
             node,
             self.upper_bound,
             self.options.rel_tol,
+            False,
             False,
             False,
             True,

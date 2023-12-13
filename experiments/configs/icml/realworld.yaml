@@ -1,12 +1,12 @@
 expname: icml_realworld
 dataset:
-  dataset_type: hardcoded
+  dataset_type: libsvm
   dataset_opts: 
-    dataset_name  : lattice
+    dataset_name  : splice
   process_opts: 
-    interactions  : false
+    interactions  : true
     normalize     : false
-  datafit_name  : Logcosh
+  datafit_name  : Logistic
   penalty_name  : BigmL2norm
 solvers:
   solvers_name:

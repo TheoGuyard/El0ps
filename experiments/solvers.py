@@ -1221,7 +1221,13 @@ def extract_extra_options(solver_name):
                 options_dict = {}
                 for pair in option_pairs:
                     k, v = pair.split("=")
-                    if k in ["l0screening", "l1screening", "verbose", "trace"]:
+                    if k in [
+                        "dualpruning",
+                        "l1screening",
+                        "l0screening",
+                        "verbose",
+                        "trace",
+                    ]:
                         options_dict[k] = v in ["true", "True"]
                     elif k == "exploration_strategy":
                         options_dict[

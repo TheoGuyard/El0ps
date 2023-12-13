@@ -136,12 +136,12 @@ def plot_regpath(config_path, save=False):
     all_stat = {
         "solve_time": {"log": True},
         "iter_count": {"log": True},
-        "objective_value": {"log": False},
-        "datafit_value": {"log": False},
-        "penalty_value": {"log": False},
+        # "objective_value": {"log": False},
+        # "datafit_value": {"log": False},
+        # "penalty_value": {"log": False},
         "n_nnz": {"log": False},
-        "trace_node_time_lower_bound": {"log": False},
-        "trace_node_card_S0": {"log": False},
+        # "mean_node_time_lower_bound": {"log": False},
+        # "mean_node_card_S0": {"log": False},
     }
     all_data = {
         stat_name: {
@@ -174,20 +174,9 @@ def plot_regpath(config_path, save=False):
                             for i in range(len(result["lmbd_ratio"])):
                                 if result["status"][i] == Status.OPTIMAL:
                                     for stat_name in all_stat.keys():
-                                        if (
-                                            stat_name.startswith("trace")
-                                            and "trace=True" in solver_name
-                                        ):
-                                            t, k = stat_name.split(
-                                                "_", maxsplit=1
-                                            )
-                                            all_data[stat_name][solver_name][
-                                                i
-                                            ].append(np.mean(result[t][i][k]))
-                                        else:
-                                            all_data[stat_name][solver_name][
-                                                i
-                                            ].append(result[stat_name][i])
+                                        all_data[stat_name][solver_name][
+                                            i
+                                        ].append(result[stat_name][i])
                                 else:
                                     print(
                                         "  {} not converged: {}".format(

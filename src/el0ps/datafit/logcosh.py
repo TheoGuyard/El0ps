@@ -36,7 +36,7 @@ class Logcosh(SmoothDatafit):
         return np.sum(np.log(np.cosh(x - self.y))) / self.m
 
     def conjugate(self, x: NDArray[np.float64]) -> float:
-        if np.max(np.abs(x)) > 1. / self.m:
+        if np.max(np.abs(x)) > 1.0 / self.m:
             return np.inf
         else:
             z = np.arctanh(self.m * x) + self.y

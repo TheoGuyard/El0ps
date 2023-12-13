@@ -117,13 +117,13 @@ def process_data(
 ):
     if sparse.issparse(A):
         A = A.todense()
-    zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
-    if np.any(zero_columns):
-        A = np.array(A[:, np.logical_not(zero_columns)])
     if interactions:
         t = np.triu_indices(A.shape[1], k=1)
         A = np.multiply(A[:, t[0]], A[:, t[1]])
         x_true = None
+    zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
+    if np.any(zero_columns):
+        A = np.array(A[:, np.logical_not(zero_columns)])
     A = A.reshape(*A.shape, order="F")
     if normalize:
         A /= np.linalg.norm(A, axis=0, ord=2)
@@ -190,9 +190,6 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
                 best_gamma = gamma / m
                 best_cv = cv
                 best_f1 = f1
-
-    if x_true is not None:
-        best_M = 1.5 * np.max(np.abs(x_true))
 
     best_M = np.maximum(best_M, 1e-8 / n)
     best_lmbda = np.maximum(best_lmbda, 1e-8 / m)
