@@ -7,6 +7,7 @@ from el0ps.datafit import (
     SmoothDatafit,
     Kullbackleibler,
     Leastsquares,
+    Logcosh,
     Logistic,
     Squaredhinge,
 )
@@ -19,6 +20,7 @@ base_datafits = [BaseDatafit, ProximableDatafit, SmoothDatafit]
 datafits = [
     Kullbackleibler(np.abs(y)),
     Leastsquares(y),
+    Logcosh(y),
     Logistic(2.0 * (y > 0.0) - 1.0),
     Squaredhinge(2.0 * (y > 0.0) - 1.0),
 ]

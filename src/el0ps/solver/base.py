@@ -48,8 +48,8 @@ class Results:
         Solver status.
     solve_time: float
         Solver solve time in seconds.
-    node_count: int
-        Solver node count.
+    iter_count: int
+        Solver iter count.
     rel_gap: float
         Solver relative gap.
     x: NDArray
@@ -66,7 +66,7 @@ class Results:
 
     status: Status
     solve_time: float
-    node_count: int
+    iter_count: int
     rel_gap: float
     x: NDArray
     z: NDArray
@@ -79,7 +79,7 @@ class Results:
         s += "Results\n"
         s += "  Status     : {}\n".format(self.status.value)
         s += "  Solve time : {:.6f} seconds\n".format(self.solve_time)
-        s += "  Node count : {}\n".format(self.node_count)
+        s += "  Iter count : {}\n".format(self.iter_count)
         s += "  Rel. gap   : {:.2e}\n".format(self.rel_gap)
         s += "  Objective  : {:.6f}\n".format(self.objective_value)
         s += "  Non-zeros  : {}".format(self.n_nnz)

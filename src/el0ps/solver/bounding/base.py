@@ -71,6 +71,7 @@ class BnbBoundingSolver:
         node: BnbNode,
         upper_bound: float,
         rel_tol: float,
+        dualpruning: bool,
         l1screening: bool,
         l0screening: bool,
         incumbent: bool = False,
@@ -88,6 +89,8 @@ class BnbBoundingSolver:
             Best upper bound in the BnB algorithm.
         rel_tol: float
             Relative MIP tolerance of the BnB algorithm.
+        dualpruning: bool
+            Whether to use dual-pruning.
         l1screening: bool
             Whether to use screening acceleration.
         l0screening: bool

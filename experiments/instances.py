@@ -1,11 +1,11 @@
 import pathlib
 import l0learn
-import warnings
 import numpy as np
 import openml as oml
 from libsvmdata import fetch_libsvm
 from scipy import sparse
-from el0ps.datafit import Kullbackleibler, Leastsquares, Logistic, Squaredhinge
+from ucimlrepo import fetch_ucirepo
+from el0ps.datafit import *  # noqa
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 
@@ -26,36 +26,140 @@ def synthetic_x(k, n):
     return x
 
 
-def synthetic_A(datafit_name, m, n, rho, normalize):
+def synthetic_A(model, m, n, rho):
     M = np.zeros(n)
     N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
     N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
     K = np.power(rho, np.abs(N1 - N2))
     A = np.random.multivariate_normal(M, K, size=m)
-    if datafit_name == "Kullbackleibler":
+    if model == "poisson":
         A = np.abs(A)
-    if normalize:
-        A /= np.linalg.norm(A, axis=0, ord=2)
     return A
 
 
-def synthetic_y(datafit_name, x, A, m, snr):
-    if datafit_name == "Kullbackleibler":
-        y = np.random.poisson(-snr * (A @ x), m)
-    elif datafit_name == "Leastsquares":
+def synthetic_y(model, x, A, m, snr):
+    if model == "linear":
         y = A @ x
         e = np.random.randn(m)
         e *= (y @ y) / (np.sqrt(snr) * (e @ e))
         y += e
-    elif datafit_name == "Logistic":
+    elif model == "logistic":
         p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
         y = 2.0 * np.random.binomial(1, p, size=m) - 1.0
-    elif datafit_name == "Squaredhinge":
+    elif model == "svm":
         p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
         y = 2.0 * (p > 0.5) - 1.0
+    elif model == "poisson":
+        y = np.random.poisson(-snr * (A @ x), m)
+    elif model == "random":
+        y = np.random.normal(0.0, snr, size=m)
     else:
-        raise ValueError(f"Unsupported data-fidelity function {datafit_name}")
+        raise ValueError(f"Unsupported model {model}")
     return y
+
+
+def get_data_synthetic(model, k, m, n, rho, snr, normalize=False):
+    x = synthetic_x(k, n)
+    A = synthetic_A(model, m, n, rho)
+    if normalize:
+        A /= np.linalg.norm(A, axis=0, ord=2)
+    y = synthetic_y(model, x, A, m, snr)
+    if model == "random":
+        x = None
+    return A, y, x
+
+
+def get_data_libsvm(dataset_name):
+    import ssl
+
+    ssl._create_default_https_context = ssl._create_unverified_context
+    A, y = fetch_libsvm(dataset_name)
+    return A, y, None
+
+
+def get_data_openml(dataset_id, dataset_target):
+    dataset = oml.datasets.get_dataset(
+        dataset_id,
+        download_data=False,
+        download_qualities=False,
+        download_features_meta_data=False,
+    )
+    dataset = dataset.get_data(target=dataset_target)
+    A = dataset[0].to_numpy().astype(float)
+    y = dataset[1].to_numpy().flatten().astype(float)
+    return A, y, None
+
+
+def get_data_uciml(dataset_id):
+    dataset = fetch_ucirepo(id=dataset_id)
+    A = dataset.data.features
+    y = dataset.data.targets
+    A = A.to_numpy().astype(float)
+    y = y.to_numpy().flatten().astype(float)
+    return A, y, None
+
+
+def get_data_hardcoded(dataset_name):
+    A_path = (
+        pathlib.Path(__file__)
+        .parent.joinpath("datasets", dataset_name + "_A")
+        .with_suffix(".npy")
+    )
+    A = np.load(A_path)
+
+    y_path = (
+        pathlib.Path(__file__)
+        .parent.joinpath("datasets", dataset_name + "_y")
+        .with_suffix(".npy")
+    )
+    y = np.load(y_path)
+
+    x_path = A_path = (
+        pathlib.Path(__file__)
+        .parent.joinpath("datasets", dataset_name + "_x")
+        .with_suffix(".npy")
+    )
+    x = None if not x_path.exists() else np.load(x_path)
+
+    return A, y, x
+
+
+def process_data(datafit_name, A, y, x_true, interactions, center, normalize):
+    if sparse.issparse(A):
+        A = A.todense()
+    if not A.flags["F_CONTIGUOUS"] or not A.flags["OWNDATA"]:
+        A = np.array(A, order="F")
+    if interactions:
+        t = np.triu_indices(A.shape[1], k=1)
+        A = np.multiply(A[:, t[0]], A[:, t[1]])
+        x_true = None
+    zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
+    if np.any(zero_columns):
+        A = np.array(A[:, np.logical_not(zero_columns)], order="F")
+    if center:
+        A -= np.mean(A, axis=0)
+        y -= np.mean(y)
+    if normalize:
+        A /= np.linalg.norm(A, axis=0, ord=2)
+        y /= np.linalg.norm(y, ord=2)
+    if datafit_name in ["Logistic", "Squaredhinge"]:
+        y_cls = np.unique(y)
+        assert y_cls.size == 2
+        y_cls0 = y == y_cls[0]
+        y_cls1 = y == y_cls[1]
+        y = np.zeros(y.size, dtype=float)
+        y[y_cls0] = -1.0
+        y[y_cls1] = 1.0
+    return A, y, x_true
+
+
+def get_data(dataset):
+    get_data_func = "get_data_" + dataset["dataset_type"]
+    A, y, x_true = eval(get_data_func)(**dataset["dataset_opts"])
+    A, y, x_true = process_data(
+        dataset["datafit_name"], A, y, x_true, **dataset["process_opts"]
+    )
+    return A, y, x_true
 
 
 def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
@@ -76,12 +180,7 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     m, n = A.shape
 
     # Datafit
-    if datafit_name == "Leastsquares":
-        datafit = Leastsquares(y)
-    elif datafit_name == "Logistic":
-        datafit = Logistic(y)
-    elif datafit_name == "Squaredhinge":
-        datafit = Squaredhinge(y)
+    datafit = eval(datafit_name)(y)
 
     # Fit regularization path with L0Learn
     cvfit = l0learn.cvfit(
@@ -89,10 +188,11 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
         y,
         bindings[datafit_name],
         bindings[penalty_name],
-        intercept = False,
-        num_gamma = 1 if bindings[penalty_name] == "L0" else 100,
-        gamma_max = 0.0 if bindings[penalty_name] == "L0" else m * 1e4,
-        gamma_min = 0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
+        intercept=False,
+        num_gamma=1 if bindings[penalty_name] == "L0" else 40,
+        gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e2,
+        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
+        num_folds=5,
     )
 
     # Penalty and L0-norm parameters calibration from L0learn path
@@ -101,10 +201,11 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     best_gamma = None
     best_cv = np.inf
     best_f1 = 0.0
+    best_x = None
     for i, gamma in enumerate(cvfit.gamma):
         for j, lmbda in enumerate(cvfit.lambda_0[i]):
-            x = cvfit.coeff(lmbda, gamma)
-            x = np.array(x.todense()).reshape(n + 1)[1:]
+            x = cvfit.coeff(lmbda, gamma, include_intercept=False)
+            x = np.array(x.todense()).reshape(n)
             cv = cvfit.cv_means[i][j][0]
             f1 = 0.0 if x_true is None else f1_score(x_true, x)
             if f1 >= best_f1 and cv < best_cv:
@@ -113,6 +214,7 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
                 best_gamma = gamma / m
                 best_cv = cv
                 best_f1 = f1
+                best_x = np.copy(x)
 
     if penalty_name == "Bigm":
         penalty = Bigm(best_M)
@@ -125,144 +227,4 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     elif penalty_name == "L2norm":
         penalty = L2norm(best_gamma)
 
-    return datafit, penalty, best_lmbda
-
-
-def get_data_synthetic(
-    datafit_name, penalty_name, k, m, n, rho, snr, normalize
-):
-    x_true = synthetic_x(k, n)
-    A = synthetic_A(datafit_name, m, n, rho, normalize)
-    y = synthetic_y(datafit_name, x_true, A, m, snr)
-    datafit, penalty, lmbd = calibrate_objective(
-        datafit_name, penalty_name, A, y, x_true
-    )
-    return datafit, penalty, A, lmbd, x_true
-
-
-def get_data_libsvm(
-        datafit_name, penalty_name, dataset_name, interactions, normalize
-    ):
-    import ssl
-
-    ssl._create_default_https_context = ssl._create_unverified_context
-    A, y = fetch_libsvm(dataset_name)
-    if sparse.issparse(A):
-        A = A.todense()
-    zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
-    if np.any(zero_columns):
-        A = np.array(A[:, np.logical_not(zero_columns)])
-    if interactions:
-        A = np.hstack([A,
-                np.array(
-                    [
-                        A[:, i] * A[:, j]
-                        for i in range(A.shape[1])
-                        for j in range(i + 1, A.shape[1])
-                    ]
-                ).T,
-            ]
-        )
-    A = A.reshape(*A.shape, order="F")
-    if normalize:
-        A /= np.linalg.norm(A, axis=0, ord=2)
-    if datafit_name in ["Logistic", "Squaredhinge"]:
-        y_cls = np.unique(y)
-        assert y_cls.size == 2
-        y_idx0 = y == y_cls[0]
-        y_idx1 = y == y_cls[1]
-        y = np.zeros(y.size, dtype=float)
-        y[y_idx0] = -1.0
-        y[y_idx1] = 1.0
-    datafit, penalty, lmbd = calibrate_objective(
-        datafit_name, penalty_name, A, y
-    )
-    return datafit, penalty, A, lmbd, None
-
-
-def get_data_openml(
-    datafit_name, penalty_name, dataset_id, dataset_target, normalize
-):
-    dataset = oml.datasets.get_dataset(
-        dataset_id,
-        download_data=False,
-        download_qualities=False,
-        download_features_meta_data=False,
-    )
-    dataset = dataset.get_data(target=dataset_target)
-    A = dataset[0].to_numpy().astype(float)
-    y = dataset[1].to_numpy().flatten().astype(float)
-    assert A.ndim == 2
-    assert y.ndim == 1
-    A = A[:, np.linalg.norm(A, axis=0, ord=2) != 0.0]
-    if normalize:
-        A /= np.linalg.norm(A, axis=0, ord=2)
-    if datafit_name in ["Logistic", "Squaredhinge"]:
-        y_cls = np.unique(y)
-        assert y_cls.size == 2
-        y_idx0 = y == y_cls[0]
-        y_idx1 = y == y_cls[1]
-        y = np.zeros(y.size, dtype=float)
-        y[y_idx0] = -1.0
-        y[y_idx1] = 1.0
-    datafit, penalty, lmbd = calibrate_objective(
-        datafit_name, penalty_name, A, y
-    )
-    return datafit, penalty, A, lmbd, None
-
-
-def get_data_lattice(datafit_name, penalty_name, normalize=False):
-    A_path = pathlib.Path(__file__).parent.joinpath(
-        "datasets", "lattice_A.npy"
-    )
-    y_path = pathlib.Path(__file__).parent.joinpath(
-        "datasets", "lattice_y.npy"
-    )
-    A = np.load(A_path)
-    y = np.load(y_path)
-    if normalize:
-        A /= np.linalg.norm(A, axis=0, ord=2)
-    datafit, penalty, lmbd = calibrate_objective(
-        datafit_name, penalty_name, A, y
-    )
-    return datafit, penalty, A, lmbd, None
-
-
-def get_data(dataset):
-    if "dataset_type" not in dataset.keys():
-        raise ValueError("Key `dataset_type` not found.")
-    if dataset["dataset_type"] == "synthetic":
-        return get_data_synthetic(
-            dataset["datafit_name"],
-            dataset["penalty_name"],
-            dataset["dataset_opts"]["k"],
-            dataset["dataset_opts"]["m"],
-            dataset["dataset_opts"]["n"],
-            dataset["dataset_opts"]["rho"],
-            dataset["dataset_opts"]["snr"],
-            dataset["dataset_opts"]["normalize"],
-        )
-    elif dataset["dataset_type"] == "libsvm":
-        return get_data_libsvm(
-            dataset["datafit_name"],
-            dataset["penalty_name"],
-            dataset["dataset_opts"]["dataset_name"],
-            dataset["dataset_opts"]["interactions"],
-            dataset["dataset_opts"]["normalize"],
-        )
-    elif dataset["dataset_type"] == "openml":
-        return get_data_openml(
-            dataset["datafit_name"],
-            dataset["penalty_name"],
-            dataset["dataset_opts"]["dataset_id"],
-            dataset["dataset_opts"]["dataset_target"],
-            dataset["dataset_opts"]["normalize"],
-        )
-    elif dataset["dataset_type"] == "lattice":
-        return get_data_lattice(
-            dataset["datafit_name"],
-            dataset["penalty_name"],
-            dataset["dataset_opts"]["normalize"],
-        )
-    else:
-        raise ValueError("Unknown datatype {}".format(dataset["dataset_type"]))
+    return datafit, penalty, best_lmbda, best_x

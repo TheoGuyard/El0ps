@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from typing import Union
 from numpy.typing import NDArray
@@ -45,16 +46,20 @@ class CdBoundingSolver(BnbBoundingSolver):
         node: BnbNode,
         ub: float,
         rel_tol: float,
+        dualpruning: bool,
         l1screening: bool,
         l0screening: bool,
         incumbent: bool = False,
     ):
+        start_time = time.time()
+
         # Handle the root case and case where the upper-bounding problem yields
         # the same solutiona s the parent node.
         if incumbent:
             if not np.any(node.S1):
                 node.x_inc = np.zeros(problem.n)
                 node.upper_bound = problem.datafit.value(np.zeros(problem.m))
+                node.time_upper_bound = time.time() - start_time
                 return
             elif node.category == 0:
                 return
@@ -142,6 +147,8 @@ class CdBoundingSolver(BnbBoundingSolver):
                     )
                     if self.rel_gap(pv, dv) <= rel_tol:
                         break
+                    if dualpruning and dv > ub:
+                        break
                 elif self.rel_gap(pv, pv_old) <= rel_tol_inner:
                     break
                 elif it_cd >= self.iter_limit_cd:
@@ -157,14 +164,15 @@ class CdBoundingSolver(BnbBoundingSolver):
             #   - in lower bounding: no optimality conditions are violated
             #     and that one the following condition is met:
             #       i) the relative tolearance is met
-            #       ii) the dual value is above the best upper bound
-            #       iii) the tolearance of the inner solver is almost zero
+            #       ii) the tolearance of the inner solver is almost zero
+            #       iii) the dual bound is above the best upper bound (only
+            #            when dualpruning is activated)
             #     If optimality conditions are not violated but none of the
             #     above conditions are met, this means that the inner solver
             #     tolearance must be decreased.
             #   - in upper bounding: stops since the active set is fixed
             #   - in both cases: maximum number of iterations reached
-            if incumbent == "upper":
+            if incumbent:
                 break
             if not flag:
                 dv = self.compute_dv(
@@ -172,9 +180,9 @@ class CdBoundingSolver(BnbBoundingSolver):
                 )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
-                if dv >= ub:
-                    break
                 if rel_tol_inner <= 1e-8:
+                    break
+                if dualpruning and dv > ub:
                     break
                 rel_tol_inner *= 1e-2
             if it_as >= self.iter_limit_as:
@@ -182,11 +190,13 @@ class CdBoundingSolver(BnbBoundingSolver):
 
             # ----- Accelerations ----- #
 
-            if not incumbent and (l1screening or l0screening):
+            if not incumbent and (dualpruning or l1screening or l0screening):
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         datafit, penalty, A, lmbd, u, v, p, S1, Sb
                     )
+                if dualpruning and dv > ub:
+                    break
                 if l1screening:
                     self.l1screening(
                         datafit,
@@ -226,12 +236,14 @@ class CdBoundingSolver(BnbBoundingSolver):
 
         if incumbent:
             node.upper_bound = pv
+            node.time_upper_bound = time.time() - start_time
         else:
             if np.isnan(dv):
                 dv = self.compute_dv(
                     datafit, penalty, A, lmbd, u, v, p, S1, Sb
                 )
             node.lower_bound = dv
+            node.time_lower_bound = time.time() - start_time
 
     @staticmethod
     @njit

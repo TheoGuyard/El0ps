@@ -25,6 +25,7 @@
    
       ~BnbOptions.bounding_solver
       ~BnbOptions.branching_strategy
+      ~BnbOptions.dualpruning
       ~BnbOptions.exploration_depth_switch
       ~BnbOptions.exploration_strategy
       ~BnbOptions.int_tol

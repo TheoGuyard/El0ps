@@ -71,6 +71,8 @@ class BnbOptions:
         Relative MIP tolerance.
     int_tol: float
         Integrality tolerance for a float.
+    dualpruning: bool
+        Whether to use dual-pruning.
     l1screening: bool
         Whether to use screening acceleration.
     l0screening: bool
@@ -89,6 +91,7 @@ class BnbOptions:
     node_limit: int = sys.maxsize
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
+    dualpruning: bool = True
     l1screening: bool = True
     l0screening: bool = True
     verbose: bool = False
@@ -113,12 +116,13 @@ class BnbSolver(BaseSolver):
 
     _trace_keys = [
         "solve_time",
-        "node_count",
-        "queue_size",
+        "iter_count",
         "lower_bound",
         "upper_bound",
         "node_lower_bound",
         "node_upper_bound",
+        "node_time_lower_bound",
+        "node_time_upper_bound",
         "node_card_S0",
         "node_card_S1",
         "node_card_Sb",
@@ -129,7 +133,7 @@ class BnbSolver(BaseSolver):
         self.status = Status.RUNNING
         self.start_time = None
         self.queue = None
-        self.node_count = None
+        self.iter_count = None
         self.x = None
         self.lower_bound = None
         self.upper_bound = None
@@ -184,11 +188,12 @@ class BnbSolver(BaseSolver):
         self.status = Status.RUNNING
         self.start_time = time.time()
         self.queue = []
-        self.node_count = 0
+        self.iter_count = 0
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
         self.upper_bound = problem.value(x_init, w_init)
-        self.trace = {key: [] for key in self._trace_keys}
+        if self.options.trace:
+            self.trace = {key: [] for key in self._trace_keys}
 
         # Root node
         root = BnbNode(
@@ -198,6 +203,8 @@ class BnbSolver(BaseSolver):
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
             np.inf,
+            0.0,
+            0.0,
             x_init,
             w_init,
             -problem.datafit.gradient(w_init),
@@ -219,7 +226,7 @@ class BnbSolver(BaseSolver):
     def _print_header(self):
         s = "-" * 68 + "\n"
         s += "|"
-        s += " {:>6}".format("Nodes")
+        s += " {:>6}".format("Iters")
         s += " {:>6}".format("Timer")
         s += " {:>5}".format("S0")
         s += " {:>5}".format("S1")
@@ -234,7 +241,7 @@ class BnbSolver(BaseSolver):
 
     def _print_progress(self, node: BnbNode):
         s = "|"
-        s += " {:>6d}".format(self.node_count)
+        s += " {:>6d}".format(self.iter_count)
         s += " {:>6.2f}".format(self.solve_time)
         s += " {:>5d}".format(node.card_S0)
         s += " {:>5d}".format(node.card_S1)
@@ -253,7 +260,7 @@ class BnbSolver(BaseSolver):
     def _can_continue(self):
         if self.solve_time >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
-        elif self.node_count >= self.options.node_limit:
+        elif self.iter_count >= self.options.node_limit:
             self.status = Status.NODE_LIMIT
         elif len(self.queue) == 0:
             self.status = Status.OPTIMAL
@@ -268,6 +275,7 @@ class BnbSolver(BaseSolver):
             node,
             self.upper_bound,
             self.options.rel_tol,
+            self.options.dualpruning,
             self.options.l1screening,
             self.options.l0screening,
         )
@@ -278,6 +286,7 @@ class BnbSolver(BaseSolver):
             node,
             self.upper_bound,
             self.options.rel_tol,
+            False,
             False,
             False,
             True,
@@ -298,7 +307,7 @@ class BnbSolver(BaseSolver):
             )
         else:
             raise NotImplementedError
-        self.node_count += 1
+        self.iter_count += 1
         return _next_node
 
     def _prune(self, node: BnbNode):
@@ -376,8 +385,8 @@ class BnbSolver(BaseSolver):
             node = self._next_node()
             self._compute_lower_bound(problem, node)
             if not self._prune(node):
+                self._compute_upper_bound(problem, node)
                 if not self._has_feasible_solution(problem, node):
-                    self._compute_upper_bound(problem, node)
                     self._branch(problem, node)
             self._update_bounds(node)
             if self.options.trace:
@@ -392,7 +401,7 @@ class BnbSolver(BaseSolver):
         return Results(
             self.status,
             self.solve_time,
-            self.node_count,
+            self.iter_count,
             self.rel_gap,
             self.x,
             np.array(self.x != 0.0, dtype=float),

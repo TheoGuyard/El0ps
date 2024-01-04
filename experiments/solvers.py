@@ -51,30 +51,34 @@ class CplexSolver(BaseSolver):
         f_var: Var,
     ) -> None:
         if str(problem.datafit) == "Leastsquares":
-            r_var = model.continuous_var_list(problem.m, name="r", lb=-np.inf)
+            f1_var = model.continuous_var_list(
+                problem.m, name="f1", lb=-np.inf
+            )
             model.add_constraints(
-                r_var[j]
+                f1_var[j]
                 == problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
                 for j in range(problem.m)
             )
             model.add_constraint(
-                f_var >= model.sumsq(r_var) / (2.0 * problem.m)
+                f_var >= model.sumsq(f1_var) / (2.0 * problem.m)
             )
         elif str(problem.datafit) == "Squaredhinge":
-            r_var = model.continuous_var_list(problem.m, name="r", lb=-np.inf)
-            s_var = model.continuous_var_list(problem.m, name="s")
+            f1_var = model.continuous_var_list(
+                problem.m, name="f1", lb=-np.inf
+            )
+            f2_var = model.continuous_var_list(problem.m, name="f2")
             model.add_constraints(
-                r_var[j]
+                f1_var[j]
                 == 1.0
                 - problem.datafit.y[j]
                 - model.dot(x_var, problem.A[j, :])
                 for j in range(problem.m)
             )
             model.add_constraints(
-                s_var[j] >= r_var[j] for j in range(problem.m)
+                f2_var[j] >= f1_var[j] for j in range(problem.m)
             )
-            model.add_constraints(s_var[j] >= 0.0 for j in range(problem.m))
-            model.add_constraint(f_var >= model.sumsq(s_var) / problem.m)
+            model.add_constraints(f2_var[j] >= 0.0 for j in range(problem.m))
+            model.add_constraint(f_var >= model.sumsq(f2_var) / problem.m)
         else:
             raise NotImplementedError(
                 "`CplexSolver` does not support `{}` yet.".format(
@@ -101,12 +105,12 @@ class CplexSolver(BaseSolver):
             )
             model.add_constraint(g_var >= problem.lmbd * sum(z_var))
         elif str(problem.penalty) == "BigmL1norm":
-            s_var = model.continuous_var_list(problem.n, name="s")
+            g1_var = model.continuous_var_list(problem.n, name="g1")
             model.add_constraints(
-                s_var[i] >= x_var[i] for i in range(problem.n)
+                g1_var[i] >= x_var[i] for i in range(problem.n)
             )
             model.add_constraints(
-                s_var[i] >= -x_var[i] for i in range(problem.n)
+                g1_var[i] >= -x_var[i] for i in range(problem.n)
             )
             model.add_constraints(
                 x_var[i] <= problem.penalty.M * z_var[i]
@@ -119,10 +123,10 @@ class CplexSolver(BaseSolver):
             model.add_constraint(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
+                + problem.penalty.alpha * sum(g1_var)
             )
         elif str(problem.penalty) == "BigmL2norm":
-            s_var = model.continuous_var_list(problem.n, name="s")
+            g1_var = model.continuous_var_list(problem.n, name="g1")
             model.add_constraints(
                 x_var[i] <= problem.penalty.M * z_var[i]
                 for i in range(problem.n)
@@ -132,43 +136,43 @@ class CplexSolver(BaseSolver):
                 for i in range(problem.n)
             )
             model.add_quadratic_constraints(
-                x_var[i] * x_var[i] <= s_var[i] * z_var[i]
+                x_var[i] * x_var[i] <= g1_var[i] * z_var[i]
                 for i in range(problem.n)
             )
             model.add_constraint(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
+                + problem.penalty.alpha * sum(g1_var)
             )
         elif str(problem.penalty) == "L2norm":
-            s_var = model.continuous_var_list(problem.n, name="s")
+            g1_var = model.continuous_var_list(problem.n, name="g1")
             model.add_quadratic_constraints(
-                x_var[i] * x_var[i] <= s_var[i] * z_var[i]
+                x_var[i] * x_var[i] <= g1_var[i] * z_var[i]
                 for i in range(problem.n)
             )
             model.add_constraint(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
+                + problem.penalty.alpha * sum(g1_var)
             )
         elif str(problem.penalty) == "L1L2norm":
-            s1_var = model.continuous_var_list(problem.n, name="s1")
-            s2_var = model.continuous_var_list(problem.n, name="s1")
+            g1_var = model.continuous_var_list(problem.n, name="g1")
+            g2_var = model.continuous_var_list(problem.n, name="g1")
             model.add_quadratic_constraints(
-                z_var[i] * s1_var[i] >= x_var[i] for i in range(problem.n)
+                z_var[i] * g1_var[i] >= x_var[i] for i in range(problem.n)
             )
             model.add_quadratic_constraints(
-                z_var[i] * s1_var[i] >= -x_var[i] for i in range(problem.n)
+                z_var[i] * g1_var[i] >= -x_var[i] for i in range(problem.n)
             )
             model.add_quadratic_constraints(
-                x_var[i] * x_var[i] <= s_var[i] * z_var[i]
+                x_var[i] * x_var[i] <= g2_var[i] * z_var[i]
                 for i in range(problem.n)
             )
             model.add_constraint(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s1_var)
-                + problem.penalty.beta * sum(s2_var)
+                + problem.penalty.alpha * sum(g1_var)
+                + problem.penalty.beta * sum(g2_var)
             )
         else:
             raise NotImplementedError(
@@ -319,37 +323,37 @@ class GurobiSolver(BaseSolver):
         f_var: gp.Var,
     ) -> None:
         if str(problem.datafit) == "Leastsquares":
-            r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
-            model.addConstr(r_var == problem.datafit.y - problem.A @ x_var)
-            model.addConstr(f_var >= (r_var @ r_var) / (2.0 * problem.m))
+            f1_var = model.addMVar(problem.m, vtype="C", name="f1", lb=-np.inf)
+            model.addConstr(f1_var == problem.datafit.y - problem.A @ x_var)
+            model.addConstr(f_var >= (f1_var @ f1_var) / (2.0 * problem.m))
         elif str(problem.datafit) == "Logistic":
-            l_var = model.addMVar(problem.m, vtype="C", name="l", lb=-np.inf)
-            s_var = model.addMVar(problem.m, vtype="C", name="s", lb=-np.inf)
-            t_var = model.addMVar(problem.m, vtype="C", name="t", lb=0.0)
-            r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
-            model.addConstr(l_var >= -s_var)
-            model.addConstr(r_var == problem.datafit.y * (problem.A @ x_var))
+            f1_var = model.addMVar(problem.m, vtype="C", name="f1", lb=-np.inf)
+            f2_var = model.addMVar(problem.m, vtype="C", name="f2", lb=-np.inf)
+            f3_var = model.addMVar(problem.m, vtype="C", name="f3", lb=0.0)
+            f4_var = model.addMVar(problem.m, vtype="C", name="f4", lb=-np.inf)
+            model.addConstr(f1_var >= -f2_var)
+            model.addConstr(f4_var == problem.datafit.y * (problem.A @ x_var))
             for i in range(problem.m):
                 model.addGenConstrLog(
-                    t_var[i],
-                    s_var[i],
+                    f3_var[i],
+                    f2_var[i],
                     "FuncPieces=-2 FuncPieceError=1e-8 FuncPieceRatio=0",
                 )
                 model.addGenConstrLogistic(
-                    r_var[i],
-                    t_var[i],
+                    f4_var[i],
+                    f3_var[i],
                     "FuncPieces=-2 FuncPieceError=1e-8 FuncPieceRatio=0",
                 )
-            model.addConstr(f_var >= gp.quicksum(l_var) / problem.m)
+            model.addConstr(f_var >= gp.quicksum(f1_var) / problem.m)
         elif str(problem.datafit) == "Squaredhinge":
-            w_var = model.addMVar(problem.m, vtype="C", name="w", lb=-np.inf)
-            r_var = model.addMVar(problem.m, vtype="C", name="r", lb=-np.inf)
-            s_var = model.addMVar(problem.m, vtype="C", name="s")
-            model.addConstr(w_var == problem.A @ x_var)
-            model.addConstr(r_var == 1.0 - problem.datafit.y * w_var)
-            model.addConstr(s_var >= r_var)
-            model.addConstr(s_var >= 0.0)
-            model.addConstr(f_var >= (s_var @ s_var) / problem.m)
+            f1_var = model.addMVar(problem.m, vtype="C", name="f1", lb=-np.inf)
+            f2_var = model.addMVar(problem.m, vtype="C", name="f2", lb=-np.inf)
+            f3_var = model.addMVar(problem.m, vtype="C", name="f3")
+            model.addConstr(f1_var == problem.A @ x_var)
+            model.addConstr(f2_var == 1.0 - problem.datafit.y * f1_var)
+            model.addConstr(f3_var >= f2_var)
+            model.addConstr(f3_var >= 0.0)
+            model.addConstr(f_var >= (f3_var @ f3_var) / problem.m)
         else:
             raise NotImplementedError(
                 "`GurobiSolver` does not support `{}` yet.".format(
@@ -370,64 +374,64 @@ class GurobiSolver(BaseSolver):
             model.addConstr(x_var >= -problem.penalty.M * z_var)
             model.addConstr(g_var >= problem.lmbd * sum(z_var))
         elif str(problem.penalty) == "BigmL1norm":
-            s_var = model.addMVar(problem.n, vtype="C", name="s")
-            model.addConstr(s_var >= x_var)
-            model.addConstr(s_var >= -x_var)
+            g1_var = model.addMVar(problem.n, vtype="C", name="g1")
+            model.addConstr(g1_var >= x_var)
+            model.addConstr(g1_var >= -x_var)
             model.addConstr(x_var <= problem.penalty.M * z_var)
             model.addConstr(x_var >= -problem.penalty.M * z_var)
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
+                + problem.penalty.alpha * sum(g1_var)
             )
         elif str(problem.penalty) == "BigmL2norm":
-            s_var = model.addMVar(problem.n, vtype="C", name="s")
-            model.addConstr(s_var >= 0.0)
+            g1_var = model.addMVar(problem.n, vtype="C", name="g1")
+            model.addConstr(g1_var >= 0.0)
             model.addConstr(x_var <= problem.penalty.M * z_var)
             model.addConstr(x_var >= -problem.penalty.M * z_var)
-            model.addConstr(x_var * x_var <= s_var * z_var)
+            model.addConstr(x_var * x_var <= g1_var * z_var)
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
+                + problem.penalty.alpha * sum(g1_var)
             )
         elif str(problem.penalty) == "L2norm":
-            s_var = model.addMVar(problem.n, vtype="C", name="s")
-            model.addConstr(s_var >= 0.0)
-            model.addConstr(x_var * x_var <= s_var * z_var)
+            g1_var = model.addMVar(problem.n, vtype="C", name="g1")
+            model.addConstr(g1_var >= 0.0)
+            model.addConstr(x_var * x_var <= g1_var * z_var)
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s_var)
+                + problem.penalty.alpha * sum(g1_var)
             )
         elif str(problem.penalty) == "L1L2norm":
-            s1_var = model.addMVar(problem.n, vtype="C", name="s1")
-            s2_var = model.addMVar(problem.n, vtype="C", name="s2")
-            model.addConstr(z_var * s1_var >= x_var)
-            model.addConstr(z_var * s1_var >= -x_var)
-            model.addConstr(s2_var >= 0.0)
-            model.addConstr(x_var * x_var <= s2_var * z_var)
+            g1_var = model.addMVar(problem.n, vtype="C", name="g1")
+            g2_var = model.addMVar(problem.n, vtype="C", name="g2")
+            model.addConstr(z_var * g1_var >= x_var)
+            model.addConstr(z_var * g1_var >= -x_var)
+            model.addConstr(g2_var >= 0.0)
+            model.addConstr(x_var * x_var <= g2_var * z_var)
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                + problem.penalty.alpha * sum(s1_var)
-                + problem.penalty.beta * sum(s2_var)
+                + problem.penalty.alpha * sum(g1_var)
+                + problem.penalty.beta * sum(g2_var)
             )
         elif str(problem.penalty) == "NeglogTriangular":
-            s_var = model.addMVar(problem.n, vtype="C", name="s")
-            t_var = model.addMVar(problem.n, vtype="C", name="t")
-            u_var = model.addMVar(problem.n, vtype="C", name="u", lb=-np.inf)
-            model.addConstr(z_var * s_var >= x_var)
-            model.addConstr(z_var * s_var >= -x_var)
+            g1_var = model.addMVar(problem.n, vtype="C", name="g1")
+            g2_var = model.addMVar(problem.n, vtype="C", name="g2")
+            g3_var = model.addMVar(problem.n, vtype="C", name="g3", lb=-np.inf)
+            model.addConstr(z_var * g1_var >= x_var)
+            model.addConstr(z_var * g1_var >= -x_var)
             model.addConstr(x_var <= problem.penalty.sigma * z_var)
             model.addConstr(x_var >= -problem.penalty.sigma * z_var)
-            model.addConstr(t_var == 1.0 - s_var / problem.penalty.sigma)
+            model.addConstr(g2_var == 1.0 - g1_var / problem.penalty.sigma)
             for i in range(problem.n):
-                model.addGenConstrLog(t_var[i], u_var[i])
+                model.addGenConstrLog(g2_var[i], g3_var[i])
             model.addConstr(
                 g_var
                 >= problem.lmbd * sum(z_var)
-                - problem.penalty.alpha * sum(u_var)
+                - problem.penalty.alpha * sum(g3_var)
             )
         else:
             raise NotImplementedError(
@@ -568,11 +572,11 @@ class MosekSolver(BaseSolver):
         f_var: gp.Var,
     ) -> None:
         if str(problem.datafit) == "Leastsquares":
-            r_var = model.variable("r", problem.m, msk.Domain.unbounded())
+            f1_var = model.variable("f1", problem.m, msk.Domain.unbounded())
             model.constraint(
                 msk.Expr.hstack(
                     msk.Expr.constTerm(np.ones(problem.m)),
-                    r_var,
+                    f1_var,
                     msk.Expr.sub(
                         problem.datafit.y, msk.Expr.mul(problem.A, x_var)
                     ),
@@ -581,52 +585,52 @@ class MosekSolver(BaseSolver):
             )
             model.constraint(
                 msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(r_var))
+                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(f1_var))
                 ),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.datafit) == "Logistic":
-            l_var = model.variable("l", problem.m, msk.Domain.unbounded())
-            u_var = model.variable("u", problem.m, msk.Domain.unbounded())
-            v_var = model.variable("v", problem.m, msk.Domain.unbounded())
+            f1_var = model.variable("f1", problem.m, msk.Domain.unbounded())
+            f2_var = model.variable("f2", problem.m, msk.Domain.unbounded())
+            f3_var = model.variable("f3", problem.m, msk.Domain.unbounded())
             model.constraint(
-                msk.Expr.add(u_var, v_var),
+                msk.Expr.add(f2_var, f3_var),
                 msk.Domain.lessThan(1.0),
             )
             model.constraint(
                 msk.Expr.hstack(
-                    u_var,
+                    f2_var,
                     msk.Expr.constTerm(np.ones(problem.m)),
                     msk.Expr.sub(
                         msk.Expr.mulElm(
                             problem.datafit.y, msk.Expr.mul(problem.A, x_var)
                         ),
-                        l_var,
+                        f1_var,
                     ),
                 ),
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
                 msk.Expr.hstack(
-                    v_var,
+                    f3_var,
                     msk.Expr.constTerm(np.ones(problem.m)),
-                    msk.Expr.sub(0.0, l_var),
+                    msk.Expr.sub(0.0, f1_var),
                 ),
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
                 msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(l_var))
+                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(f1_var))
                 ),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.datafit) == "Squaredhinge":
-            r_var = model.variable("r", problem.m, msk.Domain.unbounded())
-            s_var = model.variable("s", problem.m, msk.Domain.unbounded())
-            t_var = model.variable("t", problem.m, msk.Domain.unbounded())
+            f1_var = model.variable("f1", problem.m, msk.Domain.unbounded())
+            f2_var = model.variable("f2", problem.m, msk.Domain.unbounded())
+            f3_var = model.variable("f3", problem.m, msk.Domain.unbounded())
             model.constraint(
                 msk.Expr.sub(
-                    r_var,
+                    f1_var,
                     msk.Expr.sub(
                         1.0,
                         msk.Expr.mulElm(
@@ -637,20 +641,20 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
             model.constraint(
-                msk.Expr.sub(s_var, r_var), msk.Domain.greaterThan(0.0)
+                msk.Expr.sub(f2_var, f1_var), msk.Domain.greaterThan(0.0)
             )
-            model.constraint(s_var, msk.Domain.greaterThan(0.0))
+            model.constraint(f2_var, msk.Domain.greaterThan(0.0))
             model.constraint(
                 msk.Expr.hstack(
                     msk.Expr.constTerm(0.5 * np.ones(problem.m)),
-                    t_var,
-                    s_var,
+                    f3_var,
+                    f2_var,
                 ),
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
                 msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(t_var))
+                    f_var, msk.Expr.mul(1.0 / problem.m, msk.Expr.sum(f3_var))
                 ),
                 msk.Domain.greaterThan(0.0),
             )
@@ -685,12 +689,14 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL1norm":
-            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.0))
-            model.constraint(
-                msk.Expr.sub(s_var, x_var), msk.Domain.greaterThan(0.0)
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.add(s_var, x_var), msk.Domain.greaterThan(0.0)
+                msk.Expr.sub(g1_var, x_var), msk.Domain.greaterThan(0.0)
+            )
+            model.constraint(
+                msk.Expr.add(g1_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
                 msk.Expr.sub(x_var, msk.Expr.mul(problem.penalty.M, z_var)),
@@ -706,16 +712,18 @@ class MosekSolver(BaseSolver):
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
                         msk.Expr.mul(
-                            problem.penalty.alpha, msk.Expr.sum(s_var)
+                            problem.penalty.alpha, msk.Expr.sum(g1_var)
                         ),
                     ),
                 ),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL2norm":
-            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.0))
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
+            )
             model.constraint(
-                msk.Expr.hstack(msk.Expr.mul(0.5, s_var), z_var, x_var),
+                msk.Expr.hstack(msk.Expr.mul(0.5, g1_var), z_var, x_var),
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
@@ -732,16 +740,18 @@ class MosekSolver(BaseSolver):
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
                         msk.Expr.mul(
-                            problem.penalty.alpha, msk.Expr.sum(s_var)
+                            problem.penalty.alpha, msk.Expr.sum(g1_var)
                         ),
                     ),
                 ),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "L2norm":
-            s_var = model.variable("s", problem.n, msk.Domain.greaterThan(0.0))
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
+            )
             model.constraint(
-                msk.Expr.hstack(msk.Expr.mul(0.5, s_var), z_var, x_var),
+                msk.Expr.hstack(msk.Expr.mul(0.5, g1_var), z_var, x_var),
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
@@ -750,27 +760,27 @@ class MosekSolver(BaseSolver):
                     msk.Expr.add(
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
                         msk.Expr.mul(
-                            problem.penalty.alpha, msk.Expr.sum(s_var)
+                            problem.penalty.alpha, msk.Expr.sum(g1_var)
                         ),
                     ),
                 ),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "L1L2norm":
-            s1_var = model.variable(
-                "s1", problem.n, msk.Domain.greaterThan(0.0)
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
             )
-            s2_var = model.variable(
-                "s2", problem.n, msk.Domain.greaterThan(0.0)
-            )
-            model.constraint(
-                msk.Expr.sub(s1_var, x_var), msk.Domain.greaterThan(0.0)
+            g2_var = model.variable(
+                "g2", problem.n, msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.add(s1_var, x_var), msk.Domain.greaterThan(0.0)
+                msk.Expr.sub(g1_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.hstack(msk.Expr.mul(0.5, s2_var), z_var, x_var),
+                msk.Expr.add(g1_var, x_var), msk.Domain.greaterThan(0.0)
+            )
+            model.constraint(
+                msk.Expr.hstack(msk.Expr.mul(0.5, g2_var), z_var, x_var),
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
@@ -780,10 +790,10 @@ class MosekSolver(BaseSolver):
                         msk.Expr.mul(problem.lmbd, msk.Expr.sum(z_var)),
                         msk.Expr.add(
                             msk.Expr.mul(
-                                problem.penalty.alpha, msk.Expr.sum(s1_var)
+                                problem.penalty.alpha, msk.Expr.sum(g1_var)
                             ),
                             msk.Expr.mul(
-                                problem.penalty.beta, msk.Expr.sum(s2_var)
+                                problem.penalty.beta, msk.Expr.sum(g2_var)
                             ),
                         ),
                     ),
@@ -791,14 +801,14 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "NeglogTriangular":
-            s_var = model.variable("s", problem.n, msk.Domain.unbounded())
-            t_var = model.variable("t", problem.n, msk.Domain.unbounded())
-            u_var = model.variable("u", problem.n, msk.Domain.unbounded())
+            g1_var = model.variable("g1", problem.n, msk.Domain.unbounded())
+            g2_var = model.variable("g2", problem.n, msk.Domain.unbounded())
+            g3_var = model.variable("g3", problem.n, msk.Domain.unbounded())
             model.constraint(
-                msk.Expr.sub(s_var, x_var), msk.Domain.greaterThan(0.0)
+                msk.Expr.sub(g1_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
-                msk.Expr.add(s_var, x_var), msk.Domain.greaterThan(0.0)
+                msk.Expr.add(g1_var, x_var), msk.Domain.greaterThan(0.0)
             )
             model.constraint(
                 msk.Expr.sub(
@@ -816,17 +826,17 @@ class MosekSolver(BaseSolver):
                 msk.Expr.sub(
                     msk.Expr.constTerm(np.ones(problem.n)),
                     msk.Expr.add(
-                        msk.Expr.mul(1.0 / problem.penalty.sigma, s_var),
-                        t_var,
+                        msk.Expr.mul(1.0 / problem.penalty.sigma, g1_var),
+                        g2_var,
                     ),
                 ),
                 msk.Domain.greaterThan(0.0),
             )
             model.constraint(
                 msk.Expr.hstack(
-                    t_var,
+                    g2_var,
                     msk.Expr.constTerm(np.ones(problem.n)),
-                    u_var,
+                    g3_var,
                 ),
                 msk.Domain.inPExpCone(),
             )
@@ -835,7 +845,7 @@ class MosekSolver(BaseSolver):
                     g_var,
                     msk.Expr.add(
                         msk.Expr.mul(
-                            problem.penalty.alpha, msk.Expr.sum(u_var)
+                            problem.penalty.alpha, msk.Expr.sum(g3_var)
                         ),
                         msk.Expr.mul(-problem.lmbd, msk.Expr.sum(z_var)),
                     ),
@@ -1221,7 +1231,13 @@ def extract_extra_options(solver_name):
                 options_dict = {}
                 for pair in option_pairs:
                     k, v = pair.split("=")
-                    if k in ["l0screening", "l1screening", "verbose", "trace"]:
+                    if k in [
+                        "dualpruning",
+                        "l1screening",
+                        "l0screening",
+                        "verbose",
+                        "trace",
+                    ]:
                         options_dict[k] = v in ["true", "True"]
                     elif k == "exploration_strategy":
                         options_dict[
@@ -1256,21 +1272,8 @@ def get_solver(solver_name, options={}):
 
 def can_handle(solver_name, datafit_name, penalty_name):
     if solver_name.startswith("el0ps"):
-        handle_datafit = datafit_name in [
-            "Leastsquares",
-            "Logistic",
-            "Squaredhinge",
-            "Kullbackleibler",
-        ]
-        handle_penalty = penalty_name in [
-            "Bigm",
-            "BigmL1norm",
-            "BigmL2norm",
-            "L1norm",
-            "L2norm",
-            "L1L2norm",
-            "NeglogTriangular",
-        ]
+        handle_datafit = True
+        handle_penalty = True
     elif solver_name == "sbnb":
         handle_datafit = datafit_name in ["Leastsquares"]
         handle_penalty = penalty_name in ["Bigm"]
