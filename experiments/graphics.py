@@ -222,7 +222,7 @@ def plot_regpath(config_path, save=False):
             if all_stat[stat_name]["ratio"] is not None:
                 reference = stat_data[all_stat[stat_name]["ratio"]]
             else:
-                reference = 1.
+                reference = 1.0
             for solver_name, values in stat_data.items():
                 axs[i].plot(
                     lmbd_ratio_grid,

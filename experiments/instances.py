@@ -100,22 +100,27 @@ def get_data_uciml(dataset_id):
 
 
 def get_data_hardcoded(dataset_name):
-
-    A_path = pathlib.Path(__file__).parent.joinpath(
-        "datasets", dataset_name + "_A"
-    ).with_suffix(".npy")
+    A_path = (
+        pathlib.Path(__file__)
+        .parent.joinpath("datasets", dataset_name + "_A")
+        .with_suffix(".npy")
+    )
     A = np.load(A_path)
 
-    y_path = pathlib.Path(__file__).parent.joinpath(
-        "datasets", dataset_name + "_y"
-    ).with_suffix(".npy")
+    y_path = (
+        pathlib.Path(__file__)
+        .parent.joinpath("datasets", dataset_name + "_y")
+        .with_suffix(".npy")
+    )
     y = np.load(y_path)
 
-    x_path = A_path = pathlib.Path(__file__).parent.joinpath(
-        "datasets", dataset_name + "_x"
-    ).with_suffix(".npy")
+    x_path = A_path = (
+        pathlib.Path(__file__)
+        .parent.joinpath("datasets", dataset_name + "_x")
+        .with_suffix(".npy")
+    )
     x = None if not x_path.exists() else np.load(x_path)
-    
+
     return A, y, x
 
 
@@ -158,7 +163,6 @@ def get_data(dataset):
 
 
 def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
-    
     bindings = {
         "Leastsquares": "SquaredError",
         "Logistic": "Logistic",
@@ -196,14 +200,14 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
     best_lmbda = None
     best_gamma = None
     best_cv = np.inf
-    best_f1 = 0.
+    best_f1 = 0.0
     best_x = None
     for i, gamma in enumerate(cvfit.gamma):
         for j, lmbda in enumerate(cvfit.lambda_0[i]):
             x = cvfit.coeff(lmbda, gamma, include_intercept=False)
             x = np.array(x.todense()).reshape(n)
             cv = cvfit.cv_means[i][j][0]
-            f1 = 0. if x_true is None else f1_score(x_true, x)
+            f1 = 0.0 if x_true is None else f1_score(x_true, x)
             if f1 >= best_f1 and cv < best_cv:
                 best_M = 1.5 * np.max(np.abs(x))
                 best_lmbda = lmbda / m

@@ -173,7 +173,7 @@ class Path:
         fit_data: dict
             The path fitting data stored in ``self.fit_data``.
         """
-        
+
         if self.options.verbose:
             self._display_path_head()
 

@@ -1,7 +1,6 @@
 import argparse
 import pathlib
 import pickle
-import pprint
 import os
 import sys
 import yaml
@@ -65,7 +64,7 @@ def onerun(config_path, nosave=False):
         else:
             print("  Skipping {}".format(solver_name))
     print()
-    
+
     print("Running experiment...")
     results = {}
     for solver_name in config["solvers"]["solvers_name"]:

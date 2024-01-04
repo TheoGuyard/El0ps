@@ -46,58 +46,82 @@ experiments = [
                 "task": {
                     "task_type": "fitpath",
                     "task_opts": {
-                        "lmbd_ratio_max": 1.e-0,
-                        "lmbd_ratio_min": 1.e-5,
+                        "lmbd_ratio_max": 1.0e-0,
+                        "lmbd_ratio_min": 1.0e-5,
                         "lmbd_ratio_num": 51,
                         "stop_if_not_optimal": True,
                     },
                 },
-            } 
+            }
             for solver_name in [
                 "el0ps",
                 "el0ps[l0screening=False]",
                 "el0ps[l0screening=False,dualpruning=False]",
-            ] 
+            ]
             for setup_info in [
                 {
                     "dataset_type": "hardcoded",
                     "dataset_opts": {"dataset_name": "lattice"},
-                    "process_opts": {"interactions": True, "center": True, "normalize": True},
+                    "process_opts": {
+                        "interactions": True,
+                        "center": True,
+                        "normalize": True,
+                    },
                     "datafit_name": "Leastsquares",
                     "penalty_name": "BigmL1norm",
                 },
                 {
                     "dataset_type": "hardcoded",
                     "dataset_opts": {"dataset_name": "riboflavin"},
-                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "process_opts": {
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
+                    },
                     "datafit_name": "Leastsquares",
                     "penalty_name": "BigmL2norm",
                 },
                 {
                     "dataset_type": "libsvm",
                     "dataset_opts": {"dataset_name": "splice"},
-                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "process_opts": {
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
+                    },
                     "datafit_name": "Logistic",
                     "penalty_name": "BigmL2norm",
                 },
                 {
                     "dataset_type": "libsvm",
                     "dataset_opts": {"dataset_name": "german.numer"},
-                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "process_opts": {
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
+                    },
                     "datafit_name": "Squaredhinge",
                     "penalty_name": "BigmL2norm",
                 },
                 {
                     "dataset_type": "libsvm",
                     "dataset_opts": {"dataset_name": "colon-cancer"},
-                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "process_opts": {
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
+                    },
                     "datafit_name": "Logistic",
                     "penalty_name": "BigmL2norm",
                 },
                 {
                     "dataset_type": "libsvm",
                     "dataset_opts": {"dataset_name": "duke breast-cancer"},
-                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "process_opts": {
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
+                    },
                     "datafit_name": "Squaredhinge",
                     "penalty_name": "BigmL2norm",
                 },

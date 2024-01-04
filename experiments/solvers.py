@@ -51,7 +51,9 @@ class CplexSolver(BaseSolver):
         f_var: Var,
     ) -> None:
         if str(problem.datafit) == "Leastsquares":
-            f1_var = model.continuous_var_list(problem.m, name="f1", lb=-np.inf)
+            f1_var = model.continuous_var_list(
+                problem.m, name="f1", lb=-np.inf
+            )
             model.add_constraints(
                 f1_var[j]
                 == problem.datafit.y[j] - model.dot(x_var, problem.A[j, :])
@@ -61,7 +63,9 @@ class CplexSolver(BaseSolver):
                 f_var >= model.sumsq(f1_var) / (2.0 * problem.m)
             )
         elif str(problem.datafit) == "Squaredhinge":
-            f1_var = model.continuous_var_list(problem.m, name="f1", lb=-np.inf)
+            f1_var = model.continuous_var_list(
+                problem.m, name="f1", lb=-np.inf
+            )
             f2_var = model.continuous_var_list(problem.m, name="f2")
             model.add_constraints(
                 f1_var[j]
@@ -685,7 +689,9 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL1norm":
-            g1_var = model.variable("g1", problem.n, msk.Domain.greaterThan(0.0))
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
+            )
             model.constraint(
                 msk.Expr.sub(g1_var, x_var), msk.Domain.greaterThan(0.0)
             )
@@ -713,7 +719,9 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "BigmL2norm":
-            g1_var = model.variable("g1", problem.n, msk.Domain.greaterThan(0.0))
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
+            )
             model.constraint(
                 msk.Expr.hstack(msk.Expr.mul(0.5, g1_var), z_var, x_var),
                 msk.Domain.inRotatedQCone(),
@@ -739,7 +747,9 @@ class MosekSolver(BaseSolver):
                 msk.Domain.greaterThan(0.0),
             )
         elif str(problem.penalty) == "L2norm":
-            g1_var = model.variable("g1", problem.n, msk.Domain.greaterThan(0.0))
+            g1_var = model.variable(
+                "g1", problem.n, msk.Domain.greaterThan(0.0)
+            )
             model.constraint(
                 msk.Expr.hstack(msk.Expr.mul(0.5, g1_var), z_var, x_var),
                 msk.Domain.inRotatedQCone(),
