@@ -4,12 +4,14 @@ dataset:
   dataset_opts: 
     dataset_name  : splice
   process_opts: 
-    interactions  : true
-    normalize     : false
+    interactions  : false
+    center        : true
+    normalize     : true
   datafit_name  : Logistic
   penalty_name  : BigmL2norm
 solvers:
   solvers_name:
+    - el0ps[l0screening=False,dualpruning=False]
     - el0ps[l0screening=False]
     - el0ps
   solvers_opts:

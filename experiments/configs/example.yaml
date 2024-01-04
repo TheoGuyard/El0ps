@@ -30,32 +30,31 @@ dataset:
     dataset_name  : lattice
 
   process_opts: 
-    interactions  : true
+    interactions  : false
+    center        : true
     normalize     : true
   datafit_name: Leastsquares
   penalty_name: Bigm
 
 solvers:
   solvers_name:
-    # - el0ps[dualpruning=False,l0screening=False]
-    # - el0ps[dualpruning=False]
-    - el0ps[l0screening=False]
     - el0ps
-    # - sbnb
-    # - l0bnb
-    # - cplex
-    # - gurobi
-    # - mosek
+    - sbnb
+    - l0bnb
+    - cplex
+    - gurobi
+    - mosek
   solvers_opts:
     time_limit: 10.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8 
     verbose   : false
 
-# task:
-#   task_type: solve
-#   task_opts:
 task:
+
+    # task_type: solve
+    # task_opts:
+
   task_type: fitpath
   task_opts:
     lmbd_ratio_max: 1.e-0

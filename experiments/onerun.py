@@ -1,12 +1,14 @@
 import argparse
 import pathlib
 import pickle
+import pprint
 import os
 import sys
 import yaml
+import numpy as np
 from copy import deepcopy
 from datetime import datetime
-from el0ps.problem import Problem
+from el0ps.problem import Problem, compute_lmbd_max
 from el0ps.path import Path
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,23 +17,32 @@ from experiments.solvers import get_solver, can_handle  # noqa
 
 
 def onerun(config_path, nosave=False):
-    print("Loading configuration...")
     config_path = pathlib.Path(config_path)
     assert config_path.is_file()
     with open(config_path, "r") as stream:
         config = yaml.load(stream, Loader=yaml.Loader)
 
-    print("Generating data...")
+    print("Loading data...")
     A, y, x_true = get_data(config["dataset"])
+    print("  A shape: {}".format(A.shape))
+    print("  y shape: {}".format(y.shape))
+    print("  x shape: {}".format(None if x_true is None else x_true.shape))
+    print()
 
     print("Calibrating parameters...")
-    datafit, penalty, lmbd = calibrate_objective(
+    datafit, penalty, lmbd, x_cal = calibrate_objective(
         config["dataset"]["datafit_name"],
         config["dataset"]["penalty_name"],
         A,
         y,
         x_true,
     )
+    print("  num nz: {}".format(np.count_nonzero(x_cal)))
+    print("  lambda: {}".format(lmbd))
+    print("  lratio: {}".format(lmbd / compute_lmbd_max(datafit, penalty, A)))
+    for param_name, param_value in penalty.params_to_dict().items():
+        print("  {}\t: {}".format(param_name, param_value))
+    print()
 
     problem = Problem(datafit, penalty, A, lmbd)
     print(problem)
@@ -53,11 +64,10 @@ def onerun(config_path, nosave=False):
                 print("  Error: {}".format(e))
         else:
             print("  Skipping {}".format(solver_name))
-
+    print()
+    
     print("Running experiment...")
-    results = {
-        solver_name: None for solver_name in config["solvers"]["solvers_name"]
-    }
+    results = {}
     for solver_name in config["solvers"]["solvers_name"]:
         solver = get_solver(solver_name, config["solvers"]["solvers_opts"])
         if can_handle(
@@ -69,22 +79,8 @@ def onerun(config_path, nosave=False):
             try:
                 if config["task"]["task_type"] == "solve":
                     result = solver.solve(problem)
-                    print(result)
                 elif config["task"]["task_type"] == "fitpath":
-                    path = Path(
-                        lmbd_ratio_max=config["task"]["task_opts"][
-                            "lmbd_ratio_max"
-                        ],
-                        lmbd_ratio_min=config["task"]["task_opts"][
-                            "lmbd_ratio_min"
-                        ],
-                        lmbd_ratio_num=config["task"]["task_opts"][
-                            "lmbd_ratio_num"
-                        ],
-                        stop_if_not_optimal=config["task"]["task_opts"][
-                            "stop_if_not_optimal"
-                        ],
-                    )
+                    path = Path(**config["task"]["task_opts"])
                     result = path.fit(solver, datafit, penalty, A)
                     del result["x"]
                 else:
@@ -97,7 +93,7 @@ def onerun(config_path, nosave=False):
             result = None
         results[solver_name] = result
 
-    if not nosave:
+    if any(results.values()) and not nosave:
         print("Saving results...")
         base_dir = pathlib.Path(__file__).parent.absolute()
         result_dir = pathlib.Path(base_dir, "results")
@@ -110,6 +106,8 @@ def onerun(config_path, nosave=False):
             data = {"config": config, "results": results}
             pickle.dump(data, file)
         print("  File name: {}".format(result_file))
+    else:
+        print("No results to save")
 
 
 if __name__ == "__main__":

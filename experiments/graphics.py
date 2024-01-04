@@ -134,14 +134,12 @@ def plot_regpath(config_path, save=False):
         config["task"]["task_opts"]["lmbd_ratio_num"],
     )
     all_stat = {
-        "solve_time": {"log": True},
-        "iter_count": {"log": True},
-        # "objective_value": {"log": False},
-        # "datafit_value": {"log": False},
-        # "penalty_value": {"log": False},
-        "n_nnz": {"log": False},
-        # "mean_node_time_lower_bound": {"log": False},
-        # "mean_node_card_S0": {"log": False},
+        "solve_time": {"log": True, "ratio": None},
+        "iter_count": {"log": True, "ratio": None},
+        "objective_value": {"log": False, "ratio": None},
+        # "datafit_value": {"log": False, "ratio": None},
+        # "penalty_value": {"log": False, "ratio": None},
+        # "n_nnz": {"log": False, "ratio": None},
     }
     all_data = {
         stat_name: {
@@ -178,12 +176,6 @@ def plot_regpath(config_path, save=False):
                                             i
                                         ].append(result[stat_name][i])
                                 else:
-                                    print(
-                                        "  {} not converged: {}".format(
-                                            solver_name,
-                                            result["status"][i],
-                                        )
-                                    )
                                     notcved += 1
                 matched += 1
         except Exception as e:
@@ -225,12 +217,16 @@ def plot_regpath(config_path, save=False):
             yaml.dump(config, file)
     else:
         print("Plotting...")
-        fig, axs = plt.subplots(1, len(mean_data.keys()))
+        _, axs = plt.subplots(1, len(mean_data.keys()))
         for i, (stat_name, stat_data) in enumerate(mean_data.items()):
+            if all_stat[stat_name]["ratio"] is not None:
+                reference = stat_data[all_stat[stat_name]["ratio"]]
+            else:
+                reference = 1.
             for solver_name, values in stat_data.items():
                 axs[i].plot(
                     lmbd_ratio_grid,
-                    values,
+                    np.divide(values, reference),
                     label=solver_name,
                 )
             axs[i].set_xscale("log")

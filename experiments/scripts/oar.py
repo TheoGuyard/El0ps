@@ -20,83 +20,24 @@ run_path = script_dir.joinpath(run_file)
 
 experiments = [
     {
-        "name": "icml_ablation",
-        "walltime": "04:00:00",
-        "besteffort": True,
-        "production": True,
-        "setups": [
-            {
-                "expname": "icml_ablation",
-                "dataset": {
-                    "dataset_type": "synthetic",
-                    "dataset_opts": {
-                        "model": "linear",
-                        "k": k,
-                        "m": 500,
-                        "n": 1_000,
-                        "rho": 0.9,
-                        "snr": 10.0,
-                        "normalize": True,
-                    },
-                    "process_opts": {
-                        "interactions": False,
-                        "normalize": False,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "Bigm",
-                },
-                "solvers": {
-                    "solvers_name": [
-                        "el0ps[trace=True,dualpruning=False,l0screening=False]",
-                        "el0ps[trace=True,dualpruning=False]",
-                        "el0ps[trace=True,l0screening=False]",
-                        "el0ps[trace=True]",
-                    ],
-                    "solvers_opts": {
-                        "time_limit": 600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-                "task": {
-                    "task_type": "fitpath",
-                    "task_opts": {
-                        "lmbd_ratio_max": 1.0e-0,
-                        "lmbd_ratio_min": 1.0e-5,
-                        "lmbd_ratio_num": 51,
-                        "stop_if_not_optimal": True,
-                    },
-                },
-            }
-            for k in [5, 6, 7]
-        ],
-    },
-    {
         "name": "icml_realworld",
-        "walltime": "04:00:00",
-        "besteffort": True,
+        "walltime": "10:00:00",
+        "besteffort": False,
         "production": True,
         "setups": [
             {
                 "expname": "icml_realworld",
                 "dataset": {
-                    "dataset_type": dataset_type,
-                    "dataset_opts": dataset_opts,
-                    "process_opts": {
-                        "interactions": interactions,
-                        "normalize": normalize,
-                    },
-                    "datafit_name": datafit_name,
-                    "penalty_name": penalty_name,
+                    "dataset_type": setup_info["dataset_type"],
+                    "dataset_opts": setup_info["dataset_opts"],
+                    "process_opts": setup_info["process_opts"],
+                    "datafit_name": setup_info["datafit_name"],
+                    "penalty_name": setup_info["penalty_name"],
                 },
                 "solvers": {
-                    "solvers_name": [
-                        "el0ps[l0screening=False]",
-                        "el0ps",
-                    ],
+                    "solvers_name": [solver_name],
                     "solvers_opts": {
-                        "time_limit": 600.0,
+                        "time_limit": 3600.0,
                         "rel_tol": 1.0e-4,
                         "int_tol": 1.0e-8,
                         "verbose": False,
@@ -105,20 +46,62 @@ experiments = [
                 "task": {
                     "task_type": "fitpath",
                     "task_opts": {
-                        "lmbd_ratio_max": 1.0e-0,
-                        "lmbd_ratio_min": 1.0e-5,
+                        "lmbd_ratio_max": 1.e-0,
+                        "lmbd_ratio_min": 1.e-5,
                         "lmbd_ratio_num": 51,
                         "stop_if_not_optimal": True,
                     },
                 },
-            }
-            for (dataset_type, dataset_opts) in [
-                ("hardcoded", {"dataset_name": "lattice"})
+            } 
+            for solver_name in [
+                "el0ps",
+                "el0ps[l0screening=False]",
+                "el0ps[l0screening=False,dualpruning=False]",
+            ] 
+            for setup_info in [
+                {
+                    "dataset_type": "hardcoded",
+                    "dataset_opts": {"dataset_name": "lattice"},
+                    "process_opts": {"interactions": True, "center": True, "normalize": True},
+                    "datafit_name": "Leastsquares",
+                    "penalty_name": "BigmL1norm",
+                },
+                {
+                    "dataset_type": "hardcoded",
+                    "dataset_opts": {"dataset_name": "riboflavin"},
+                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "datafit_name": "Leastsquares",
+                    "penalty_name": "BigmL2norm",
+                },
+                {
+                    "dataset_type": "libsvm",
+                    "dataset_opts": {"dataset_name": "splice"},
+                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "datafit_name": "Logistic",
+                    "penalty_name": "BigmL2norm",
+                },
+                {
+                    "dataset_type": "libsvm",
+                    "dataset_opts": {"dataset_name": "german.numer"},
+                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "datafit_name": "Squaredhinge",
+                    "penalty_name": "BigmL2norm",
+                },
+                {
+                    "dataset_type": "libsvm",
+                    "dataset_opts": {"dataset_name": "colon-cancer"},
+                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "datafit_name": "Logistic",
+                    "penalty_name": "BigmL2norm",
+                },
+                {
+                    "dataset_type": "libsvm",
+                    "dataset_opts": {"dataset_name": "duke breast-cancer"},
+                    "process_opts": {"interactions": False, "center": True, "normalize": True},
+                    "datafit_name": "Squaredhinge",
+                    "penalty_name": "BigmL2norm",
+                },
             ]
-            for interactions in [False, True]
-            for normalize in [False, True]
-            for datafit_name in ["Leastsquares", "Logcosh"]
-            for penalty_name in ["Bigm", "BigmL2norm"]
         ],
     },
 ]
