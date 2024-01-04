@@ -385,8 +385,8 @@ class BnbSolver(BaseSolver):
             node = self._next_node()
             self._compute_lower_bound(problem, node)
             if not self._prune(node):
+                self._compute_upper_bound(problem, node)
                 if not self._has_feasible_solution(problem, node):
-                    self._compute_upper_bound(problem, node)
                     self._branch(problem, node)
             self._update_bounds(node)
             if self.options.trace:

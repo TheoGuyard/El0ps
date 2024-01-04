@@ -36,6 +36,7 @@ class Kullbackleibler(SmoothDatafit):
             ("e", float64),
             ("m", int32),
             ("L", float64),
+            ("log_yy", float64),
         )
         return spec
 

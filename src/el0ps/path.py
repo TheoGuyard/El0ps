@@ -53,7 +53,7 @@ class PathOptions:
         self._validate_types()
         if not 0.0 <= self.lmbd_ratio_min <= self.lmbd_ratio_max <= 1.0:
             raise ValueError(
-                "Parameters must satisfy"
+                "Parameters must satisfy "
                 "`0 <= lmbd_ratio_min <= lmbd_ratio_max <= 1`."
             )
         if not self.lmbd_ratio_num >= 0.0:
@@ -94,13 +94,6 @@ class Path:
         "datafit_value",
         "penalty_value",
         "n_nnz",
-    ]
-    _path_keys_trace = [
-        "mean_node_time_lower_bound",
-        "mean_node_time_upper_bound",
-        "mean_node_card_S0",
-        "mean_node_card_S1",
-        "mean_node_card_Sb",
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -156,9 +149,6 @@ class Path:
                 )
             else:
                 self.fit_data[k].append(getattr(results, k))
-        if results.trace is not None:
-            for k in self._path_keys_trace:
-                self.fit_data[k].append(np.mean(results.trace[k[5:]]))
 
     def fit(
         self,
@@ -183,11 +173,7 @@ class Path:
         fit_data: dict
             The path fitting data stored in ``self.fit_data``.
         """
-
-        if solver.options.trace:
-            for k in self._path_keys_trace:
-                self.fit_data[k] = []
-
+        
         if self.options.verbose:
             self._display_path_head()
 
