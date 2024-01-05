@@ -8,9 +8,6 @@ from numpy.typing import NDArray
 from el0ps.problem import Problem
 
 
-_REL_GAP_EPS = 1e-16
-
-
 class Status(Enum):
     """:class:`solver.BaseSolver` status.
 
@@ -86,7 +83,6 @@ class Results:
         return s
 
 
-@dataclass
 class BaseSolver:
     """Base class for :class:`.Problem` solvers."""
 

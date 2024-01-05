@@ -20,7 +20,7 @@ from el0ps.solver import (
     BnbBranchingStrategy,
     BnbExplorationStrategy,
 )
-from el0ps.solver.bounding import BnbBoundingSolver
+from el0ps.solver.bounding import BoundingSolver
 
 
 class CplexSolver(BaseSolver):
@@ -969,21 +969,11 @@ class MosekSolver(BaseSolver):
         )
 
 
-class OsqpBoundingSolver(BnbBoundingSolver):
+class OsqpBoundingSolver(BoundingSolver):
     def __init__(self, eps_rel: float = 1e-4):
         self.eps_rel = eps_rel
 
-    def setup(
-        self,
-        problem: Problem,
-        x_init: Union[NDArray[np.float64], None] = None,
-        S0_init: Union[NDArray[np.bool_], None] = None,
-        S1_init: Union[NDArray[np.bool_], None] = None,
-    ) -> None:
-        if S0_init is not None:
-            raise ValueError("`S0_init` argument not supported yet.")
-        if S1_init is not None:
-            raise ValueError("`S1_init` argument not supported yet.")
+    def setup(self, problem: Problem) -> None:
         if str(problem.datafit) != "Leastsquares":
             raise ValueError("Only a `Leastsquares` datafit is supported.")
         if str(problem.penalty) != "Bigm":
@@ -1023,13 +1013,15 @@ class OsqpBoundingSolver(BnbBoundingSolver):
         node: BnbNode,
         ub: float,
         rel_tol: float,
+        workingsets: bool,
+        dualpruning: bool,
         l1screening: bool,
         l0screening: bool,
-        incumbent: bool = False,
+        upper: bool = False,
     ):
         # Handle the root case and case where the upper-bounding problem yields
         # the same solutiona s the parent node.
-        if incumbent:
+        if upper:
             if not np.any(node.S1):
                 node.x_inc = np.zeros(problem.n)
                 node.upper_bound = problem.datafit.value(np.zeros(problem.m))
@@ -1038,7 +1030,7 @@ class OsqpBoundingSolver(BnbBoundingSolver):
                 return
 
         # Node data
-        if incumbent:
+        if upper:
             S1 = node.S1
             Sb = np.zeros(node.Sb.shape, dtype=np.bool_)
         else:
@@ -1063,7 +1055,7 @@ class OsqpBoundingSolver(BnbBoundingSolver):
         x = result.x[-n:]
         w = A[:, S1 | Sb] @ x[S1 | Sb]
 
-        if incumbent:
+        if upper:
             node.x_inc = np.copy(x) * S1
             node.upper_bound = problem.datafit.value(w) + lmbd * np.sum(S1)
         else:
