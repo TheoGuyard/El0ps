@@ -52,8 +52,8 @@ solvers:
 
 task:
 
-    # task_type: solve
-    # task_opts:
+  # task_type: solve
+  # task_opts:
 
   task_type: fitpath
   task_opts:

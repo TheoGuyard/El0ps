@@ -1,7 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
 from el0ps.problem import Problem
-from .base import _REL_GAP_EPS
 
 
 class BnbNode:
@@ -41,11 +40,8 @@ class BnbNode:
         Sb: NDArray,
         lower_bound: float,
         upper_bound: float,
-        time_lower_bound: float,
-        time_upper_bound: float,
         x: NDArray,
         w: NDArray,
-        u: NDArray,
         x_inc: NDArray,
     ) -> None:
         self.category = category
@@ -54,11 +50,8 @@ class BnbNode:
         self.Sb = Sb
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        self.time_lower_bound = time_lower_bound
-        self.time_upper_bound = time_upper_bound
         self.x = x
         self.w = w
-        self.u = u
         self.x_inc = x_inc
 
     def __str__(self) -> str:
@@ -80,11 +73,8 @@ class BnbNode:
             np.copy(self.Sb),
             self.lower_bound,
             self.upper_bound,
-            self.time_lower_bound,
-            self.time_upper_bound,
             np.copy(self.x),
             np.copy(self.w),
-            np.copy(self.u),
             np.copy(self.x_inc),
         )
 
@@ -92,7 +82,7 @@ class BnbNode:
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return (self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + _REL_GAP_EPS
+            np.abs(self.upper_bound) + 1e-16
         )
 
     @property

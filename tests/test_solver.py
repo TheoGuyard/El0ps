@@ -26,11 +26,8 @@ def test_solver():
     Sb = np.ones(n, dtype=bool)
     x = np.random.randn(n)
     w = problem.A @ x
-    u = -problem.datafit.gradient(w)
 
-    node = BnbNode(
-        -1, S0, S1, Sb, -np.inf, +np.inf, 0.0, 0.0, x, w, u, np.copy(x)
-    )
+    node = BnbNode(-1, S0, S1, Sb, -np.inf, +np.inf, x, w, np.copy(x))
     assert isinstance(node, BnbNode)
     assert isinstance(node.__str__(), str)
 

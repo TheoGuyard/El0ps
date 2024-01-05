@@ -9,9 +9,9 @@ from enum import Enum
 from typing import Union
 from numpy.typing import NDArray
 from el0ps.problem import Problem
-from .base import BaseSolver, Results, Status, _REL_GAP_EPS
+from .base import BaseSolver, Results, Status
 from .node import BnbNode
-from .bounding import BnbBoundingSolver, CdBoundingSolver
+from .bounding import BoundingSolver
 
 
 class BnbExplorationStrategy(Enum):
@@ -73,6 +73,8 @@ class BnbOptions:
         Integrality tolerance for a float.
     dualpruning: bool
         Whether to use dual-pruning.
+    workingsets: bool
+        Whether to use working sets during the bounding process.
     l1screening: bool
         Whether to use screening acceleration.
     l0screening: bool
@@ -83,7 +85,7 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    bounding_solver: BnbBoundingSolver = CdBoundingSolver()
+    bounding_solver: BoundingSolver = BoundingSolver()
     exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.DFS
     exploration_depth_switch: int = 0
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
@@ -91,6 +93,7 @@ class BnbOptions:
     node_limit: int = sys.maxsize
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
+    workingsets: bool = True
     dualpruning: bool = True
     l1screening: bool = True
     l0screening: bool = True
@@ -121,8 +124,6 @@ class BnbSolver(BaseSolver):
         "upper_bound",
         "node_lower_bound",
         "node_upper_bound",
-        "node_time_lower_bound",
-        "node_time_upper_bound",
         "node_card_S0",
         "node_card_S1",
         "node_card_Sb",
@@ -151,7 +152,7 @@ class BnbSolver(BaseSolver):
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return (self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + _REL_GAP_EPS
+            np.abs(self.upper_bound) + 1e-16
         )
 
     @property
@@ -195,6 +196,9 @@ class BnbSolver(BaseSolver):
         if self.options.trace:
             self.trace = {key: [] for key in self._trace_keys}
 
+        # Initialize the bounding solver
+        self.options.bounding_solver.setup(problem)
+
         # Root node
         root = BnbNode(
             -1,
@@ -203,11 +207,8 @@ class BnbSolver(BaseSolver):
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
             np.inf,
-            0.0,
-            0.0,
             x_init,
             w_init,
-            -problem.datafit.gradient(w_init),
             np.zeros(problem.n),
         )
 
@@ -219,9 +220,6 @@ class BnbSolver(BaseSolver):
 
         # Initialize the queue with root node
         self.queue.append(root)
-
-        # Initialize bounding solver
-        self.options.bounding_solver.setup(problem, x_init, S0_init, S1_init)
 
     def _print_header(self):
         s = "-" * 68 + "\n"
@@ -275,9 +273,11 @@ class BnbSolver(BaseSolver):
             node,
             self.upper_bound,
             self.options.rel_tol,
+            self.options.workingsets,
             self.options.dualpruning,
             self.options.l1screening,
             self.options.l0screening,
+            upper=False,
         )
 
     def _compute_upper_bound(self, problem: Problem, node: BnbNode):
@@ -289,7 +289,8 @@ class BnbSolver(BaseSolver):
             False,
             False,
             False,
-            True,
+            False,
+            upper=True,
         )
 
     def _next_node(self):
