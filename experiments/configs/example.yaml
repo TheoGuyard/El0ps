@@ -2,15 +2,15 @@ expname: example
 
 dataset:
 
-  # dataset_type: synthetic
-  # dataset_opts: 
-  #   model       : linear
-  #   k           : 5
-  #   m           : 500
-  #   n           : 1000
-  #   rho         : 0.9
-  #   snr         : 10.
-  #   normalize   : true
+  dataset_type: synthetic
+  dataset_opts: 
+    model       : linear
+    k           : 5
+    m           : 50
+    n           : 100
+    rho         : 0.9
+    snr         : 10.
+    normalize   : true
 
   # dataset_type: libsvm
   # dataset_opts: 
@@ -25,9 +25,9 @@ dataset:
   # dataset_opts: 
   #   dataset_id  : 73
 
-  dataset_type: hardcoded
-  dataset_opts: 
-    dataset_name  : lattice
+  # dataset_type: hardcoded
+  # dataset_opts: 
+  #   dataset_name  : lattice
 
   process_opts: 
     interactions  : false
@@ -38,12 +38,12 @@ dataset:
 
 solvers:
   solvers_name:
-    - el0ps
+    # - el0ps
     - sbnb
-    - l0bnb
-    - cplex
-    - gurobi
-    - mosek
+    # - l0bnb
+    # - cplex
+    # - gurobi
+    # - mosek
   solvers_opts:
     time_limit: 10.
     rel_tol   : 1.e-4

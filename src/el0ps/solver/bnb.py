@@ -120,6 +120,7 @@ class BnbSolver(BaseSolver):
     _trace_keys = [
         "solve_time",
         "iter_count",
+        "queue_length",
         "lower_bound",
         "upper_bound",
         "node_lower_bound",
@@ -165,7 +166,7 @@ class BnbSolver(BaseSolver):
         """Length of the Branch-and-Bound queue."""
         return len(self.queue)
 
-    def _setup(
+    def setup(
         self,
         problem: Problem,
         x_init: Union[NDArray[np.float64], None] = None,
@@ -193,8 +194,7 @@ class BnbSolver(BaseSolver):
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
         self.upper_bound = problem.value(x_init, w_init)
-        if self.options.trace:
-            self.trace = {key: [] for key in self._trace_keys}
+        self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
         self.options.bounding_solver.setup(problem)
@@ -206,10 +206,10 @@ class BnbSolver(BaseSolver):
             np.zeros(problem.n, dtype=np.bool_),
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
-            np.inf,
+            problem.value(x_init, w_init),
             x_init,
             w_init,
-            np.zeros(problem.n),
+            np.copy(x_init),
         )
 
         # Add initial fixing constraints to root
@@ -221,7 +221,7 @@ class BnbSolver(BaseSolver):
         # Initialize the queue with root node
         self.queue.append(root)
 
-    def _print_header(self):
+    def print_header(self):
         s = "-" * 68 + "\n"
         s += "|"
         s += " {:>6}".format("Iters")
@@ -237,7 +237,7 @@ class BnbSolver(BaseSolver):
         s += "-" * 68
         print(s)
 
-    def _print_progress(self, node: BnbNode):
+    def print_progress(self, node: BnbNode):
         s = "|"
         s += " {:>6d}".format(self.iter_count)
         s += " {:>6.2f}".format(self.solve_time)
@@ -251,11 +251,11 @@ class BnbSolver(BaseSolver):
         s += "|"
         print(s)
 
-    def _print_footer(self):
+    def print_footer(self):
         s = "-" * 68
         print(s)
 
-    def _can_continue(self):
+    def can_continue(self):
         if self.solve_time >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
         elif self.iter_count >= self.options.node_limit:
@@ -267,9 +267,8 @@ class BnbSolver(BaseSolver):
 
         return self.status == Status.RUNNING
 
-    def _compute_lower_bound(self, problem: Problem, node: BnbNode):
+    def compute_lower_bound(self, node: BnbNode):
         self.options.bounding_solver.bound(
-            problem,
             node,
             self.upper_bound,
             self.options.rel_tol,
@@ -280,9 +279,10 @@ class BnbSolver(BaseSolver):
             upper=False,
         )
 
-    def _compute_upper_bound(self, problem: Problem, node: BnbNode):
+    def compute_upper_bound(self, node: BnbNode):
+        if node.category != 1:
+            return
         self.options.bounding_solver.bound(
-            problem,
             node,
             self.upper_bound,
             self.options.rel_tol,
@@ -293,37 +293,28 @@ class BnbSolver(BaseSolver):
             upper=True,
         )
 
-    def _next_node(self):
+    def next_node(self):
         if self.options.exploration_strategy == BnbExplorationStrategy.DFS:
-            _next_node = self.queue.pop()
+            next_node = self.queue.pop()
         elif self.options.exploration_strategy == BnbExplorationStrategy.BFS:
-            _next_node = self.queue.pop(0)
+            next_node = self.queue.pop(0)
         elif self.options.exploration_strategy == BnbExplorationStrategy.BBS:
-            _next_node = self.queue.pop(
+            next_node = self.queue.pop(
                 np.argmax([qnode.lower_bound for qnode in self.queue])
             )
         elif self.options.exploration_strategy == BnbExplorationStrategy.WBS:
-            _next_node = self.queue.pop(
+            next_node = self.queue.pop(
                 np.argmin([qnode.lower_bound for qnode in self.queue])
             )
         else:
             raise NotImplementedError
         self.iter_count += 1
-        return _next_node
+        return next_node
 
-    def _prune(self, node: BnbNode):
+    def prune(self, node: BnbNode):
         return self.upper_bound < node.lower_bound
 
-    def _has_feasible_solution(self, problem: Problem, node: BnbNode):
-        return np.all(
-            np.logical_or(
-                np.abs(node.x[node.Sb]) <= self.options.int_tol,
-                np.abs(node.x[node.Sb])
-                >= problem.penalty.param_limit(problem.lmbd),
-            )
-        )
-
-    def _has_tight_relaxation(self, problem: Problem, node: BnbNode):
+    def is_feasible(self, problem: Problem, node: BnbNode):
         if node.rel_gap <= self.options.rel_tol:
             return True
         elif np.all(
@@ -336,26 +327,26 @@ class BnbSolver(BaseSolver):
             return True
         return False
 
-    def _update_trace(self, node: BnbNode):
+    def update_trace(self, node: BnbNode):
         for key in self._trace_keys:
             if key.startswith("node_"):
                 self.trace[key].append(getattr(node, key[5:]))
             else:
                 self.trace[key].append(getattr(self, key))
 
-    def _update_bounds(self, node):
+    def update_bounds(self, node):
         if node.upper_bound < self.upper_bound:
             self.upper_bound = node.upper_bound
             self.x = np.copy(node.x_inc)
             for qnode in self.queue:
-                if self._prune(qnode):
+                if self.prune(qnode):
                     self.queue.remove(qnode)
         if len(self.queue) != 0:
             self.lower_bound = min([qnode.lower_bound for qnode in self.queue])
         else:
             self.lower_bound = self.upper_bound
 
-    def _branch(self, problem: Problem, node: BnbNode):
+    def branch(self, problem: Problem, node: BnbNode):
         if not np.any(node.Sb):
             return
         if self.options.branching_strategy == BnbBranchingStrategy.LARGEST:
@@ -377,27 +368,27 @@ class BnbSolver(BaseSolver):
         S0_init: Union[NDArray[np.bool_], None] = None,
         S1_init: Union[NDArray[np.bool_], None] = None,
     ):
-        self._setup(problem, x_init, S0_init, S1_init)
+        self.setup(problem, x_init, S0_init, S1_init)
 
         if self.options.verbose:
-            self._print_header()
+            self.print_header()
 
-        while self._can_continue():
-            node = self._next_node()
-            self._compute_lower_bound(problem, node)
-            if not self._prune(node):
-                self._compute_upper_bound(problem, node)
-                if not self._has_feasible_solution(problem, node):
-                    self._branch(problem, node)
-            self._update_bounds(node)
+        while self.can_continue():
+            node = self.next_node()
+            self.compute_lower_bound(node)
+            if not self.prune(node):
+                self.compute_upper_bound(node)
+                if not self.is_feasible(problem, node):
+                    self.branch(problem, node)
+            self.update_bounds(node)
             if self.options.trace:
-                self._update_trace(node)
+                self.update_trace(node)
             if self.options.verbose:
-                self._print_progress(node)
+                self.print_progress(node)
             del node
 
         if self.options.verbose:
-            self._print_footer()
+            self.print_footer()
 
         return Results(
             self.status,

@@ -21,15 +21,15 @@ class BoundingSolver:
         \begin{cases}
             g_i(t) = 0 &\text{if} \ i \in S_0 \\
             g_i(t) = h(t) + \lambda &\text{if} \ i \in S_1 \\
-            g_i(t) = \tau|t| &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| \leq \mu \\
-            g_i(t) = h(t) + \lambda &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| > \mu \\
+            g_i(t) = \c1|t| &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| \leq \c2 \\
+            g_i(t) = h(t) + \lambda &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| > \c2 \\
         \end{cases}
 
     where :math:`f(\cdot)`, :math:`\lambda` and :math:`h(\cdot)` are the
     elements of :class:`.Problem` and where :math:`S_0`, :math:`S_1` and
     :math:`S_{\bullet}` are sets of indices forced to be zero, non-zero and
     unfixed, respectively, at the current node of the Branch-and-Bound tree.
-    The quantities :math:`\tau` and :math:`\mu` are the ones returned by the
+    The quantities :math:`\c1` and :math:`\c2` are the ones returned by the
     :func:`penalty.BasePenalty.param_pertslope` and
     :func:`penalty.BasePenalty.param_pertlimit` methods, respectively.
     """  # noqa: E501
@@ -43,16 +43,26 @@ class BoundingSolver:
         self.maxiter_outer = maxiter_outer
 
     def setup(self, problem: Problem) -> None:
-        self.A_colnorm = np.linalg.norm(problem.A, ord=2, axis=0) ** 2
-        self.tau = problem.penalty.param_slope(problem.lmbd)
-        self.mu = problem.penalty.param_limit(problem.lmbd)
-        self.rho = 1.0 / (problem.datafit.L * self.A_colnorm)
-        self.eta = self.tau * self.rho
-        self.delta = self.eta + self.mu
+
+        # Problem data
+        self.datafit = problem.datafit
+        self.penalty = problem.penalty
+        self.A = problem.A
+        self.lmbd = problem.lmbd
+        self.m = problem.m
+        self.n = problem.n
+
+        # Precomputed constants
+        self.c1 = problem.penalty.param_slope(problem.lmbd)
+        self.c2 = problem.penalty.param_limit(problem.lmbd)
+        self.c3 = np.linalg.norm(problem.A, ord=2, axis=0) ** 2
+        self.c4 = problem.datafit.L * self.c3
+        self.c5 = 1.0 / self.c4
+        self.c6 = self.c1 * self.c5
+        self.c7 = self.c6 + self.c2
 
     def bound(
         self,
-        problem: Problem,
         node: BnbNode,
         ub: float,
         rel_tol: float,
@@ -62,29 +72,19 @@ class BoundingSolver:
         l0screening: bool,
         upper: bool = False,
     ):
-        # Handle the root case and case where the upper-bounding problem yields
-        # the same solutiona s the parent node.
-        if upper:
-            if not np.any(node.S1):
-                node.x_inc = np.zeros(problem.n)
-                node.upper_bound = problem.datafit.value(np.zeros(problem.m))
-                return
-            elif node.category == 0:
-                return
 
         # ----- Initialization ----- #
 
         S0 = (node.S0 | node.Sb) if upper else node.S0
         S1 = node.S1
-        Sb = (node.Sb & False) if upper else node.Sb
-        Sb0 = node.Sb & False
-        Sbi = node.Sb | True
-        Sb1 = node.Sb & False
+        Sb = np.zeros(self.n, dtype=np.bool_) if upper else node.Sb
+        Sb0 = np.zeros(self.n, dtype=np.bool_)
+        Sbi = np.copy(Sb)
         x = node.x_inc if upper else node.x
-        w = problem.A[:, S1] @ x[S1] if upper else node.w
-        u = -problem.datafit.gradient(w)
-        v = np.empty(problem.n)
-        p = np.empty(problem.n)
+        w = self.A[:, S1] @ x[S1] if upper else node.w
+        u = -self.datafit.gradient(w)
+        v = np.empty(self.n)
+        p = np.empty(self.n)
         pv = np.inf
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
@@ -93,8 +93,8 @@ class BoundingSolver:
 
         rel_tol_inner = 0.5 * rel_tol
         for _ in range(self.maxiter_outer):
-            v = np.empty(problem.n)
-            p = np.empty(problem.n)
+            v = np.empty(self.n)
+            p = np.empty(self.n)
             dv = np.nan
 
             # ----- Inner loop ----- #
@@ -102,12 +102,12 @@ class BoundingSolver:
             for _ in range(self.maxiter_inner):
                 pv_old = pv
                 self.cd_loop(
-                    problem.datafit,
-                    problem.penalty,
-                    problem.A,
-                    self.rho,
-                    self.eta,
-                    self.delta,
+                    self.datafit,
+                    self.penalty,
+                    self.A,
+                    self.c5,
+                    self.c6,
+                    self.c7,
                     x,
                     w,
                     u,
@@ -115,11 +115,11 @@ class BoundingSolver:
                     Sb,
                 )
                 pv = self.compute_pv(
-                    problem.datafit,
-                    problem.penalty,
-                    problem.lmbd,
-                    self.tau,
-                    self.mu,
+                    self.datafit,
+                    self.penalty,
+                    self.lmbd,
+                    self.c1,
+                    self.c2,
                     x,
                     w,
                     S1,
@@ -130,10 +130,10 @@ class BoundingSolver:
 
                 if upper:
                     dv = self.compute_dv(
-                        problem.datafit,
-                        problem.penalty,
-                        problem.A,
-                        problem.lmbd,
+                        self.datafit,
+                        self.penalty,
+                        self.A,
+                        self.lmbd,
                         u,
                         v,
                         p,
@@ -148,10 +148,10 @@ class BoundingSolver:
             # ----- Working-set update ----- #
 
             flag = self.ws_update(
-                problem.penalty,
-                problem.A,
-                problem.lmbd,
-                self.tau,
+                self.penalty,
+                self.A,
+                self.lmbd,
+                self.c1,
                 u,
                 v,
                 p,
@@ -164,17 +164,18 @@ class BoundingSolver:
             if upper:
                 break
             if not flag:
-                dv = self.compute_dv(
-                    problem.datafit,
-                    problem.penalty,
-                    problem.A,
-                    problem.lmbd,
-                    u,
-                    v,
-                    p,
-                    S1,
-                    Sb,
-                )
+                if np.isnan(dv):
+                    dv = self.compute_dv(
+                        self.datafit,
+                        self.penalty,
+                        self.A,
+                        self.lmbd,
+                        u,
+                        v,
+                        p,
+                        S1,
+                        Sb,
+                    )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
                 if rel_tol_inner <= 1e-8:
@@ -184,39 +185,40 @@ class BoundingSolver:
             # ----- Accelerations ----- #
 
             if dualpruning or l1screening or l0screening:
-                dv = self.compute_dv(
-                    problem.datafit,
-                    problem.penalty,
-                    problem.A,
-                    problem.lmbd,
-                    u,
-                    v,
-                    p,
-                    S1,
-                    Sb,
-                )
+                if np.isnan(dv):
+                    dv = self.compute_dv(
+                        self.datafit,
+                        self.penalty,
+                        self.A,
+                        self.lmbd,
+                        u,
+                        v,
+                        p,
+                        S1,
+                        Sb,
+                    )
                 if dualpruning and dv > ub:
                     break
                 if l1screening:
                     self.l1screening(
-                        problem.datafit,
-                        problem.A,
+                        self.datafit,
+                        self.A,
                         x,
                         w,
                         u,
                         v,
-                        self.tau,
+                        self.c1,
+                        self.c4,
                         pv,
                         dv,
                         Ws,
                         Sb0,
                         Sbi,
-                        Sb1,
                     )  # noqa
                 if l0screening:
                     self.l0screening(
-                        problem.datafit,
-                        problem.A,
+                        self.datafit,
+                        self.A,
                         x,
                         w,
                         u,
@@ -227,8 +229,8 @@ class BoundingSolver:
                         S1,
                         Sb,
                         Ws,
+                        Sb0,
                         Sbi,
-                        Sb1,
                     )  # noqa
 
         # ----- Post-processing ----- #
@@ -236,17 +238,18 @@ class BoundingSolver:
         if upper:
             node.upper_bound = pv
         else:
-            dv = self.compute_dv(
-                problem.datafit,
-                problem.penalty,
-                problem.A,
-                problem.lmbd,
-                u,
-                v,
-                p,
-                S1,
-                Sb,
-            )
+            if np.isnan(dv):
+                dv = self.compute_dv(
+                    self.datafit,
+                    self.penalty,
+                    self.A,
+                    self.lmbd,
+                    u,
+                    v,
+                    p,
+                    S1,
+                    Sb,
+                )
             node.lower_bound = dv
 
     @staticmethod
@@ -255,9 +258,9 @@ class BoundingSolver:
         datafit: SmoothDatafit,
         penalty: BasePenalty,
         A: NDArray[np.float64],
-        rho: NDArray[np.float64],
-        eta: NDArray[np.float64],
-        delta: NDArray[np.float64],
+        c5: NDArray[np.float64],
+        c6: NDArray[np.float64],
+        c7: NDArray[np.float64],
         x: NDArray[np.float64],
         w: NDArray[np.float64],
         u: NDArray[np.float64],
@@ -267,11 +270,11 @@ class BoundingSolver:
         for i in np.flatnonzero(Ws):
             ai = A[:, i]
             xi = x[i]
-            ci = xi + rho[i] * np.dot(ai, u)
-            if Sb[i] and np.abs(ci) <= delta[i]:
-                x[i] = np.sign(ci) * np.maximum(np.abs(ci) - eta[i], 0.0)
+            ci = xi + c5[i] * np.dot(ai, u)
+            if Sb[i] and np.abs(ci) <= c7[i]:
+                x[i] = np.sign(ci) * np.maximum(np.abs(ci) - c6[i], 0.0)
             else:
-                x[i] = penalty.prox(ci, rho[i])
+                x[i] = penalty.prox(ci, c5[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -282,7 +285,7 @@ class BoundingSolver:
         penalty: BasePenalty,
         A: NDArray[np.float64],
         lmbd: float,
-        tau: float,
+        c1: float,
         u: NDArray[np.float64],
         v: NDArray[np.float64],
         p: NDArray[np.float64],
@@ -293,7 +296,7 @@ class BoundingSolver:
         for i in np.flatnonzero(~Ws & Sbi):
             v[i] = np.dot(A[:, i], u)
             p[i] = penalty.conjugate(v[i]) - lmbd
-            if np.abs(v[i]) > tau:
+            if np.abs(v[i]) > c1:
                 flag = True
                 Ws[i] = True
         return flag
@@ -304,8 +307,8 @@ class BoundingSolver:
         datafit: BaseDatafit,
         penalty: BasePenalty,
         lmbd: float,
-        tau: float,
-        mu: float,
+        c1: float,
+        c2: float,
         x: NDArray[np.float64],
         w: NDArray[np.float64],
         S1: NDArray[np.bool_],
@@ -321,9 +324,9 @@ class BoundingSolver:
             Penalty function.
         lmbd: float
             Constant offset of the penalty.
-        tau: float
+        c1: float
             L1-norm weight.
-        mu: float
+        c2: float
             L1-norm threshold.
         x: NDArray[np.float64]
             Value at which the primal is evaluated.
@@ -335,9 +338,9 @@ class BoundingSolver:
             Set of unfixed indices.
         """
         pv = datafit.value(w)
-        for i in np.flatnonzero(S1 | (Sb & (x != 0.0))):
-            if Sb[i] and np.abs(x[i]) <= mu:
-                pv += tau * np.abs(x[i])
+        for i in np.flatnonzero(S1 | Sb):
+            if Sb[i] and np.abs(x[i]) <= c2:
+                pv += c1 * np.abs(x[i])
             else:
                 pv += penalty.value(x[i]) + lmbd
         return pv
@@ -379,19 +382,11 @@ class BoundingSolver:
         Sb: NDArray[np.bool_]
             Set of unfixed indices.
         """
-        nz = np.flatnonzero(S1 | Sb)
-        sf = np.empty(v.shape)
-        for i in nz:
+        dv = -datafit.conjugate(-u)
+        for i in np.flatnonzero(S1 | Sb):
             v[i] = np.dot(A[:, i], u)
             p[i] = penalty.conjugate(v[i]) - lmbd
-            sf[i] = penalty.conjugate_scaling_factor(v[i])
-        g_sf = 1.0 if nz.size == 0 else np.min(sf[nz])
-        u_sf = g_sf * u
-        v_sf = g_sf * v
-        dv = -datafit.conjugate(-u_sf)
-        for i in nz:
-            p_sf = penalty.conjugate(v_sf[i]) - lmbd
-            dv -= np.maximum(p_sf, 0.0) if Sb[i] else p_sf
+            dv -= np.maximum(p[i], 0.0) if Sb[i] else p[i]
         return dv
 
     @staticmethod
@@ -423,26 +418,29 @@ class BoundingSolver:
         S1: NDArray[np.bool_],
         Sb: NDArray[np.bool_],
         Ws: NDArray[np.bool_],
+        Sb0: NDArray[np.bool_],
         Sbi: NDArray[np.bool_],
-        Sb1: NDArray[np.bool_],
     ) -> None:
-        for i in np.flatnonzero(Sb & ~np.isnan(p)):
+        flag = False
+        for i in np.flatnonzero(Sb):
             if dv + np.maximum(-p[i], 0.0) > ub:
                 Sb[i] = False
                 S0[i] = True
                 Ws[i] = False
+                Sb0[i] = False
                 Sbi[i] = False
-                Sb1[i] = False
                 if x[i] != 0.0:
                     w -= x[i] * A[:, i]
-                    u[:] = -datafit.gradient(w)
                     x[i] = 0.0
+                    flag = True
             elif dv + np.maximum(p[i], 0.0) > ub:
                 Sb[i] = False
                 S1[i] = True
                 Ws[i] = True
+                Sb0[i] = False
                 Sbi[i] = False
-                Sb1[i] = False
+        if flag:
+            u[:] = -datafit.gradient(w)
 
     @staticmethod
     @njit
@@ -453,26 +451,25 @@ class BoundingSolver:
         w: NDArray[np.float64],
         u: NDArray[np.float64],
         v: NDArray[np.float64],
-        tau: float,
+        c1: float,
+        c4: float,
         pv: float,
         dv: float,
         Ws: NDArray[np.bool_],
         Sb0: NDArray[np.bool_],
         Sbi: NDArray[np.bool_],
-        Sb1: NDArray[np.bool_],
     ) -> None:
-        r = np.sqrt(2.0 * np.abs(pv - dv) * datafit.L)
-        for i in np.flatnonzero(Sbi & ~np.isnan(v)):
+        flag = False
+        r = np.sqrt(2.0 * np.abs(pv - dv) * c4)
+        for i in np.flatnonzero(Sbi):
             vi = v[i]
-            if np.abs(vi) + r < tau:
+            if np.abs(vi) + r[i] < c1:
                 if x[i] != 0.0:
                     w -= x[i] * A[:, i]
-                    u[:] = -datafit.gradient(w)
                     x[i] = 0.0
+                    flag = True
                 Ws[i] = False
                 Sbi[i] = False
                 Sb0[i] = True
-            elif np.abs(vi) - r > tau:
-                Ws[i] = True
-                Sbi[i] = False
-                Sb1[i] = True
+        if flag:
+            u[:] = -datafit.gradient(w)
