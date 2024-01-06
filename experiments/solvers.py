@@ -1003,7 +1003,9 @@ class OsqpBoundingSolver(BoundingSolver):
             format="csc",
         )
         lc = np.hstack([self.datafit.y, -self.penalty.M * on, zn, zn])
-        uc = np.hstack([self.datafit.y, self.penalty.M * on, np.inf * on, np.inf * on])
+        uc = np.hstack(
+            [self.datafit.y, self.penalty.M * on, np.inf * on, np.inf * on]
+        )
         self.model = osqp.OSQP()
         self.model.setup(P, q, Q, lc, uc, verbose=False, eps_rel=self.eps_rel)
 
@@ -1018,7 +1020,6 @@ class OsqpBoundingSolver(BoundingSolver):
         l0screening: bool,
         upper: bool = False,
     ):
-
         # Node data
         if upper:
             S1 = node.S1
@@ -1032,12 +1033,21 @@ class OsqpBoundingSolver(BoundingSolver):
         zm = np.zeros(self.m)
         zn = np.zeros(self.n)
         q_new = np.hstack([zm, (self.m * self.lmbd / self.penalty.M) * Sb, zn])
-        lc_new = np.hstack([self.datafit.y, -self.penalty.M * (Sb | S1), zn, zn])
-        uc_new = np.hstack([self.datafit.y, self.penalty.M * (Sb | S1), np.inf * on, np.inf * on])
+        lc_new = np.hstack(
+            [self.datafit.y, -self.penalty.M * (Sb | S1), zn, zn]
+        )
+        uc_new = np.hstack(
+            [
+                self.datafit.y,
+                self.penalty.M * (Sb | S1),
+                np.inf * on,
+                np.inf * on,
+            ]
+        )
         self.model.update(q=q_new, l=lc_new, u=uc_new)
         result = self.model.solve()
         x = np.clip(result.x[-self.n:], -self.penalty.M, self.penalty.M)
-        x[~(S1 | Sb)] = 0.
+        x[~(S1 | Sb)] = 0.0
         w = self.A[:, S1 | Sb] @ x[S1 | Sb]
 
         if upper:
