@@ -979,37 +979,36 @@ class OsqpBoundingSolver(BoundingSolver):
         if str(problem.penalty) != "Bigm":
             raise ValueError("Only a `Bigm` penalty is supported.")
 
-        m = problem.m
-        n = problem.n
-        A = problem.A
-        lmbd = problem.lmbd
-        y = problem.datafit.y
-        M = problem.penalty.M
-        On = sparse.eye(n)
-        Om = sparse.eye(m)
-        Zn = sparse.csc_matrix((n, n))
-        on = np.ones(n)
-        zm = np.zeros(m)
-        zn = np.zeros(n)
+        self.m = problem.m
+        self.n = problem.n
+        self.datafit = problem.datafit
+        self.penalty = problem.penalty
+        self.A = problem.A
+        self.lmbd = problem.lmbd
+        On = sparse.eye(self.n)
+        Om = sparse.eye(self.m)
+        Zn = sparse.csc_matrix((self.n, self.n))
+        on = np.ones(self.n)
+        zm = np.zeros(self.m)
+        zn = np.zeros(self.n)
         P = sparse.block_diag([Om, Zn, Zn], format="csc")
-        q = np.hstack([zm, (m * lmbd / M) * on, zn])
+        q = np.hstack([zm, (self.m * self.lmbd / self.penalty.M) * on, zn])
         Q = sparse.bmat(
             [
-                [-Om, None, A],
+                [-Om, None, self.A],
                 [None, On, None],
                 [None, On, -On],
                 [None, On, On],
             ],
             format="csc",
         )
-        lc = np.hstack([y, -M * on, zn, zn])
-        uc = np.hstack([y, M * on, np.inf * on, np.inf * on])
+        lc = np.hstack([self.datafit.y, -self.penalty.M * on, zn, zn])
+        uc = np.hstack([self.datafit.y, self.penalty.M * on, np.inf * on, np.inf * on])
         self.model = osqp.OSQP()
         self.model.setup(P, q, Q, lc, uc, verbose=False, eps_rel=self.eps_rel)
 
     def bound(
         self,
-        problem: Problem,
         node: BnbNode,
         ub: float,
         rel_tol: float,
@@ -1019,15 +1018,6 @@ class OsqpBoundingSolver(BoundingSolver):
         l0screening: bool,
         upper: bool = False,
     ):
-        # Handle the root case and case where the upper-bounding problem yields
-        # the same solutiona s the parent node.
-        if upper:
-            if not np.any(node.S1):
-                node.x_inc = np.zeros(problem.n)
-                node.upper_bound = problem.datafit.value(np.zeros(problem.m))
-                return
-            elif node.category == 0:
-                return
 
         # Node data
         if upper:
@@ -1038,37 +1028,32 @@ class OsqpBoundingSolver(BoundingSolver):
             Sb = node.Sb
 
         # Relaxation construction
-        m = problem.m
-        n = problem.n
-        y = problem.datafit.y
-        M = problem.penalty.M
-        A = problem.A
-        lmbd = problem.lmbd
-        on = np.ones(n)
-        zm = np.zeros(m)
-        zn = np.zeros(n)
-        q_new = np.hstack([zm, (m * lmbd / M) * Sb, zn])
-        lc_new = np.hstack([y, -M * (Sb | S1), zn, zn])
-        uc_new = np.hstack([y, M * (Sb | S1), np.inf * on, np.inf * on])
+        on = np.ones(self.n)
+        zm = np.zeros(self.m)
+        zn = np.zeros(self.n)
+        q_new = np.hstack([zm, (self.m * self.lmbd / self.penalty.M) * Sb, zn])
+        lc_new = np.hstack([self.datafit.y, -self.penalty.M * (Sb | S1), zn, zn])
+        uc_new = np.hstack([self.datafit.y, self.penalty.M * (Sb | S1), np.inf * on, np.inf * on])
         self.model.update(q=q_new, l=lc_new, u=uc_new)
         result = self.model.solve()
-        x = result.x[-n:]
-        w = A[:, S1 | Sb] @ x[S1 | Sb]
+        x = np.clip(result.x[-self.n:], -self.penalty.M, self.penalty.M)
+        x[~(S1 | Sb)] = 0.
+        w = self.A[:, S1 | Sb] @ x[S1 | Sb]
 
         if upper:
-            node.x_inc = np.copy(x) * S1
-            node.upper_bound = problem.datafit.value(w) + lmbd * np.sum(S1)
+            node.x_inc = np.copy(x)
+            node.upper_bound = self.datafit.value(w) + self.lmbd * np.sum(S1)
         else:
             node.x = np.copy(x)
             node.w = np.copy(w)
-            node.u = -problem.datafit.gradient(w)
+            u = -self.datafit.gradient(w)
             node.lower_bound = (
-                -problem.datafit.conjugate(-node.u)
+                -self.datafit.conjugate(-u)
                 - np.sum(
                     [
                         np.maximum(
-                            problem.penalty.conjugate(A[:, i].T @ node.u)
-                            - lmbd,
+                            self.penalty.conjugate(self.A[:, i].T @ u)
+                            - self.lmbd,
                             0.0,
                         )
                         for i in np.flatnonzero(Sb)
@@ -1076,7 +1061,7 @@ class OsqpBoundingSolver(BoundingSolver):
                 )
                 - np.sum(
                     [
-                        problem.penalty.conjugate(A[:, i].T @ node.u) - lmbd
+                        self.penalty.conjugate(self.A[:, i].T @ u) - self.lmbd
                         for i in np.flatnonzero(S1)
                     ]
                 )
