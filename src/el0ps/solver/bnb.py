@@ -189,7 +189,6 @@ class BnbSolver(BaseSolver):
         # Sanity checks
         if x_init is None:
             x_init = np.zeros(problem.n)
-        w_init = problem.A @ x_init
         if S0_init is None:
             S0_init = np.zeros(problem.n, dtype=np.bool_)
         if S1_init is None:
@@ -206,7 +205,7 @@ class BnbSolver(BaseSolver):
         self.iter_count = 0
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
-        self.upper_bound = problem.value(x_init, w_init)
+        self.upper_bound = problem.value(x_init)
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
@@ -219,7 +218,7 @@ class BnbSolver(BaseSolver):
             np.zeros(problem.n, dtype=np.bool_),
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
-            problem.value(x_init, w_init),
+            np.inf,
             0.0,
             0.0,
             np.zeros(problem.n),
@@ -295,7 +294,7 @@ class BnbSolver(BaseSolver):
         )
 
     def compute_upper_bound(self, node: BnbNode):
-        if node.category != 1:
+        if node.category == 0.:
             return
         self.options.bounding_solver.bound(
             node,

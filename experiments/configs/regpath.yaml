@@ -3,23 +3,23 @@ expname: regpath
 dataset:
   dataset_type: hardcoded
   dataset_opts: 
-    dataset_name  : riboflavin
+    dataset_name  : lattice
   process_opts: 
-    interactions  : false
+    interactions  : true
     center        : true
     normalize     : true
   datafit_name: Leastsquares
-  penalty_name: BigmL2norm
+  penalty_name: BigmL1norm
 
 solvers:
   solvers_name:
     - el0ps
-    # - el0ps[l0screening=False,dualpruning=False]
-    # - sbnb
-    # - l0bnb
-    # - cplex
-    # - gurobi
-    # - mosek
+    - el0ps[l0screening=False,dualpruning=False]
+    - sbnb
+    - l0bnb
+    - cplex
+    - gurobi
+    - mosek
   solvers_opts:
     time_limit: 3600.
     rel_tol   : 1.e-4
