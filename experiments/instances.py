@@ -124,7 +124,15 @@ def get_data_hardcoded(dataset_name):
     return A, y, x
 
 
-def process_data(datafit_name, A, y, x_true, interactions=False, center=False, normalize=False):
+def process_data(
+    datafit_name,
+    A,
+    y,
+    x_true,
+    interactions=False,
+    center=False,
+    normalize=False,
+):
     if sparse.issparse(A):
         A = A.todense()
     if not A.flags["F_CONTIGUOUS"] or not A.flags["OWNDATA"]:

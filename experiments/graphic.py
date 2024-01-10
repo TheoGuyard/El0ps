@@ -19,7 +19,7 @@ def graphic_perfprofile(config_path, save=False):
 
     print("Recovering results...")
     results_dir = pathlib.Path(__file__).parent.absolute().joinpath("results")
-    
+
     solve_times = {s: [] for s in config["solvers"]["solvers_name"]}
     solve_nodes = {s: [] for s in config["solvers"]["solvers_name"]}
     supps_times = {s: [] for s in config["solvers"]["solvers_name"]}
@@ -34,19 +34,33 @@ def graphic_perfprofile(config_path, save=False):
         found += 1
         with open(result_path, "rb") as file:
             file_data = pickle.load(file)
-            if file_data["config"] == config:  
+            if file_data["config"] == config:
                 match += 1
                 for solver_name, result in file_data["results"].items():
                     if result is not None:
                         if result.status == Status.OPTIMAL:
                             solve_times[solver_name].append(result.solve_time)
                             solve_nodes[solver_name].append(result.iter_count)
-                            supps_times[solver_name] += list(zip(result.trace["solve_time"], result.trace["supp_left"]))
-                            supps_nodes[solver_name] += list(zip(result.trace["iter_count"], result.trace["supp_left"]))
-                            relax_times[solver_name] += result.trace["node_time_lower_bound"]
-                            depth_nodes[solver_name] += result.trace["node_depth"]
+                            supps_times[solver_name] += list(
+                                zip(
+                                    result.trace["solve_time"],
+                                    result.trace["supp_left"],
+                                )
+                            )
+                            supps_nodes[solver_name] += list(
+                                zip(
+                                    result.trace["iter_count"],
+                                    result.trace["supp_left"],
+                                )
+                            )
+                            relax_times[solver_name] += result.trace[
+                                "node_time_lower_bound"
+                            ]
+                            depth_nodes[solver_name] += result.trace[
+                                "node_depth"
+                            ]
                         else:
-                                notcv += 1
+                            notcv += 1
 
     print("  {} files founds".format(found))
     print("  {} files matched".format(match))
@@ -67,8 +81,26 @@ def graphic_perfprofile(config_path, save=False):
     }
 
     grid_supps_times = np.logspace(
-        np.floor(np.log10(np.min([np.min([st for (st, _) in v]) for v in supps_times.values()]))),
-        np.ceil(np.log10(np.max([np.max([st for (st, _) in v]) for v in supps_times.values()]))),
+        np.floor(
+            np.log10(
+                np.min(
+                    [
+                        np.min([st for (st, _) in v])
+                        for v in supps_times.values()
+                    ]
+                )
+            )
+        ),
+        np.ceil(
+            np.log10(
+                np.max(
+                    [
+                        np.max([st for (st, _) in v])
+                        for v in supps_times.values()
+                    ]
+                )
+            )
+        ),
         100,
     )
     profile_supps_times = {}
@@ -77,12 +109,12 @@ def graphic_perfprofile(config_path, save=False):
         for g in grid_supps_times:
             stat = [sl for (st, sl) in stats if st <= g]
             if len(stat) == 0:
-                profile_supps_times[solver_name].append(1.)
+                profile_supps_times[solver_name].append(1.0)
             elif len(stat) == len(stats):
-                profile_supps_times[solver_name].append(0.)
+                profile_supps_times[solver_name].append(0.0)
             else:
                 profile_supps_times[solver_name].append(np.mean(stat))
-    
+
     grid_solve_nodes = np.logspace(
         np.floor(np.log10(np.min([np.min(v) for v in solve_nodes.values()]))),
         np.ceil(np.log10(np.max([np.max(v) for v in solve_nodes.values()]))),
@@ -94,8 +126,26 @@ def graphic_perfprofile(config_path, save=False):
     }
 
     grid_supps_nodes = np.logspace(
-        np.floor(np.log10(np.min([np.min([nc for (nc, _) in v]) for v in supps_nodes.values()]))),
-        np.ceil(np.log10(np.max([np.max([nc for (nc, _) in v]) for v in supps_nodes.values()]))),
+        np.floor(
+            np.log10(
+                np.min(
+                    [
+                        np.min([nc for (nc, _) in v])
+                        for v in supps_nodes.values()
+                    ]
+                )
+            )
+        ),
+        np.ceil(
+            np.log10(
+                np.max(
+                    [
+                        np.max([nc for (nc, _) in v])
+                        for v in supps_nodes.values()
+                    ]
+                )
+            )
+        ),
         100,
     )
     profile_supps_nodes = {}
@@ -104,12 +154,11 @@ def graphic_perfprofile(config_path, save=False):
         for g in grid_supps_nodes:
             stat = [sl for (nc, sl) in stats if nc <= g]
             if len(stat) == 0:
-                profile_supps_nodes[solver_name].append(1.)
+                profile_supps_nodes[solver_name].append(1.0)
             elif len(stat) == len(stats):
-                profile_supps_nodes[solver_name].append(0.)
+                profile_supps_nodes[solver_name].append(0.0)
             else:
                 profile_supps_nodes[solver_name].append(np.mean(stat))
-
 
     grid_relax_times = np.logspace(
         np.floor(np.log10(np.min([np.min(v) for v in relax_times.values()]))),
@@ -121,11 +170,13 @@ def graphic_perfprofile(config_path, save=False):
         for solver_name, stats in relax_times.items()
     }
 
-    grid_depth_nodes = np.array(range(
-        np.min([np.min(v) for v in depth_nodes.values()]),
-        np.max([np.max(v) for v in depth_nodes.values()]) + 1,
-        1
-    ))
+    grid_depth_nodes = np.array(
+        range(
+            np.min([np.min(v) for v in depth_nodes.values()]),
+            np.max([np.max(v) for v in depth_nodes.values()]) + 1,
+            1,
+        )
+    )
     profile_depth_nodes = {
         solver_name: [np.mean(stats <= g) for g in grid_depth_nodes]
         for solver_name, stats in depth_nodes.items()
@@ -135,20 +186,44 @@ def graphic_perfprofile(config_path, save=False):
         print("Saving data...")
         save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
         stats = {
-            "solve_times": {"grid": grid_solve_times, "profile": profile_solve_times},
-            "solve_nodes": {"grid": grid_solve_nodes, "profile": profile_solve_nodes},
-            "supps_times": {"grid": grid_supps_times, "profile": profile_supps_times},
-            "supps_nodes": {"grid": grid_supps_nodes, "profile": profile_supps_nodes},
-            "relax_times": {"grid": grid_relax_times, "profile": profile_relax_times},
-            "depth_nodes": {"grid": grid_depth_nodes, "profile": profile_depth_nodes},
+            "solve_times": {
+                "grid": grid_solve_times,
+                "profile": profile_solve_times,
+            },
+            "solve_nodes": {
+                "grid": grid_solve_nodes,
+                "profile": profile_solve_nodes,
+            },
+            "supps_times": {
+                "grid": grid_supps_times,
+                "profile": profile_supps_times,
+            },
+            "supps_nodes": {
+                "grid": grid_supps_nodes,
+                "profile": profile_supps_nodes,
+            },
+            "relax_times": {
+                "grid": grid_relax_times,
+                "profile": profile_relax_times,
+            },
+            "depth_nodes": {
+                "grid": grid_depth_nodes,
+                "profile": profile_depth_nodes,
+            },
         }
         for stat_name, stat_vars in stats.items():
             table = pd.DataFrame({"grid": stat_vars["grid"]})
             for solver_name in config["solvers"]["solvers_name"]:
                 table[solver_name] = stat_vars["profile"][solver_name]
-            file_name = "{}_{}_{}".format(config["expname"], stat_name, save_uuid)
-            save_path = pathlib.Path(__file__).parent.joinpath("saves", "{}.csv".format(file_name))
-            info_path = pathlib.Path(__file__).parent.joinpath("saves", "{}.yaml".format(file_name))
+            file_name = "{}_{}_{}".format(
+                config["expname"], stat_name, save_uuid
+            )
+            save_path = pathlib.Path(__file__).parent.joinpath(
+                "saves", "{}.csv".format(file_name)
+            )
+            info_path = pathlib.Path(__file__).parent.joinpath(
+                "saves", "{}.yaml".format(file_name)
+            )
             table.to_csv(save_path, index=False)
             with open(info_path, "w") as file:
                 yaml.dump(config, file)
@@ -156,12 +231,36 @@ def graphic_perfprofile(config_path, save=False):
         print("Plotting figure...")
         _, axs = plt.subplots(1, 6, squeeze=False)
         for solver_name in config["solvers"]["solvers_name"]:
-            axs[0, 0].plot(grid_solve_times, profile_solve_times[solver_name], label=solver_name)
-            axs[0, 1].plot(grid_supps_times, profile_supps_times[solver_name], label=solver_name)
-            axs[0, 2].plot(grid_solve_nodes, profile_solve_nodes[solver_name], label=solver_name)
-            axs[0, 3].plot(grid_supps_nodes, profile_supps_nodes[solver_name], label=solver_name)
-            axs[0, 4].plot(grid_relax_times, profile_relax_times[solver_name], label=solver_name)
-            axs[0, 5].plot(grid_depth_nodes, profile_depth_nodes[solver_name], label=solver_name)
+            axs[0, 0].plot(
+                grid_solve_times,
+                profile_solve_times[solver_name],
+                label=solver_name,
+            )
+            axs[0, 1].plot(
+                grid_supps_times,
+                profile_supps_times[solver_name],
+                label=solver_name,
+            )
+            axs[0, 2].plot(
+                grid_solve_nodes,
+                profile_solve_nodes[solver_name],
+                label=solver_name,
+            )
+            axs[0, 3].plot(
+                grid_supps_nodes,
+                profile_supps_nodes[solver_name],
+                label=solver_name,
+            )
+            axs[0, 4].plot(
+                grid_relax_times,
+                profile_relax_times[solver_name],
+                label=solver_name,
+            )
+            axs[0, 5].plot(
+                grid_depth_nodes,
+                profile_depth_nodes[solver_name],
+                label=solver_name,
+            )
         for ax in axs.flatten():
             ax.grid(visible=True, which="major", axis="both")
             ax.grid(visible=True, which="minor", axis="both", alpha=0.2)
@@ -183,6 +282,7 @@ def graphic_perfprofile(config_path, save=False):
         axs[0, 0].legend()
         plt.show()
 
+
 def graphic_sensibility(config_path, save=False):
     config_path = pathlib.Path(config_path)
     with open(config_path, "r") as stream:
@@ -200,11 +300,12 @@ def graphic_sensibility(config_path, save=False):
     stats = {
         param_key: {
             stat_key: {
-                solver_key: {
-                    param_value: [] for param_value in param_values
-                } for solver_key in config["solvers"]["solvers_name"]
-            } for stat_key in stats_specs.keys()
-        } for param_key, param_values in config["dataset"]["variations"].items()
+                solver_key: {param_value: [] for param_value in param_values}
+                for solver_key in config["solvers"]["solvers_name"]
+            }
+            for stat_key in stats_specs.keys()
+        }
+        for param_key, param_values in config["dataset"]["variations"].items()
     }
     found = 0
     match = 0
@@ -215,13 +316,19 @@ def graphic_sensibility(config_path, save=False):
             file_data = pickle.load(file)
             if file_data["config"] == config:
                 match += 1
-                for param_key, param_values in config["dataset"]["variations"].items():
+                for param_key, param_values in config["dataset"][
+                    "variations"
+                ].items():
                     for param_value in param_values:
-                        for solver_key, result in file_data["results"][param_key][param_value].items():
+                        for solver_key, result in file_data["results"][
+                            param_key
+                        ][param_value].items():
                             if result is not None:
                                 if result.status == Status.OPTIMAL:
                                     for stat_key in stats_specs.keys():
-                                        stats[param_key][stat_key][solver_key][param_value].append(getattr(result, stat_key))
+                                        stats[param_key][stat_key][solver_key][
+                                            param_value
+                                        ].append(getattr(result, stat_key))
                                 else:
                                     notcv += 1
 
@@ -236,10 +343,14 @@ def graphic_sensibility(config_path, save=False):
         param_key: {
             stat_key: {
                 solver_key: [
-                   np.mean(solver_value) for solver_value in solver_values.values()
-                ] for solver_key, solver_values in stat_values.items()
-            } for stat_key, stat_values in param_values.items()
-        } for param_key, param_values in stats.items()
+                    np.mean(solver_value)
+                    for solver_value in solver_values.values()
+                ]
+                for solver_key, solver_values in stat_values.items()
+            }
+            for stat_key, stat_values in param_values.items()
+        }
+        for param_key, param_values in stats.items()
     }
 
     if save:
@@ -264,7 +375,9 @@ def graphic_sensibility(config_path, save=False):
         for j, (param_key, param_values) in enumerate(curves.items()):
             for i, (stat_key, stat_values) in enumerate(param_values.items()):
                 if stats_specs[stat_key]["ratio"] is not None:
-                    reference = np.array(stat_values[stats_specs[stat_key]["ratio"]])
+                    reference = np.array(
+                        stat_values[stats_specs[stat_key]["ratio"]]
+                    )
                 else:
                     reference = 1.0
                 for solver_key, solver_values in stat_values.items():
@@ -272,17 +385,20 @@ def graphic_sensibility(config_path, save=False):
                         config["dataset"]["variations"][param_key],
                         np.array(solver_values) / reference,
                         label=solver_key,
-                        marker='.'
+                        marker=".",
                     )
                 if stats_specs[stat_key]["log"]:
                     axs[i, j].set_yscale("log")
                 axs[i, j].grid(visible=True, which="major", axis="both")
-                axs[i, j].grid(visible=True, which="minor", axis="both", alpha=0.2)
+                axs[i, j].grid(
+                    visible=True, which="minor", axis="both", alpha=0.2
+                )
                 axs[i, j].minorticks_on()
                 axs[i, 0].set_ylabel(stat_key)
             axs[-1, j].set_xlabel(param_key)
         axs[0, 0].legend()
         plt.show()
+
 
 def graphic_regpath(config_path, save=False):
     print("Preprocessing...")
@@ -310,7 +426,8 @@ def graphic_regpath(config_path, save=False):
         stat_key: {
             solver_name: {i: [] for i in range(lmbd_ratio_grid.size)}
             for solver_name in config["solvers"]["solvers_name"]
-        } for stat_key in stats_specs.keys()
+        }
+        for stat_key in stats_specs.keys()
     }
 
     found = 0
@@ -321,10 +438,11 @@ def graphic_regpath(config_path, save=False):
         with open(result_path, "rb") as file:
             file_data = pickle.load(file)
             if (
-                file_data["config"]["expname"] == config["expname"] and
-                file_data["config"]["dataset"] == config["dataset"] and
-                file_data["config"]["solvers"]["solvers_opts"] == config["solvers"]["solvers_opts"] and
-                file_data["config"]["path_opts"] == config["path_opts"]
+                file_data["config"]["expname"] == config["expname"]
+                and file_data["config"]["dataset"] == config["dataset"]
+                and file_data["config"]["solvers"]["solvers_opts"]
+                == config["solvers"]["solvers_opts"]
+                and file_data["config"]["path_opts"] == config["path_opts"]
             ):
                 match += 1
                 for solver_name, result in file_data["results"].items():
@@ -332,9 +450,13 @@ def graphic_regpath(config_path, save=False):
                         for i in range(lmbd_ratio_grid.size):
                             if len(result["status"]) > i:
                                 if result["status"][i] == Status.OPTIMAL:
-                                    for stat_name, stat_values in stats.items():
-                                        
-                                        stat_values[solver_name][i].append(result[stat_name][i])
+                                    for (
+                                        stat_name,
+                                        stat_values,
+                                    ) in stats.items():
+                                        stat_values[solver_name][i].append(
+                                            result[stat_name][i]
+                                        )
                                 else:
                                     notcv += 1
 
@@ -348,9 +470,12 @@ def graphic_regpath(config_path, save=False):
     mean_stats = {
         stat_key: {
             solver_key: [
-                np.mean(solver_values[i]) if len(solver_values[i]) else np.nan for i in range(lmbd_ratio_grid.size)
-            ] for solver_key, solver_values in stat_values.items()
-        } for stat_key, stat_values in stats.items()
+                np.mean(solver_values[i]) if len(solver_values[i]) else np.nan
+                for i in range(lmbd_ratio_grid.size)
+            ]
+            for solver_key, solver_values in stat_values.items()
+        }
+        for stat_key, stat_values in stats.items()
     }
 
     if save:
@@ -396,7 +521,9 @@ def graphic_regpath(config_path, save=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("task", choices=["perfprofile", "sensibility", "regpath"])
+    parser.add_argument(
+        "task", choices=["perfprofile", "sensibility", "regpath"]
+    )
     parser.add_argument("config_path")
     parser.add_argument("-s", "--save", action="store_true")
     args = parser.parse_args()

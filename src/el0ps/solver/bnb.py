@@ -174,8 +174,10 @@ class BnbSolver(BaseSolver):
     @property
     def supp_left(self):
         if len(self.queue) == 0:
-            return 0.
-        return sum([2 ** np.count_nonzero(qnode.Sb) for qnode in self.queue]) / (2 ** self.x.size)
+            return 0.0
+        return sum(
+            [2 ** np.count_nonzero(qnode.Sb) for qnode in self.queue]
+        ) / (2**self.x.size)
 
     def setup(
         self,
@@ -218,8 +220,8 @@ class BnbSolver(BaseSolver):
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
             problem.value(x_init, w_init),
-            0.,
-            0.,
+            0.0,
+            0.0,
             np.zeros(problem.n),
             np.zeros(problem.m),
             np.zeros(problem.n),

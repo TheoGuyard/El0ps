@@ -102,7 +102,7 @@ class BnbNode:
     @property
     def card_Sb(self):
         return np.sum(self.Sb)
-    
+
     @property
     def depth(self):
         return self.card_S0 + self.card_S1
@@ -140,8 +140,8 @@ class BnbNode:
             np.copy(self.Sb),
             self.lower_bound,
             self.upper_bound,
-            0.,
-            0.,
+            0.0,
+            0.0,
             np.copy(self.x),
             np.copy(self.w),
             np.copy(self.x_inc),

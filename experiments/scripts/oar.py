@@ -1,5 +1,4 @@
 import argparse
-import numpy as np
 import pathlib
 import random
 import shutil
@@ -33,25 +32,25 @@ experiments = [
                     "dataset_type": "synthetic",
                     "dataset_opts": {
                         "model": "linear",
-                        "k"             : 5,
-                        "m"             : 500,
-                        "n"             : 1_000,
-                        "rho"           : 0.9,
-                        "snr"           : 10.,
-                        "normalize"     : True,
+                        "k": 5,
+                        "m": 500,
+                        "n": 1_000,
+                        "rho": 0.9,
+                        "snr": 10.0,
+                        "normalize": True,
                     },
                     "process_opts": {
-                        "interactions"  : False,
-                        "center"        : True, 
-                        "normalize"     : True, 
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
                     },
-                    "datafit_name"      : "Leastsquares",
-                    "penalty_name"      : "Bigm",
+                    "datafit_name": "Leastsquares",
+                    "penalty_name": "Bigm",
                 },
                 "solvers": {
                     "solvers_name": [
-                        "el0ps[trace=True]", 
-                        "el0ps[trace=True,l0screening=False,dualpruning=False]",
+                        "el0ps[trace=True]",
+                        "el0ps[trace=True,l0screening=False,dualpruning=False]",  # noqa: 501
                     ],
                     "solvers_opts": {
                         "time_limit": 600.0,
@@ -76,26 +75,26 @@ experiments = [
                         "dataset_type": "synthetic",
                         "dataset_opts": {
                             "model": "linear",
-                            "k"             : 5,
-                            "m"             : 500,
-                            "n"             : 1_000,
-                            "rho"           : 0.9,
-                            "snr"           : 10.,
-                            "normalize"     : True,
+                            "k": 5,
+                            "m": 500,
+                            "n": 1_000,
+                            "rho": 0.9,
+                            "snr": 10.0,
+                            "normalize": True,
                         },
                         "process_opts": {
-                            "interactions"  : False,
-                            "center"        : True, 
-                            "normalize"     : True, 
+                            "interactions": False,
+                            "center": True,
+                            "normalize": True,
                         },
-                        "datafit_name"      : "Leastsquares",
-                        "penalty_name"      : "Bigm",
+                        "datafit_name": "Leastsquares",
+                        "penalty_name": "Bigm",
                     },
                     "variations": variations,
                 },
                 "solvers": {
                     "solvers_name": [
-                        "el0ps", 
+                        "el0ps",
                         "el0ps[l0screening=False,dualpruning=False]",
                     ],
                     "solvers_opts": {
@@ -110,7 +109,7 @@ experiments = [
                 {"k": [5, 7, 9, 11, 13, 15]},
                 {"n": [1_000, 1_468, 2_154, 3_162, 4_642, 6_813, 10_000]},
                 {"rho": [0.9, 0.932, 0.954, 0.968, 0.978, 0.985, 0.99]},
-                {"snr": [10., 7.079, 5.012, 3.548, 2.512, 1.778, 1.259]},
+                {"snr": [10.0, 7.079, 5.012, 3.548, 2.512, 1.778, 1.259]},
             ]
         ],
     },
@@ -133,12 +132,12 @@ experiments = [
                     },
                 },
                 "path_opts": {
-                    "lmbd_ratio_max": 1.e-0,
-                    "lmbd_ratio_min": 1.e-5,
+                    "lmbd_ratio_max": 1.0e-0,
+                    "lmbd_ratio_min": 1.0e-5,
                     "lmbd_ratio_num": 101,
                     "stop_if_not_optimal": True,
-                }
-            } 
+                },
+            }
             for solver_name in [
                 "el0ps",
                 "el0ps[l0screening=False,dualpruning=False]",
@@ -152,9 +151,9 @@ experiments = [
                     "dataset_type": "hardcoded",
                     "dataset_opts": {"dataset_name": "lattice"},
                     "process_opts": {
-                        "interactions"  : True,
-                        "center"        : True,
-                        "normalize"     : True,
+                        "interactions": True,
+                        "center": True,
+                        "normalize": True,
                     },
                     "datafit_name": "Leastsquares",
                     "penalty_name": "BigmL1norm",
@@ -163,9 +162,9 @@ experiments = [
                     "dataset_type": "hardcoded",
                     "dataset_opts": {"dataset_name": "riboflavin"},
                     "process_opts": {
-                        "interactions"  : False,
-                        "center"        : True,
-                        "normalize"     : True,
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
                     },
                     "datafit_name": "Leastsquares",
                     "penalty_name": "BigmL2norm",
@@ -174,9 +173,9 @@ experiments = [
                     "dataset_type": "libsvm",
                     "dataset_opts": {"dataset_name": "colon-cancer"},
                     "process_opts": {
-                        "interactions"  : False,
-                        "center"        : True,
-                        "normalize"     : True,
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
                     },
                     "datafit_name": "Logistic",
                     "penalty_name": "BigmL2norm",
@@ -185,14 +184,14 @@ experiments = [
                     "dataset_type": "libsvm",
                     "dataset_opts": {"dataset_name": "duke breast-cancer"},
                     "process_opts": {
-                        "interactions"  : False,
-                        "center"        : True,
-                        "normalize"     : True,
+                        "interactions": False,
+                        "center": True,
+                        "normalize": True,
                     },
                     "datafit_name": "Squaredhinge",
                     "penalty_name": "BigmL2norm",
                 },
-            ]    
+            ]
         ],
     },
 ]
@@ -287,7 +286,9 @@ def oar_make():
                 "source {}/.profile".format(home_dir),
                 "module load conda gurobi cplex",
                 "conda activate el0ps",
-                "python {}/onerun.py {} $*".format(experiments_dir, experiment["name"]),
+                "python {}/onerun.py {} $*".format(
+                    experiments_dir, experiment["name"]
+                ),
             ]
         )
         oar_path = experiment_dir.joinpath("oar.sh")

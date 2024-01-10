@@ -81,8 +81,10 @@ class Path:
         Path fitting data, see `_path_keys` attributes for the keys considered.
     """
 
-    _path_hstr = "   ratio   status     time    nodes  obj. val  los. val  pen. val  n-zero"
-    _path_fstr = "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2e}  {:>7.2e}  {:>7.2e} {:>7}"
+    _path_hstr = "   ratio   status     time    nodes  obj. val  los. val  pen. val  n-zero"  # noqa: E501
+    _path_fstr = (
+        "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2e}  {:>7.2e}  {:>7.2e} {:>7}"
+    )
     _path_keys = [
         "lmbd_ratio",
         "status",

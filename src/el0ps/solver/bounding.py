@@ -44,7 +44,6 @@ class BoundingSolver:
         self.maxiter_outer = maxiter_outer
 
     def setup(self, problem: Problem) -> None:
-
         # Problem data
         self.datafit = problem.datafit
         self.penalty = problem.penalty
@@ -73,7 +72,6 @@ class BoundingSolver:
         l0screening: bool,
         upper: bool = False,
     ):
-        
         start_time = time.time()
 
         # ----- Initialization ----- #
