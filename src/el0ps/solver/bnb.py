@@ -3,7 +3,6 @@
 import numpy as np
 import time
 import sys
-from copy import copy
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
@@ -123,11 +122,17 @@ class BnbSolver(BaseSolver):
         "queue_length",
         "lower_bound",
         "upper_bound",
+        "abs_gap",
+        "rel_gap",
+        "supp_left",
         "node_lower_bound",
         "node_upper_bound",
+        "node_time_lower_bound",
+        "node_time_upper_bound",
         "node_card_S0",
         "node_card_S1",
         "node_card_Sb",
+        "node_depth",
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -165,6 +170,12 @@ class BnbSolver(BaseSolver):
     def queue_length(self):
         """Length of the Branch-and-Bound queue."""
         return len(self.queue)
+
+    @property
+    def supp_left(self):
+        if len(self.queue) == 0:
+            return 0.
+        return sum([2 ** np.count_nonzero(qnode.Sb) for qnode in self.queue]) / (2 ** self.x.size)
 
     def setup(
         self,
@@ -207,9 +218,11 @@ class BnbSolver(BaseSolver):
             np.ones(problem.n, dtype=np.bool_),
             -np.inf,
             problem.value(x_init, w_init),
-            x_init,
-            w_init,
-            np.copy(x_init),
+            0.,
+            0.,
+            np.zeros(problem.n),
+            np.zeros(problem.m),
+            np.zeros(problem.n),
         )
 
         # Add initial fixing constraints to root
@@ -353,12 +366,10 @@ class BnbSolver(BaseSolver):
             jSb = np.argmax(np.abs(node.x[node.Sb]))
             j = np.arange(node.x.size)[node.Sb][jSb]
 
-        node0 = copy(node)
-        node0.fix_to(problem, j, 0)
+        node0 = node.child(problem, j, 0)
         self.queue.append(node0)
 
-        node1 = copy(node)
-        node1.fix_to(problem, j, 1)
+        node1 = node.child(problem, j, 1)
         self.queue.append(node1)
 
     def solve(

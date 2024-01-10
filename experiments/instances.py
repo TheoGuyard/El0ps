@@ -124,7 +124,7 @@ def get_data_hardcoded(dataset_name):
     return A, y, x
 
 
-def process_data(datafit_name, A, y, x_true, interactions, center, normalize):
+def process_data(datafit_name, A, y, x_true, interactions=False, center=False, normalize=False):
     if sparse.issparse(A):
         A = A.todense()
     if not A.flags["F_CONTIGUOUS"] or not A.flags["OWNDATA"]:
@@ -208,13 +208,14 @@ def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
             x = np.array(x.todense()).reshape(n)
             cv = cvfit.cv_means[i][j][0]
             f1 = 0.0 if x_true is None else f1_score(x_true, x)
-            if f1 >= best_f1 and cv < best_cv:
-                best_M = 1.5 * np.max(np.abs(x))
-                best_lmbda = lmbda / m
-                best_gamma = gamma / m
-                best_cv = cv
-                best_f1 = f1
-                best_x = np.copy(x)
+            if (f1 > best_f1) or (x_true is None):
+                if cv < best_cv:
+                    best_M = 1.5 * np.max(np.abs(x))
+                    best_lmbda = lmbda / m
+                    best_gamma = gamma / m
+                    best_cv = cv
+                    best_f1 = f1
+                    best_x = np.copy(x)
 
     if penalty_name == "Bigm":
         penalty = Bigm(best_M)

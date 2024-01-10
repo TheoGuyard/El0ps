@@ -81,8 +81,8 @@ class Path:
         Path fitting data, see `_path_keys` attributes for the keys considered.
     """
 
-    _path_hstr = "   ratio   status     time    nodes    value     nnz"
-    _path_fstr = "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2f} {:>7}"
+    _path_hstr = "   ratio   status     time    nodes  obj. val  los. val  pen. val  n-zero"
+    _path_fstr = "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2e}  {:>7.2e}  {:>7.2e} {:>7}"
     _path_keys = [
         "lmbd_ratio",
         "status",
@@ -100,11 +100,11 @@ class Path:
         self.options = PathOptions(**kwargs)
         self.fit_data = {k: [] for k in self._path_keys}
 
-    def _display_path_head(self) -> None:
+    def display_path_head(self) -> None:
         ruler = "-" * len(self._path_hstr)
         print(f"{ruler}\n{self._path_hstr}\n{ruler}")
 
-    def _display_path_info(self) -> None:
+    def display_path_info(self) -> None:
         path_istr = self._path_fstr.format(
             *[
                 self.fit_data[k][-1]
@@ -114,16 +114,18 @@ class Path:
                     "solve_time",
                     "iter_count",
                     "objective_value",
+                    "datafit_value",
+                    "penalty_value",
                     "n_nnz",
                 ]
             ]
         )
         print(path_istr)
 
-    def _display_path_foot(self) -> None:
+    def display_path_foot(self) -> None:
         print("-" * len(self._path_hstr))
 
-    def _can_continue(self) -> bool:
+    def can_continue(self) -> bool:
         if (
             self.options.stop_if_not_optimal
             and not self.fit_data["status"][-1] == Status.OPTIMAL
@@ -133,7 +135,7 @@ class Path:
             return False
         return True
 
-    def _fill_fit_data(
+    def fill_fit_data(
         self, lmbd_ratio: float, problem: Problem, results: Results
     ) -> None:
         for k in self._path_keys:
@@ -175,7 +177,7 @@ class Path:
         """
 
         if self.options.verbose:
-            self._display_path_head()
+            self.display_path_head()
 
         lmbd_ratio_grid = np.logspace(
             np.log10(self.options.lmbd_ratio_max),
@@ -189,14 +191,14 @@ class Path:
             problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
             results = solver.solve(problem, x_init=x_init)
             x_init = np.copy(results.x)
-            self._fill_fit_data(lmbd_ratio, problem, results)
+            self.fill_fit_data(lmbd_ratio, problem, results)
             if self.options.verbose:
-                self._display_path_info()
-            if not self._can_continue():
+                self.display_path_info()
+            if not self.can_continue():
                 break
 
         if self.options.verbose:
-            self._display_path_foot()
+            self.display_path_foot()
 
         return self.fit_data
 

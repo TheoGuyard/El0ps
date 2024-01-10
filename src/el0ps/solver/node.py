@@ -40,6 +40,8 @@ class BnbNode:
         Sb: NDArray,
         lower_bound: float,
         upper_bound: float,
+        time_lower_bound: float,
+        time_upper_bound: float,
         x: NDArray,
         w: NDArray,
         x_inc: NDArray,
@@ -50,6 +52,8 @@ class BnbNode:
         self.Sb = Sb
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+        self.time_lower_bound = time_lower_bound
+        self.time_upper_bound = time_upper_bound
         self.x = x
         self.w = w
         self.x_inc = x_inc
@@ -73,6 +77,8 @@ class BnbNode:
             np.copy(self.Sb),
             self.lower_bound,
             self.upper_bound,
+            self.time_lower_bound,
+            self.time_upper_bound,
             np.copy(self.x),
             np.copy(self.w),
             np.copy(self.x_inc),
@@ -96,6 +102,10 @@ class BnbNode:
     @property
     def card_Sb(self):
         return np.sum(self.Sb)
+    
+    @property
+    def depth(self):
+        return self.card_S0 + self.card_S1
 
     def fix_to(self, problem: Problem, idx: int, val: bool):
         """Fix an extry of the node to zero or non-zero. Update the
@@ -113,12 +123,28 @@ class BnbNode:
         """
         self.Sb[idx] = False
         if val:
-            self.S1[idx] = True
             self.category = 1
+            self.S1[idx] = True
         else:
-            self.S0[idx] = True
             self.category = 0
+            self.S0[idx] = True
             if self.x[idx] != 0.0:
                 self.w -= self.x[idx] * problem.A[:, idx]
-                self.u = -problem.datafit.gradient(self.w)
                 self.x[idx] = 0.0
+
+    def child(self, problem: Problem, idx: int, val: bool):
+        child = BnbNode(
+            int(val),
+            np.copy(self.S0),
+            np.copy(self.S1),
+            np.copy(self.Sb),
+            self.lower_bound,
+            self.upper_bound,
+            0.,
+            0.,
+            np.copy(self.x),
+            np.copy(self.w),
+            np.copy(self.x_inc),
+        )
+        child.fix_to(problem, idx, val)
+        return child
