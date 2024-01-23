@@ -71,7 +71,7 @@ def onerun_perfprofile(config_path, nosave=False):
             result = None
         results[solver_name] = result
 
-    if not nosave:
+    if not nosave and any(results.values()):
         print("Saving results...")
         base_dir = pathlib.Path(__file__).parent.absolute()
         result_dir = pathlib.Path(base_dir, "results")
@@ -248,7 +248,7 @@ def onerun_regpath(config_path, nosave=False):
             result = None
         results[solver_name] = result
 
-    if not nosave:
+    if not nosave and any(results.values()):
         print("Saving results...")
         base_dir = pathlib.Path(__file__).parent.absolute()
         result_dir = pathlib.Path(base_dir, "results")

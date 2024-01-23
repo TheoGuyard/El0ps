@@ -12,7 +12,6 @@ dataset:
       snr         : 10.
       normalize   : true
     process_opts: 
-      interactions  : false
       center        : true
       normalize     : true
     datafit_name: Leastsquares

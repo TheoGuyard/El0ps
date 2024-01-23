@@ -3,19 +3,17 @@ expname: regpath
 dataset:
   dataset_type: hardcoded
   dataset_opts: 
-    dataset_name  : lattice
+    dataset_name  : arcene
   process_opts: 
-    interactions  : true
     center        : true
     normalize     : true
-  datafit_name: Leastsquares
-  penalty_name: BigmL1norm
+  datafit_name: Squaredhinge
+  penalty_name: BigmL2norm
 
 solvers:
   solvers_name:
     - el0ps
     - el0ps[l0screening=False,dualpruning=False]
-    - sbnb
     - l0bnb
     - cplex
     - gurobi
@@ -28,6 +26,6 @@ solvers:
 
 path_opts:
   lmbd_ratio_max: 1.e-0
-  lmbd_ratio_min: 1.e-3
-  lmbd_ratio_num: 61
+  lmbd_ratio_min: 1.e-5
+  lmbd_ratio_num: 101
   stop_if_not_optimal: true

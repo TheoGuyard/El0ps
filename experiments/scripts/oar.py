@@ -1,11 +1,15 @@
 import argparse
+import os
 import pathlib
 import random
 import shutil
 import string
 import subprocess
+import sys
 import yaml
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from exp import get_exp  # noqa E402
 
 src_path = "~/Documents/Github/El0ps"
 dst_path = "tguyard@access.grid5000.fr:rennes/gits"
@@ -19,182 +23,7 @@ run_file = "run.sh"
 run_path = script_dir.joinpath(run_file)
 
 
-experiments = [
-    {
-        "name": "perfprofile",
-        "walltime": "00:30:00",
-        "besteffort": True,
-        "production": True,
-        "setups": [
-            {
-                "expname": "perfprofile",
-                "dataset": {
-                    "dataset_type": "synthetic",
-                    "dataset_opts": {
-                        "model": "linear",
-                        "k": 5,
-                        "m": 500,
-                        "n": 1_000,
-                        "rho": 0.9,
-                        "snr": 10.0,
-                        "normalize": True,
-                    },
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "Bigm",
-                },
-                "solvers": {
-                    "solvers_name": [
-                        "el0ps[trace=True]",
-                        "el0ps[trace=True,l0screening=False,dualpruning=False]",  # noqa: 501
-                    ],
-                    "solvers_opts": {
-                        "time_limit": 600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-            }
-        ],
-    },
-    {
-        "name": "sensibility",
-        "walltime": "12:00:00",
-        "besteffort": True,
-        "production": True,
-        "setups": [
-            {
-                "expname": "sensibility",
-                "dataset": {
-                    "base": {
-                        "dataset_type": "synthetic",
-                        "dataset_opts": {
-                            "model": "linear",
-                            "k": 5,
-                            "m": 500,
-                            "n": 1_000,
-                            "rho": 0.9,
-                            "snr": 10.0,
-                            "normalize": True,
-                        },
-                        "process_opts": {
-                            "interactions": False,
-                            "center": True,
-                            "normalize": True,
-                        },
-                        "datafit_name": "Leastsquares",
-                        "penalty_name": "Bigm",
-                    },
-                    "variations": variations,
-                },
-                "solvers": {
-                    "solvers_name": [
-                        "el0ps",
-                        "el0ps[l0screening=False,dualpruning=False]",
-                    ],
-                    "solvers_opts": {
-                        "time_limit": 3600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-            }
-            for variations in [
-                {"k": [5, 7, 9, 11, 13, 15]},
-                {"n": [1_000, 1_468, 2_154, 3_162, 4_642, 6_813, 10_000]},
-                {"rho": [0.9, 0.932, 0.954, 0.968, 0.978, 0.985, 0.99]},
-                {"snr": [10.0, 7.079, 5.012, 3.548, 2.512, 1.778, 1.259]},
-            ]
-        ],
-    },
-    {
-        "name": "regpath",
-        "walltime": "12:00:00",
-        "besteffort": False,
-        "production": True,
-        "setups": [
-            {
-                "expname": "regpath",
-                "dataset": dataset,
-                "solvers": {
-                    "solvers_name": [solver_name],
-                    "solvers_opts": {
-                        "time_limit": 3600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-                "path_opts": {
-                    "lmbd_ratio_max": 1.0e-0,
-                    "lmbd_ratio_min": 1.0e-5,
-                    "lmbd_ratio_num": 101,
-                    "stop_if_not_optimal": True,
-                },
-            }
-            for solver_name in [
-                "el0ps",
-                "el0ps[l0screening=False,dualpruning=False]",
-                "l0bnb",
-                "cplex",
-                "gurobi",
-                "mosek",
-            ]
-            for dataset in [
-                {
-                    "dataset_type": "hardcoded",
-                    "dataset_opts": {"dataset_name": "lattice"},
-                    "process_opts": {
-                        "interactions": True,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "BigmL1norm",
-                },
-                {
-                    "dataset_type": "hardcoded",
-                    "dataset_opts": {"dataset_name": "riboflavin"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "BigmL2norm",
-                },
-                {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {"dataset_name": "colon-cancer"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Logistic",
-                    "penalty_name": "BigmL2norm",
-                },
-                {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {"dataset_name": "duke breast-cancer"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Squaredhinge",
-                    "penalty_name": "BigmL2norm",
-                },
-            ]
-        ],
-    },
-]
+experiments = [get_exp(exp_name) for exp_name in ["perfprofile", "regpath"]]
 
 
 def oar_send():

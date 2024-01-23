@@ -124,23 +124,11 @@ def get_data_hardcoded(dataset_name):
     return A, y, x
 
 
-def process_data(
-    datafit_name,
-    A,
-    y,
-    x_true,
-    interactions=False,
-    center=False,
-    normalize=False,
-):
+def process_data(datafit_name, A, y, x_true, center=False, normalize=False):
     if sparse.issparse(A):
         A = A.todense()
     if not A.flags["F_CONTIGUOUS"] or not A.flags["OWNDATA"]:
         A = np.array(A, order="F")
-    if interactions:
-        t = np.triu_indices(A.shape[1], k=1)
-        A = np.multiply(A[:, t[0]], A[:, t[1]])
-        x_true = None
     zero_columns = np.abs(np.linalg.norm(A, axis=0)) < 1e-7
     if np.any(zero_columns):
         A = np.array(A[:, np.logical_not(zero_columns)], order="F")

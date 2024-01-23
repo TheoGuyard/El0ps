@@ -326,25 +326,6 @@ class GurobiSolver(BaseSolver):
             f1_var = model.addMVar(problem.m, vtype="C", name="f1", lb=-np.inf)
             model.addConstr(f1_var == problem.datafit.y - problem.A @ x_var)
             model.addConstr(f_var >= (f1_var @ f1_var) / (2.0 * problem.m))
-        elif str(problem.datafit) == "Logistic":
-            f1_var = model.addMVar(problem.m, vtype="C", name="f1", lb=-np.inf)
-            f2_var = model.addMVar(problem.m, vtype="C", name="f2", lb=-np.inf)
-            f3_var = model.addMVar(problem.m, vtype="C", name="f3", lb=0.0)
-            f4_var = model.addMVar(problem.m, vtype="C", name="f4", lb=-np.inf)
-            model.addConstr(f1_var >= -f2_var)
-            model.addConstr(f4_var == problem.datafit.y * (problem.A @ x_var))
-            for i in range(problem.m):
-                model.addGenConstrLog(
-                    f3_var[i],
-                    f2_var[i],
-                    "FuncPieces=-2 FuncPieceError=1e-8 FuncPieceRatio=0",
-                )
-                model.addGenConstrLogistic(
-                    f4_var[i],
-                    f3_var[i],
-                    "FuncPieces=-2 FuncPieceError=1e-8 FuncPieceRatio=0",
-                )
-            model.addConstr(f_var >= gp.quicksum(f1_var) / problem.m)
         elif str(problem.datafit) == "Squaredhinge":
             f1_var = model.addMVar(problem.m, vtype="C", name="f1", lb=-np.inf)
             f2_var = model.addMVar(problem.m, vtype="C", name="f2", lb=-np.inf)
@@ -1282,7 +1263,6 @@ def can_handle(solver_name, datafit_name, penalty_name):
     elif solver_name == "gurobi":
         handle_datafit = datafit_name in [
             "Leastsquares",
-            "Logistic",
             "Squaredhinge",
         ]
         handle_penalty = penalty_name in [

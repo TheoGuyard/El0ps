@@ -29,6 +29,7 @@ def graphic_perfprofile(config_path, save=False):
 
     found = 0
     match = 0
+    empty = 0
     notcv = 0
     for result_path in results_dir.glob("perfprofile_*.pickle"):
         found += 1
@@ -36,6 +37,9 @@ def graphic_perfprofile(config_path, save=False):
             file_data = pickle.load(file)
             if file_data["config"] == config:
                 match += 1
+                if not any(file_data["results"].values()):
+                    empty += 1
+                    continue
                 for solver_name, result in file_data["results"].items():
                     if result is not None:
                         if result.status == Status.OPTIMAL:
@@ -64,9 +68,10 @@ def graphic_perfprofile(config_path, save=False):
 
     print("  {} files founds".format(found))
     print("  {} files matched".format(match))
+    print("  {} empty results".format(empty))
     print("  {} not converged".format(notcv))
 
-    if match == 0:
+    if (match == 0) or (match == empty):
         return
 
     print("Computing statistics...")
@@ -283,121 +288,121 @@ def graphic_perfprofile(config_path, save=False):
         plt.show()
 
 
-def graphic_sensibility(config_path, save=False):
-    config_path = pathlib.Path(config_path)
-    with open(config_path, "r") as stream:
-        config = yaml.load(stream, Loader=yaml.Loader)
+# def graphic_sensibility(config_path, save=False):
+#     config_path = pathlib.Path(config_path)
+#     with open(config_path, "r") as stream:
+#         config = yaml.load(stream, Loader=yaml.Loader)
 
-    print("Recovering results...")
-    results_dir = pathlib.Path(__file__).parent.absolute().joinpath("results")
+#     print("Recovering results...")
+#     results_dir = pathlib.Path(__file__).parent.absolute().joinpath("results")  # noqa E501
 
-    stats_specs = {
-        "solve_time": {"log": True, "ratio": None},
-        "iter_count": {"log": True, "ratio": None},
-        # "solve_time": {"log": False, "ratio": "el0ps"},
-        # "iter_count": {"log": False, "ratio": "el0ps"},
-    }
-    stats = {
-        param_key: {
-            stat_key: {
-                solver_key: {param_value: [] for param_value in param_values}
-                for solver_key in config["solvers"]["solvers_name"]
-            }
-            for stat_key in stats_specs.keys()
-        }
-        for param_key, param_values in config["dataset"]["variations"].items()
-    }
-    found = 0
-    match = 0
-    notcv = 0
-    for result_path in results_dir.glob("sensibility_*.pickle"):
-        found += 1
-        with open(result_path, "rb") as file:
-            file_data = pickle.load(file)
-            if file_data["config"] == config:
-                match += 1
-                for param_key, param_values in config["dataset"][
-                    "variations"
-                ].items():
-                    for param_value in param_values:
-                        for solver_key, result in file_data["results"][
-                            param_key
-                        ][param_value].items():
-                            if result is not None:
-                                if result.status == Status.OPTIMAL:
-                                    for stat_key in stats_specs.keys():
-                                        stats[param_key][stat_key][solver_key][
-                                            param_value
-                                        ].append(getattr(result, stat_key))
-                                else:
-                                    notcv += 1
+#     stats_specs = {
+#         "solve_time": {"log": True, "ratio": None},
+#         "iter_count": {"log": True, "ratio": None},
+#         # "solve_time": {"log": False, "ratio": "el0ps"},
+#         # "iter_count": {"log": False, "ratio": "el0ps"},
+#     }
+#     stats = {
+#         param_key: {
+#             stat_key: {
+#                 solver_key: {param_value: [] for param_value in param_values}
+#                 for solver_key in config["solvers"]["solvers_name"]
+#             }
+#             for stat_key in stats_specs.keys()
+#         }
+#         for param_key, param_values in config["dataset"]["variations"].items()  # noqa E501
+#     }
+#     found = 0
+#     match = 0
+#     notcv = 0
+#     for result_path in results_dir.glob("sensibility_*.pickle"):
+#         found += 1
+#         with open(result_path, "rb") as file:
+#             file_data = pickle.load(file)
+#             if file_data["config"] == config:
+#                 match += 1
+#                 for param_key, param_values in config["dataset"][
+#                     "variations"
+#                 ].items():
+#                     for param_value in param_values:
+#                         for solver_key, result in file_data["results"][
+#                             param_key
+#                         ][param_value].items():
+#                             if result is not None:
+#                                 if result.status == Status.OPTIMAL:
+#                                     for stat_key in stats_specs.keys():
+#                                         stats[param_key][stat_key][solver_key][
+#                                             param_value
+#                                         ].append(getattr(result, stat_key))
+#                                 else:
+#                                     notcv += 1
 
-    print("  {} files founds".format(found))
-    print("  {} files matched".format(match))
-    print("  {} not converged".format(notcv))
+#     print("  {} files founds".format(found))
+#     print("  {} files matched".format(match))
+#     print("  {} not converged".format(notcv))
 
-    if match == 0:
-        return
+#     if match == 0:
+#         return
 
-    curves = {
-        param_key: {
-            stat_key: {
-                solver_key: [
-                    np.mean(solver_value)
-                    for solver_value in solver_values.values()
-                ]
-                for solver_key, solver_values in stat_values.items()
-            }
-            for stat_key, stat_values in param_values.items()
-        }
-        for param_key, param_values in stats.items()
-    }
+#     curves = {
+#         param_key: {
+#             stat_key: {
+#                 solver_key: [
+#                     np.mean(solver_value)
+#                     for solver_value in solver_values.values()
+#                 ]
+#                 for solver_key, solver_values in stat_values.items()
+#             }
+#             for stat_key, stat_values in param_values.items()
+#         }
+#         for param_key, param_values in stats.items()
+#     }
 
-    if save:
-        print("Saving data...")
-        save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-        save_file = "{}_{}.csv".format(config["expname"], save_uuid)
-        info_file = "{}_{}.yaml".format(config["expname"], save_uuid)
-        table = pd.DataFrame()
-        for param_key, param_values in curves.items():
-            table[param_key] = config["dataset"]["variations"][param_key]
-            for stat_key, stat_values in param_values.items():
-                for solver_key, solver_values in stat_values.items():
-                    table[stat_key + "_" + solver_key] = solver_values
-        save_path = pathlib.Path(__file__).parent.joinpath("saves", save_file)
-        info_path = pathlib.Path(__file__).parent.joinpath("saves", info_file)
-        table.to_csv(save_path, index=False)
-        with open(info_path, "w") as file:
-            yaml.dump(config, file)
-    else:
-        print("Plotting figure...")
-        _, axs = plt.subplots(len(stats_specs), len(curves), squeeze=False)
-        for j, (param_key, param_values) in enumerate(curves.items()):
-            for i, (stat_key, stat_values) in enumerate(param_values.items()):
-                if stats_specs[stat_key]["ratio"] is not None:
-                    reference = np.array(
-                        stat_values[stats_specs[stat_key]["ratio"]]
-                    )
-                else:
-                    reference = 1.0
-                for solver_key, solver_values in stat_values.items():
-                    axs[i, j].plot(
-                        config["dataset"]["variations"][param_key],
-                        np.array(solver_values) / reference,
-                        label=solver_key,
-                        marker=".",
-                    )
-                if stats_specs[stat_key]["log"]:
-                    axs[i, j].set_yscale("log")
-                axs[i, j].grid(visible=True, which="major", axis="both")
-                axs[i, j].grid(
-                    visible=True, which="minor", axis="both", alpha=0.2
-                )
-                axs[i, j].minorticks_on()
-                axs[i, 0].set_ylabel(stat_key)
-            axs[-1, j].set_xlabel(param_key)
-        axs[0, 0].legend()
-        plt.show()
+#     if save:
+#         print("Saving data...")
+#         save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
+#         save_file = "{}_{}.csv".format(config["expname"], save_uuid)
+#         info_file = "{}_{}.yaml".format(config["expname"], save_uuid)
+#         table = pd.DataFrame()
+#         for param_key, param_values in curves.items():
+#             table[param_key] = config["dataset"]["variations"][param_key]
+#             for stat_key, stat_values in param_values.items():
+#                 for solver_key, solver_values in stat_values.items():
+#                     table[stat_key + "_" + solver_key] = solver_values
+#         save_path = pathlib.Path(__file__).parent.joinpath("saves", save_file)  # noqa E501
+#         info_path = pathlib.Path(__file__).parent.joinpath("saves", info_file)  # noqa E501
+#         table.to_csv(save_path, index=False)
+#         with open(info_path, "w") as file:
+#             yaml.dump(config, file)
+#     else:
+#         print("Plotting figure...")
+#         _, axs = plt.subplots(len(stats_specs), len(curves), squeeze=False)
+#         for j, (param_key, param_values) in enumerate(curves.items()):
+#             for i, (stat_key, stat_values) in enumerate(param_values.items()):  # noqa E501
+#                 if stats_specs[stat_key]["ratio"] is not None:
+#                     reference = np.array(
+#                         stat_values[stats_specs[stat_key]["ratio"]]
+#                     )
+#                 else:
+#                     reference = 1.0
+#                 for solver_key, solver_values in stat_values.items():
+#                     axs[i, j].plot(
+#                         config["dataset"]["variations"][param_key],
+#                         np.array(solver_values) / reference,
+#                         label=solver_key,
+#                         marker=".",
+#                     )
+#                 if stats_specs[stat_key]["log"]:
+#                     axs[i, j].set_yscale("log")
+#                 axs[i, j].grid(visible=True, which="major", axis="both")
+#                 axs[i, j].grid(
+#                     visible=True, which="minor", axis="both", alpha=0.2
+#                 )
+#                 axs[i, j].minorticks_on()
+#                 axs[i, 0].set_ylabel(stat_key)
+#             axs[-1, j].set_xlabel(param_key)
+#         axs[0, 0].legend()
+#         plt.show()
 
 
 def graphic_regpath(config_path, save=False):
@@ -416,10 +421,8 @@ def graphic_regpath(config_path, save=False):
     )
     stats_specs = {
         "solve_time": {"log": True, "ratio": None},
-        # "iter_count": {"log": True, "ratio": None},
         "objective_value": {"log": False, "ratio": None},
-        # "datafit_value": {"log": False, "ratio": None},
-        # "penalty_value": {"log": False, "ratio": None},
+        "datafit_value": {"log": False, "ratio": None},
         "n_nnz": {"log": False, "ratio": None},
     }
     stats = {
@@ -432,6 +435,7 @@ def graphic_regpath(config_path, save=False):
 
     found = 0
     match = 0
+    empty = 0
     notcv = 0
     for result_path in result_dir.glob("regpath_*.pickle"):
         found += 1
@@ -445,6 +449,9 @@ def graphic_regpath(config_path, save=False):
                 and file_data["config"]["path_opts"] == config["path_opts"]
             ):
                 match += 1
+                if not any(file_data["results"].values()):
+                    empty += 1
+                    continue
                 for solver_name, result in file_data["results"].items():
                     if result is not None:
                         for i in range(lmbd_ratio_grid.size):
@@ -462,9 +469,12 @@ def graphic_regpath(config_path, save=False):
 
     print("  {} files founds".format(found))
     print("  {} files matched".format(match))
+    print("  {} empty results".format(empty))
     print("  {} solvers not converged".format(notcv))
+    for k, v in stats["solve_time"].items():
+        print("{} : {}".format(k, len(v[0])))
 
-    if match == 0:
+    if (match == 0) or (match == empty):
         return
 
     mean_stats = {
@@ -529,8 +539,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.task == "perfprofile":
         graphic_perfprofile(args.config_path, save=args.save)
-    elif args.task == "sensibility":
-        graphic_sensibility(args.config_path, save=args.save)
     elif args.task == "regpath":
         graphic_regpath(args.config_path, save=args.save)
     else:
