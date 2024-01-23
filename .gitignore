@@ -35,3 +35,4 @@ htmlcov
 **/saves/*.csv
 experiments/scripts/**
 !experiments/scripts/oar.py
+!experiments/scripts/exp.py
