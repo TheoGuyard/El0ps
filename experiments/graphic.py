@@ -166,7 +166,7 @@ def graphic_perfprofile(config_path, save=False):
     #             profile_supps_nodes[solver_name].append(np.mean(stat))
 
     # grid_relax_times = np.logspace(
-    #     np.floor(np.log10(np.min([np.min(v) for v in relax_times.values()]))),
+    #     np.floor(np.log10(np.min([np.min(v) for v in relax_times.values()]))),  # noqa 501
     #     np.ceil(np.log10(np.max([np.max(v) for v in relax_times.values()]))),
     #     100,
     # )
