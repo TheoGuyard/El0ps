@@ -22,10 +22,10 @@ def graphic_perfprofile(config_path, save=False):
 
     solve_times = {s: [] for s in config["solvers"]["solvers_name"]}
     solve_nodes = {s: [] for s in config["solvers"]["solvers_name"]}
-    supps_times = {s: [] for s in config["solvers"]["solvers_name"]}
-    supps_nodes = {s: [] for s in config["solvers"]["solvers_name"]}
-    relax_times = {s: [] for s in config["solvers"]["solvers_name"]}
-    depth_nodes = {s: [] for s in config["solvers"]["solvers_name"]}
+    # supps_times = {s: [] for s in config["solvers"]["solvers_name"]}
+    # supps_nodes = {s: [] for s in config["solvers"]["solvers_name"]}
+    # relax_times = {s: [] for s in config["solvers"]["solvers_name"]}
+    # depth_nodes = {s: [] for s in config["solvers"]["solvers_name"]}
 
     found = 0
     match = 0
@@ -45,24 +45,24 @@ def graphic_perfprofile(config_path, save=False):
                         if result.status == Status.OPTIMAL:
                             solve_times[solver_name].append(result.solve_time)
                             solve_nodes[solver_name].append(result.iter_count)
-                            supps_times[solver_name] += list(
-                                zip(
-                                    result.trace["solve_time"],
-                                    result.trace["supp_left"],
-                                )
-                            )
-                            supps_nodes[solver_name] += list(
-                                zip(
-                                    result.trace["iter_count"],
-                                    result.trace["supp_left"],
-                                )
-                            )
-                            relax_times[solver_name] += result.trace[
-                                "node_time_lower_bound"
-                            ]
-                            depth_nodes[solver_name] += result.trace[
-                                "node_depth"
-                            ]
+                            # supps_times[solver_name] += list(
+                            #     zip(
+                            #         result.trace["solve_time"],
+                            #         result.trace["supp_left"],
+                            #     )
+                            # )
+                            # supps_nodes[solver_name] += list(
+                            #     zip(
+                            #         result.trace["iter_count"],
+                            #         result.trace["supp_left"],
+                            #     )
+                            # )
+                            # relax_times[solver_name] += result.trace[
+                            #     "node_time_lower_bound"
+                            # ]
+                            # depth_nodes[solver_name] += result.trace[
+                            #     "node_depth"
+                            # ]
                         else:
                             notcv += 1
 
@@ -85,40 +85,40 @@ def graphic_perfprofile(config_path, save=False):
         for solver_name, stats in solve_times.items()
     }
 
-    grid_supps_times = np.logspace(
-        np.floor(
-            np.log10(
-                np.min(
-                    [
-                        np.min([st for (st, _) in v])
-                        for v in supps_times.values()
-                    ]
-                )
-            )
-        ),
-        np.ceil(
-            np.log10(
-                np.max(
-                    [
-                        np.max([st for (st, _) in v])
-                        for v in supps_times.values()
-                    ]
-                )
-            )
-        ),
-        100,
-    )
-    profile_supps_times = {}
-    for solver_name, stats in supps_times.items():
-        profile_supps_times[solver_name] = []
-        for g in grid_supps_times:
-            stat = [sl for (st, sl) in stats if st <= g]
-            if len(stat) == 0:
-                profile_supps_times[solver_name].append(1.0)
-            elif len(stat) == len(stats):
-                profile_supps_times[solver_name].append(0.0)
-            else:
-                profile_supps_times[solver_name].append(np.mean(stat))
+    # grid_supps_times = np.logspace(
+    #     np.floor(
+    #         np.log10(
+    #             np.min(
+    #                 [
+    #                     np.min([st for (st, _) in v])
+    #                     for v in supps_times.values()
+    #                 ]
+    #             )
+    #         )
+    #     ),
+    #     np.ceil(
+    #         np.log10(
+    #             np.max(
+    #                 [
+    #                     np.max([st for (st, _) in v])
+    #                     for v in supps_times.values()
+    #                 ]
+    #             )
+    #         )
+    #     ),
+    #     100,
+    # )
+    # profile_supps_times = {}
+    # for solver_name, stats in supps_times.items():
+    #     profile_supps_times[solver_name] = []
+    #     for g in grid_supps_times:
+    #         stat = [sl for (st, sl) in stats if st <= g]
+    #         if len(stat) == 0:
+    #             profile_supps_times[solver_name].append(1.0)
+    #         elif len(stat) == len(stats):
+    #             profile_supps_times[solver_name].append(0.0)
+    #         else:
+    #             profile_supps_times[solver_name].append(np.mean(stat))
 
     grid_solve_nodes = np.logspace(
         np.floor(np.log10(np.min([np.min(v) for v in solve_nodes.values()]))),
@@ -130,62 +130,62 @@ def graphic_perfprofile(config_path, save=False):
         for solver_name, stats in solve_nodes.items()
     }
 
-    grid_supps_nodes = np.logspace(
-        np.floor(
-            np.log10(
-                np.min(
-                    [
-                        np.min([nc for (nc, _) in v])
-                        for v in supps_nodes.values()
-                    ]
-                )
-            )
-        ),
-        np.ceil(
-            np.log10(
-                np.max(
-                    [
-                        np.max([nc for (nc, _) in v])
-                        for v in supps_nodes.values()
-                    ]
-                )
-            )
-        ),
-        100,
-    )
-    profile_supps_nodes = {}
-    for solver_name, stats in supps_nodes.items():
-        profile_supps_nodes[solver_name] = []
-        for g in grid_supps_nodes:
-            stat = [sl for (nc, sl) in stats if nc <= g]
-            if len(stat) == 0:
-                profile_supps_nodes[solver_name].append(1.0)
-            elif len(stat) == len(stats):
-                profile_supps_nodes[solver_name].append(0.0)
-            else:
-                profile_supps_nodes[solver_name].append(np.mean(stat))
+    # grid_supps_nodes = np.logspace(
+    #     np.floor(
+    #         np.log10(
+    #             np.min(
+    #                 [
+    #                     np.min([nc for (nc, _) in v])
+    #                     for v in supps_nodes.values()
+    #                 ]
+    #             )
+    #         )
+    #     ),
+    #     np.ceil(
+    #         np.log10(
+    #             np.max(
+    #                 [
+    #                     np.max([nc for (nc, _) in v])
+    #                     for v in supps_nodes.values()
+    #                 ]
+    #             )
+    #         )
+    #     ),
+    #     100,
+    # )
+    # profile_supps_nodes = {}
+    # for solver_name, stats in supps_nodes.items():
+    #     profile_supps_nodes[solver_name] = []
+    #     for g in grid_supps_nodes:
+    #         stat = [sl for (nc, sl) in stats if nc <= g]
+    #         if len(stat) == 0:
+    #             profile_supps_nodes[solver_name].append(1.0)
+    #         elif len(stat) == len(stats):
+    #             profile_supps_nodes[solver_name].append(0.0)
+    #         else:
+    #             profile_supps_nodes[solver_name].append(np.mean(stat))
 
-    grid_relax_times = np.logspace(
-        np.floor(np.log10(np.min([np.min(v) for v in relax_times.values()]))),
-        np.ceil(np.log10(np.max([np.max(v) for v in relax_times.values()]))),
-        100,
-    )
-    profile_relax_times = {
-        solver_name: [np.mean(stats <= g) for g in grid_relax_times]
-        for solver_name, stats in relax_times.items()
-    }
+    # grid_relax_times = np.logspace(
+    #     np.floor(np.log10(np.min([np.min(v) for v in relax_times.values()]))),
+    #     np.ceil(np.log10(np.max([np.max(v) for v in relax_times.values()]))),
+    #     100,
+    # )
+    # profile_relax_times = {
+    #     solver_name: [np.mean(stats <= g) for g in grid_relax_times]
+    #     for solver_name, stats in relax_times.items()
+    # }
 
-    grid_depth_nodes = np.array(
-        range(
-            np.min([np.min(v) for v in depth_nodes.values()]),
-            np.max([np.max(v) for v in depth_nodes.values()]) + 1,
-            1,
-        )
-    )
-    profile_depth_nodes = {
-        solver_name: [np.mean(stats <= g) for g in grid_depth_nodes]
-        for solver_name, stats in depth_nodes.items()
-    }
+    # grid_depth_nodes = np.array(
+    #     range(
+    #         np.min([np.min(v) for v in depth_nodes.values()]),
+    #         np.max([np.max(v) for v in depth_nodes.values()]) + 1,
+    #         1,
+    #     )
+    # )
+    # profile_depth_nodes = {
+    #     solver_name: [np.mean(stats <= g) for g in grid_depth_nodes]
+    #     for solver_name, stats in depth_nodes.items()
+    # }
 
     if save:
         print("Saving data...")
@@ -199,22 +199,22 @@ def graphic_perfprofile(config_path, save=False):
                 "grid": grid_solve_nodes,
                 "profile": profile_solve_nodes,
             },
-            "supps_times": {
-                "grid": grid_supps_times,
-                "profile": profile_supps_times,
-            },
-            "supps_nodes": {
-                "grid": grid_supps_nodes,
-                "profile": profile_supps_nodes,
-            },
-            "relax_times": {
-                "grid": grid_relax_times,
-                "profile": profile_relax_times,
-            },
-            "depth_nodes": {
-                "grid": grid_depth_nodes,
-                "profile": profile_depth_nodes,
-            },
+            # "supps_times": {
+            #     "grid": grid_supps_times,
+            #     "profile": profile_supps_times,
+            # },
+            # "supps_nodes": {
+            #     "grid": grid_supps_nodes,
+            #     "profile": profile_supps_nodes,
+            # },
+            # "relax_times": {
+            #     "grid": grid_relax_times,
+            #     "profile": profile_relax_times,
+            # },
+            # "depth_nodes": {
+            #     "grid": grid_depth_nodes,
+            #     "profile": profile_depth_nodes,
+            # },
         }
         for stat_name, stat_vars in stats.items():
             table = pd.DataFrame({"grid": stat_vars["grid"]})
@@ -241,31 +241,31 @@ def graphic_perfprofile(config_path, save=False):
                 profile_solve_times[solver_name],
                 label=solver_name,
             )
-            axs[0, 1].plot(
-                grid_supps_times,
-                profile_supps_times[solver_name],
-                label=solver_name,
-            )
+            # axs[0, 1].plot(
+            #     grid_supps_times,
+            #     profile_supps_times[solver_name],
+            #     label=solver_name,
+            # )
             axs[0, 2].plot(
                 grid_solve_nodes,
                 profile_solve_nodes[solver_name],
                 label=solver_name,
             )
-            axs[0, 3].plot(
-                grid_supps_nodes,
-                profile_supps_nodes[solver_name],
-                label=solver_name,
-            )
-            axs[0, 4].plot(
-                grid_relax_times,
-                profile_relax_times[solver_name],
-                label=solver_name,
-            )
-            axs[0, 5].plot(
-                grid_depth_nodes,
-                profile_depth_nodes[solver_name],
-                label=solver_name,
-            )
+            # axs[0, 3].plot(
+            #     grid_supps_nodes,
+            #     profile_supps_nodes[solver_name],
+            #     label=solver_name,
+            # )
+            # axs[0, 4].plot(
+            #     grid_relax_times,
+            #     profile_relax_times[solver_name],
+            #     label=solver_name,
+            # )
+            # axs[0, 5].plot(
+            #     grid_depth_nodes,
+            #     profile_depth_nodes[solver_name],
+            #     label=solver_name,
+            # )
         for ax in axs.flatten():
             ax.grid(visible=True, which="major", axis="both")
             ax.grid(visible=True, which="minor", axis="both", alpha=0.2)

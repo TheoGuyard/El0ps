@@ -18,10 +18,11 @@ dataset:
 
 solvers:
   solvers_name:
-    - el0ps[trace=True]
-    - el0ps[trace=True,l0screening=False,dualpruning=False]
+    - el0ps
+    - el0ps[l0screening=False]
+    - el0ps[l0screening=False,dualpruning=False]
   solvers_opts:
-    time_limit: 600.
+    time_limit: 3600.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8 
     verbose   : false
