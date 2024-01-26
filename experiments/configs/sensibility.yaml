@@ -1,0 +1,33 @@
+expname: sensibility
+
+dataset:
+  base:
+    dataset_type: synthetic
+    dataset_opts: 
+      model       : linear
+      k           : 5
+      m           : 500
+      n           : 1_000
+      rho         : 0.9
+      snr         : 10.
+      normalize   : true
+    process_opts: 
+      center        : true
+      normalize     : true
+    datafit_name: Leastsquares
+    penalty_name: Bigm
+  variations:
+    k: [5, 6, 7, 8, 9, 10]
+    n: [1_000, 1_468, 2_154, 3_162, 4_642, 6_813, 10_000]
+    rho: [0.9, 0.932, 0.954, 0.968, 0.978, 0.985, 0.99]
+    snr: [10., 7.079, 5.012, 3.548, 2.512, 1.778, 1.259]
+
+solvers:
+  solvers_name:
+    - el0ps
+    - el0ps[l0screening=False,dualpruning=False]
+  solvers_opts:
+    time_limit: 3600.
+    rel_tol   : 1.e-4
+    int_tol   : 1.e-8 
+    verbose   : false

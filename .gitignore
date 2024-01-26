@@ -29,8 +29,10 @@ htmlcov
 /doc/auto_examples/
 
 # experiments
+**/datasets/*.npy
 **/results/*.pickle
 **/saves/*.yaml
 **/saves/*.csv
 experiments/scripts/**
 !experiments/scripts/oar.py
+!experiments/scripts/exp.py

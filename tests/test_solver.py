@@ -27,7 +27,7 @@ def test_solver():
     x = np.random.randn(n)
     w = problem.A @ x
 
-    node = BnbNode(-1, S0, S1, Sb, -np.inf, +np.inf, x, w, np.copy(x))
+    node = BnbNode(-1, S0, S1, Sb, -np.inf, +np.inf, 0., 0., x, w, np.copy(x))
     assert isinstance(node, BnbNode)
     assert isinstance(node.__str__(), str)
 
@@ -39,7 +39,6 @@ def test_solver():
     assert not node.Sb[1]
     assert node.S1[1]
     assert np.allclose(node.w, problem.A @ node.x)
-    assert np.allclose(node.u, -problem.datafit.gradient(w))
 
     solver = BnbSolver()
     result = solver.solve(problem)

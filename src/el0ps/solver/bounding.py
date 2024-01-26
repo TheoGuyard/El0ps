@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from numba import njit
 from numpy.typing import NDArray
 from el0ps.datafit import BaseDatafit, SmoothDatafit
@@ -43,7 +44,6 @@ class BoundingSolver:
         self.maxiter_outer = maxiter_outer
 
     def setup(self, problem: Problem) -> None:
-
         # Problem data
         self.datafit = problem.datafit
         self.penalty = problem.penalty
@@ -72,6 +72,7 @@ class BoundingSolver:
         l0screening: bool,
         upper: bool = False,
     ):
+        start_time = time.time()
 
         # ----- Initialization ----- #
 
@@ -237,6 +238,7 @@ class BoundingSolver:
 
         if upper:
             node.upper_bound = pv
+            node.time_upper_bound = time.time() - start_time
         else:
             if np.isnan(dv):
                 dv = self.compute_dv(
@@ -251,6 +253,7 @@ class BoundingSolver:
                     Sb,
                 )
             node.lower_bound = dv
+            node.time_lower_bound = time.time() - start_time
 
     @staticmethod
     @njit

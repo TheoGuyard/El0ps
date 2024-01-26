@@ -1,10 +1,15 @@
 import argparse
+import os
 import pathlib
 import random
 import shutil
 import string
 import subprocess
+import sys
 import yaml
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from exp import get_exp  # noqa E402
 
 src_path = "~/Documents/Github/El0ps"
 dst_path = "tguyard@access.grid5000.fr:rennes/gits"
@@ -18,117 +23,7 @@ run_file = "run.sh"
 run_path = script_dir.joinpath(run_file)
 
 
-experiments = [
-    {
-        "name": "icml_realworld",
-        "walltime": "10:00:00",
-        "besteffort": False,
-        "production": True,
-        "setups": [
-            {
-                "expname": "icml_realworld",
-                "dataset": {
-                    "dataset_type": setup_info["dataset_type"],
-                    "dataset_opts": setup_info["dataset_opts"],
-                    "process_opts": setup_info["process_opts"],
-                    "datafit_name": setup_info["datafit_name"],
-                    "penalty_name": setup_info["penalty_name"],
-                },
-                "solvers": {
-                    "solvers_name": [solver_name],
-                    "solvers_opts": {
-                        "time_limit": 3600.0,
-                        "rel_tol": 1.0e-4,
-                        "int_tol": 1.0e-8,
-                        "verbose": False,
-                    },
-                },
-                "task": {
-                    "task_type": "fitpath",
-                    "task_opts": {
-                        "lmbd_ratio_max": 1.0e-0,
-                        "lmbd_ratio_min": 1.0e-5,
-                        "lmbd_ratio_num": 51,
-                        "stop_if_not_optimal": True,
-                    },
-                },
-            }
-            for solver_name in [
-                "el0ps",
-                "el0ps[l0screening=False]",
-                "el0ps[l0screening=False,dualpruning=False]",
-            ]
-            for setup_info in [
-                {
-                    "dataset_type": "hardcoded",
-                    "dataset_opts": {"dataset_name": "lattice"},
-                    "process_opts": {
-                        "interactions": True,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "BigmL1norm",
-                },
-                {
-                    "dataset_type": "hardcoded",
-                    "dataset_opts": {"dataset_name": "riboflavin"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Leastsquares",
-                    "penalty_name": "BigmL2norm",
-                },
-                {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {"dataset_name": "splice"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Logistic",
-                    "penalty_name": "BigmL2norm",
-                },
-                {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {"dataset_name": "german.numer"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Squaredhinge",
-                    "penalty_name": "BigmL2norm",
-                },
-                {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {"dataset_name": "colon-cancer"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Logistic",
-                    "penalty_name": "BigmL2norm",
-                },
-                {
-                    "dataset_type": "libsvm",
-                    "dataset_opts": {"dataset_name": "duke breast-cancer"},
-                    "process_opts": {
-                        "interactions": False,
-                        "center": True,
-                        "normalize": True,
-                    },
-                    "datafit_name": "Squaredhinge",
-                    "penalty_name": "BigmL2norm",
-                },
-            ]
-        ],
-    },
-]
+experiments = [get_exp(exp_name) for exp_name in ["perfprofile", "regpath"]]
 
 
 def oar_send():
@@ -220,7 +115,9 @@ def oar_make():
                 "source {}/.profile".format(home_dir),
                 "module load conda gurobi cplex",
                 "conda activate el0ps",
-                "python {}/onerun.py $*".format(experiments_dir),
+                "python {}/onerun.py {} $*".format(
+                    experiments_dir, experiment["name"]
+                ),
             ]
         )
         oar_path = experiment_dir.joinpath("oar.sh")
