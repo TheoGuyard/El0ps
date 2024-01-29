@@ -1,0 +1,27 @@
+expname: perfprofile
+
+dataset:
+  dataset_type: synthetic
+  dataset_opts: 
+    model       : linear
+    k           : 5
+    m           : 500
+    n           : 1000
+    rho         : 0.9
+    snr         : 10.
+    normalize   : true
+  process_opts: 
+    center        : true
+    normalize     : true
+  datafit_name: Leastsquares
+  penalty_name: Bigm
+
+solvers:
+  solvers_name:
+    - el0ps
+    - el0ps[l0screening=False]
+  solvers_opts:
+    time_limit: 3600.
+    rel_tol   : 1.e-4
+    int_tol   : 1.e-8 
+    verbose   : false
