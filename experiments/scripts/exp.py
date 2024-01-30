@@ -2,7 +2,6 @@ from copy import deepcopy
 
 
 def get_exp_perfprofile():
-
     exp = {
         "name": "perfprofile",
         "walltime": "03:15:00",
@@ -53,12 +52,12 @@ def get_exp_perfprofile():
         setup["dataset"]["dataset_opts"]["n"] = n
         exp["setups"].append(setup)
 
-    for rho in [0., 0.9, 0.99]:
+    for rho in [0.0, 0.9, 0.99]:
         setup = deepcopy(base_setup)
         setup["dataset"]["dataset_opts"]["rho"] = rho
         exp["setups"].append(setup)
 
-    for snr in [10., 3.1623, 1.2589]:
+    for snr in [10.0, 3.1623, 1.2589]:
         setup = deepcopy(base_setup)
         setup["dataset"]["dataset_opts"]["snr"] = snr
         exp["setups"].append(setup)
@@ -67,13 +66,12 @@ def get_exp_perfprofile():
 
 
 def get_exp_regpath():
-
     exp = {
         "name": "regpath",
         "walltime": "12:00:00",
         "besteffort": False,
         "production": True,
-        "setups": []
+        "setups": [],
     }
 
     base_setup = {

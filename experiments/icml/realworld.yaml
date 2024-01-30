@@ -1,0 +1,29 @@
+dataset:
+  dataset_type: libsvm
+  dataset_opts: 
+    dataset_name  : bodyfat
+  process_opts: 
+    center        : true
+    normalize     : true
+  datafit_name: Leastsquares
+  penalty_name: BigmL2norm
+
+solvers:
+  solvers_name:
+    - el0ps
+    - el0ps[l0screening=False]
+    # - l0bnb
+    # - cplex
+    # - gurobi
+    # - mosek
+  solvers_opts:
+    time_limit: 3600.
+    rel_tol   : 1.e-4
+    int_tol   : 1.e-8 
+    verbose   : false
+
+path_opts:
+  lmbd_ratio_max: 1.e-0
+  lmbd_ratio_min: 1.e-5
+  lmbd_ratio_num: 101
+  stop_if_not_optimal: true

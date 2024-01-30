@@ -1,5 +1,3 @@
-expname: perfprofile
-
 dataset:
   dataset_type: synthetic
   dataset_opts: 
