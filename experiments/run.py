@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
-from experiments.base import Experiment  # noqa: E402
+from experiments.experiment import Experiment  # noqa: E402
 from experiments.icml.perfprofile import Perfprofile  # noqa: E402
 from experiments.icml.realworld import Realworld  # noqa: E402
 

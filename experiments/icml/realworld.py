@@ -9,7 +9,7 @@ from el0ps.path import Path
 from el0ps.solver import Status
 
 sys.path.append(pathlib.Path(__file__).parent.parent.parent.absolute())
-from experiments.base import Experiment  # noqa
+from experiments.experiment import Experiment  # noqa
 from experiments.solvers import can_handle, get_solver  # noqa
 
 

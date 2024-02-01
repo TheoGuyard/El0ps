@@ -115,7 +115,7 @@ def oar_make():
                 "source {}/.profile".format(home_dir),
                 "module load conda gurobi cplex",
                 "conda activate el0ps",
-                "python {}/onerun.py {} $* --save".format(
+                "python {}/run.py {} onerun $* --save".format(
                     experiments_dir, experiment["name"]
                 ),
             ]

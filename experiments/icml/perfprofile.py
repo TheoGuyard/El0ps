@@ -9,7 +9,7 @@ from el0ps.problem import Problem
 from el0ps.solver import Status
 
 sys.path.append(pathlib.Path(__file__).parent.parent.parent.absolute())
-from experiments.base import Experiment  # noqa
+from experiments.experiment import Experiment  # noqa
 from experiments.solvers import get_solver  # noqa
 
 
@@ -50,10 +50,16 @@ class Perfprofile(Experiment):
         print("  {} files matched".format(match))
         print("  {} files not converged".format(notcv))
 
-        if match == 0.0:
+        if match == 0:
             return
 
         print("Computing statistics...")
+        for solver_name, solver_times in times.items():
+            print("  {}".format(solver_name))
+            print("     num : {}".format(len(solver_times)))
+            print("     mean: {}".format(np.mean(solver_times)))
+            print("     std : {}".format(np.std(solver_times)))
+
         min_times = np.min([np.min(v) for v in times.values()])
         max_times = np.max([np.max(v) for v in times.values()])
         min_nodes = np.min([np.min(v) for v in nodes.values()])

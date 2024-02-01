@@ -1,3 +1,5 @@
+expname: realworld
+
 dataset:
   dataset_type: libsvm
   dataset_opts: 
@@ -11,7 +13,7 @@ dataset:
 solvers:
   solvers_name:
     - el0ps
-    - el0ps[l0screening=False]
+    - el0ps[l0screening=False,dualpruning=False]
     - l0bnb
     - cplex
     - gurobi

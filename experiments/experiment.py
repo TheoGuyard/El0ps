@@ -42,7 +42,7 @@ class Experiment:
             x_true,
         )
         lmbd_max = compute_lmbd_max(datafit, penalty, A)
-        print("  num nz: {}".format(sum(x_cal == 0.0)))
+        print("  num nz: {}".format(sum(x_cal != 0.0)))
         print("  lratio: {}".format(lmbd / lmbd_max))
         for param_name, param_value in penalty.params_to_dict().items():
             print("  {}\t: {}".format(param_name, param_value))

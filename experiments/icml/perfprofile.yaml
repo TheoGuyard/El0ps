@@ -1,3 +1,5 @@
+expname: perfprofile
+
 dataset:
   dataset_type: synthetic
   dataset_opts: 
@@ -17,7 +19,11 @@ dataset:
 solvers:
   solvers_name:
     - el0ps
-    - el0ps[l0screening=False]
+    - el0ps[l0screening=False,dualpruning=False]
+    - l0bnb
+    - cplex
+    - gurobi
+    - mosek
   solvers_opts:
     time_limit: 3600.
     rel_tol   : 1.e-4
