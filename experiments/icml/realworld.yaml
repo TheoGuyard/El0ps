@@ -1,13 +1,13 @@
-expname: regpath
+expname: realworld
 
 dataset:
-  dataset_type: hardcoded
+  dataset_type: libsvm
   dataset_opts: 
-    dataset_name  : arcene
+    dataset_name  : bodyfat
   process_opts: 
     center        : true
     normalize     : true
-  datafit_name: Squaredhinge
+  datafit_name: Leastsquares
   penalty_name: BigmL2norm
 
 solvers:

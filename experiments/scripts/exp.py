@@ -2,10 +2,9 @@ from copy import deepcopy
 
 
 def get_exp_perfprofile():
-
     exp = {
         "name": "perfprofile",
-        "walltime": "03:15:00",
+        "walltime": "02:15:00",
         "besteffort": True,
         "production": True,
         "setups": [],
@@ -19,7 +18,7 @@ def get_exp_perfprofile():
                 "model": "linear",
                 "k": 5,
                 "m": 500,
-                "n": 1_000,
+                "n": 1000,
                 "rho": 0.9,
                 "snr": 10.0,
                 "normalize": True,
@@ -31,8 +30,12 @@ def get_exp_perfprofile():
         "solvers": {
             "solvers_name": [
                 "el0ps",
-                "el0ps[l0screening=False]",
+                # "el0ps[l0screening=False]",
                 "el0ps[l0screening=False,dualpruning=False]",
+                # "l0bnb",
+                # "cplex",
+                # "gurobi",
+                # "mosek",
             ],
             "solvers_opts": {
                 "time_limit": 3600.0,
@@ -43,22 +46,22 @@ def get_exp_perfprofile():
         },
     }
 
-    for k in [5, 7, 9]:
+    for k in [5, 6, 7, 8, 9]:
         setup = deepcopy(base_setup)
         setup["dataset"]["dataset_opts"]["k"] = k
         exp["setups"].append(setup)
 
-    for n in [1_000, 10_000, 100_000]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["n"] = n
-        exp["setups"].append(setup)
+    # for n in [100, 316, 1_000, 3_162, 10_000]:
+    #     setup = deepcopy(base_setup)
+    #     setup["dataset"]["dataset_opts"]["n"] = n
+    #     exp["setups"].append(setup)
 
-    for rho in [0., 0.9, 0.99]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["rho"] = rho
-        exp["setups"].append(setup)
+    # for rho in [0., 0.6838, 0.9, 0.9684, 0.99]:
+    #     setup = deepcopy(base_setup)
+    #     setup["dataset"]["dataset_opts"]["rho"] = rho
+    #     exp["setups"].append(setup)
 
-    for snr in [10., 3.1623, 1.2589]:
+    for snr in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
         setup = deepcopy(base_setup)
         setup["dataset"]["dataset_opts"]["snr"] = snr
         exp["setups"].append(setup)
@@ -67,13 +70,12 @@ def get_exp_perfprofile():
 
 
 def get_exp_regpath():
-
     exp = {
         "name": "regpath",
         "walltime": "12:00:00",
         "besteffort": False,
         "production": True,
-        "setups": []
+        "setups": [],
     }
 
     base_setup = {

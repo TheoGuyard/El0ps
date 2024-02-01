@@ -41,7 +41,7 @@ def synthetic_y(model, x, A, m, snr):
     if model == "linear":
         y = A @ x
         e = np.random.randn(m)
-        e *= (y @ y) / (np.sqrt(snr) * (e @ e))
+        e *= np.sqrt((y @ y) / (snr * (e @ e)))
         y += e
     elif model == "logistic":
         p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
@@ -158,7 +158,7 @@ def get_data(dataset):
     return A, y, x_true
 
 
-def calibrate_objective(datafit_name, penalty_name, A, y, x_true=None):
+def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
     bindings = {
         "Leastsquares": "SquaredError",
         "Logistic": "Logistic",
