@@ -1,4 +1,4 @@
-"""Branch-and-Bound algorithm solver for L0-penalized problems."""
+"""Branch-and-Bound solver for L0-penalized problems."""
 
 import numpy as np
 import time
@@ -6,9 +6,12 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
+from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
-from el0ps.problem import Problem
-from .base import BaseSolver, Results, Status
+from el0ps.datafit import BaseDatafit
+from el0ps.penalty import BasePenalty
+from el0ps.utils import compiled_clone
+from .base import BaseSolver, Result, Status
 from .node import BnbNode
 from .bounding import BoundingSolver
 
@@ -114,7 +117,7 @@ class BnbOptions:
 
 
 class BnbSolver(BaseSolver):
-    """Branch-and-Bound solver for :class:`.Problem`."""
+    """Branch-and-Bound solver for L0-penalized problems."""
 
     _trace_keys = [
         "solve_time",
@@ -158,7 +161,7 @@ class BnbSolver(BaseSolver):
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return (self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + 1e-16
+            np.abs(self.upper_bound) + 1e-12
         )
 
     @property
@@ -181,59 +184,65 @@ class BnbSolver(BaseSolver):
 
     def setup(
         self,
-        problem: Problem,
-        x_init: Union[NDArray[np.float64], None] = None,
-        S0_init: Union[NDArray[np.float64], None] = None,
-        S1_init: Union[NDArray[np.float64], None] = None,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
+        lmbd: float,
+        x_init: NDArray,
     ):
-        # Sanity checks
-        if x_init is None:
-            x_init = np.zeros(problem.n)
-        if S0_init is None:
-            S0_init = np.zeros(problem.n, dtype=np.bool_)
-        if S1_init is None:
-            S1_init = np.zeros(problem.n, dtype=np.bool_)
-        if not np.all(x_init[S0_init] == 0.0):
-            raise ValueError("Arguments `x_init` and `S0_init` missmatch.")
-        if not np.all(x_init[S1_init] != 0.0):
-            raise ValueError("Arguments `x_init` and `S1_init` missmatch.")
+        if not str(type(datafit)).startswith(
+            "<class 'numba.experimental.jitclass"
+        ):
+            datafit = compiled_clone(datafit)
+        if not str(type(penalty)).startswith(
+            "<class 'numba.experimental.jitclass"
+        ):
+            penalty = compiled_clone(penalty)
+        if not A.flags.f_contiguous:
+            A = np.array(A, order="F")
 
-        # Initialize internal solver attributes
+        # Initialize attributes and state
+        self.m, self.n = A.shape
+        self.datafit = datafit
+        self.penalty = penalty
+        self.A = A
+        self.lmbd = lmbd
         self.status = Status.RUNNING
         self.start_time = time.time()
         self.queue = []
         self.iter_count = 0
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
-        self.upper_bound = problem.value(x_init)
+        self.upper_bound = self.value(x_init)
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
-        self.options.bounding_solver.setup(problem)
+        self.options.bounding_solver.setup(datafit, penalty, A, lmbd)
 
         # Root node
         root = BnbNode(
             -1,
-            np.zeros(problem.n, dtype=np.bool_),
-            np.zeros(problem.n, dtype=np.bool_),
-            np.ones(problem.n, dtype=np.bool_),
+            np.zeros(self.n, dtype=np.bool_),
+            np.zeros(self.n, dtype=np.bool_),
+            np.ones(self.n, dtype=np.bool_),
             -np.inf,
             np.inf,
             0.0,
             0.0,
-            np.zeros(problem.n),
-            np.zeros(problem.m),
-            np.zeros(problem.n),
+            np.zeros(self.n),
+            np.zeros(self.m),
+            np.zeros(self.n),
         )
-
-        # Add initial fixing constraints to root
-        for idx in np.flatnonzero(S0_init):
-            root.fix_to(problem, idx, 0)
-        for idx in np.flatnonzero(S1_init):
-            root.fix_to(problem, idx, 1)
-
-        # Initialize the queue with root node
         self.queue.append(root)
+
+    def value(self, x: NDArray, Ax: Union[NDArray, None] = None) -> float:
+        if Ax is None:
+            Ax = self.A @ x
+        return (
+            self.datafit.value(Ax)
+            + self.lmbd * np.linalg.norm(x, 0)
+            + sum(self.penalty.value(xi) for xi in x)
+        )
 
     def print_header(self):
         s = "-" * 68 + "\n"
@@ -294,7 +303,7 @@ class BnbSolver(BaseSolver):
         )
 
     def compute_upper_bound(self, node: BnbNode):
-        if node.category == 0.:
+        if node.category == 0.0:
             return
         self.options.bounding_solver.bound(
             node,
@@ -328,14 +337,13 @@ class BnbSolver(BaseSolver):
     def prune(self, node: BnbNode):
         return self.upper_bound < node.lower_bound
 
-    def is_feasible(self, problem: Problem, node: BnbNode):
+    def is_feasible(self, node: BnbNode):
         if node.rel_gap <= self.options.rel_tol:
             return True
         elif np.all(
             np.logical_or(
                 np.abs(node.x[node.Sb]) <= self.options.int_tol,
-                np.abs(node.x[node.Sb])
-                >= problem.penalty.param_limit(problem.lmbd),
+                np.abs(node.x[node.Sb]) >= self.penalty.param_limit(self.lmbd),
             )
         ):
             return True
@@ -360,27 +368,31 @@ class BnbSolver(BaseSolver):
         else:
             self.lower_bound = self.upper_bound
 
-    def branch(self, problem: Problem, node: BnbNode):
+    def branch(self, node: BnbNode):
         if not np.any(node.Sb):
             return
         if self.options.branching_strategy == BnbBranchingStrategy.LARGEST:
             jSb = np.argmax(np.abs(node.x[node.Sb]))
             j = np.arange(node.x.size)[node.Sb][jSb]
 
-        node0 = node.child(problem, j, 0)
+        node0 = node.child(j, 0, self.A)
         self.queue.append(node0)
 
-        node1 = node.child(problem, j, 1)
+        node1 = node.child(j, 1, self.A)
         self.queue.append(node1)
 
     def solve(
         self,
-        problem: Problem,
-        x_init: Union[NDArray[np.float64], None] = None,
-        S0_init: Union[NDArray[np.bool_], None] = None,
-        S1_init: Union[NDArray[np.bool_], None] = None,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
+        lmbd: float,
+        x_init: Union[NDArray, None] = None,
     ):
-        self.setup(problem, x_init, S0_init, S1_init)
+        if x_init is None:
+            x_init = np.zeros(A.shape[1])
+
+        self.setup(datafit, penalty, A, lmbd, x_init)
 
         if self.options.verbose:
             self.print_header()
@@ -390,8 +402,8 @@ class BnbSolver(BaseSolver):
             self.compute_lower_bound(node)
             if not self.prune(node):
                 self.compute_upper_bound(node)
-                if not self.is_feasible(problem, node):
-                    self.branch(problem, node)
+                if not self.is_feasible(node):
+                    self.branch(node)
             self.update_bounds(node)
             if self.options.trace:
                 self.update_trace(node)
@@ -402,14 +414,14 @@ class BnbSolver(BaseSolver):
         if self.options.verbose:
             self.print_footer()
 
-        return Results(
+        return Result(
             self.status,
             self.solve_time,
             self.iter_count,
             self.rel_gap,
             self.x,
             np.array(self.x != 0.0, dtype=float),
-            problem.value(self.x),
+            self.value(self.x),
             np.sum(np.abs(self.x) > self.options.int_tol),
             self.trace,
         )

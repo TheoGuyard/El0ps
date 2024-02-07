@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union
 from numpy.typing import NDArray
-from el0ps.problem import Problem
+from el0ps.datafit import BaseDatafit
+from el0ps.penalty import BasePenalty
 
 
 class Status(Enum):
@@ -36,7 +37,7 @@ class Status(Enum):
 
 
 @dataclass
-class Results:
+class Result:
     """:class:`solver.BaseSolver` results.
 
     Attributes
@@ -73,7 +74,7 @@ class Results:
 
     def __str__(self) -> str:
         s = ""
-        s += "Results\n"
+        s += "Result\n"
         s += "  Status     : {}\n".format(self.status.value)
         s += "  Solve time : {:.6f} seconds\n".format(self.solve_time)
         s += "  Iter count : {}\n".format(self.iter_count)
@@ -84,28 +85,37 @@ class Results:
 
 
 class BaseSolver:
-    """Base class for :class:`.Problem` solvers."""
+    """Base class for L0-penalized problem solvers."""
 
     @abstractmethod
     def solve(
         self,
-        problem: Problem,
+        datafit: BaseDatafit,
+        penalty: BasePenalty,
+        A: NDArray,
+        lmbd: float,
         x_init: Union[NDArray, None] = None,
-        S0_init: Union[NDArray, None] = None,
-        S1_init: Union[NDArray, None] = None,
     ):
-        """Solve a :class:`.Problem`.
+        r"""Solve an L0-penalized problem of the form
+
+        .. math:: \textstyle\min_{x} f(Ax) + \lambda \|x\|_0 + h(x)
+
+        where :math:`f(\cdot)` is a datafit function, :math:`A` is a matrix,
+        :math:`\lambda>0` is the L0-regularization weight and :math:`h(\cdot)`
+        is a penalty function.
 
         Parameters
         ----------
-        problem: Problem
-            :class:`.Problem` to solve.
+        datafit: BaseDatafit
+            Datafit function.
+        penalty: BasePenalty
+            Penalty function.
+        A: NDArray
+            Linear operator.
+        lmbd: float, positive
+            L0-norm weight.
         x_init: Union[NDArray, None] = None
             Stating value of ``x``.
-        S0_init: Union[NDArray, None] = None
-            Indices in ``x`` forced to be zero.
-        S1_init: Union[NDArray, None] = None
-            Indices in ``x`` forced to be non-zero.
 
         Returns
         -------

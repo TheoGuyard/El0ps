@@ -5,7 +5,7 @@ import yaml
 from abc import abstractmethod
 from copy import deepcopy
 from datetime import datetime
-from el0ps.problem import Problem, compute_lmbd_max
+from el0ps.utils import compiled_clone, compute_lmbd_max
 
 sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
 from experiments.instances import get_data, calibrate_parameters  # noqa
@@ -53,11 +53,14 @@ class Experiment:
 
     def precompile(self):
         print("Precompiling...")
-        problem = Problem(self.datafit, self.penalty, self.A, self.lmbd)
+        self.compiled_datafit = compiled_clone(self.datafit)
+        self.compiled_penalty = compiled_clone(self.penalty)
         solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
         solver_opts["time_limit"] = 5.0
         solver = get_solver("el0ps", solver_opts)
-        solver.solve(problem)
+        solver.solve(
+            self.compiled_datafit, self.compiled_penalty, self.A, self.lmbd
+        )
 
     @abstractmethod
     def run(self):

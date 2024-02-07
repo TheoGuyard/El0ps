@@ -5,28 +5,48 @@ import pandas as pd
 import pickle
 import sys
 from datetime import datetime
-from el0ps.problem import Problem
 from el0ps.solver import Status
 
 sys.path.append(pathlib.Path(__file__).parent.parent.parent.absolute())
 from experiments.experiment import Experiment  # noqa
-from experiments.solvers import get_solver  # noqa
+from experiments.solvers import (  # noqa
+    can_handle_compilation,
+    can_handle_instance,
+    get_solver,
+)
 
 
 class Perfprofile(Experiment):
     name = "perfprofile"
 
     def run(self):
-        problem = Problem(self.datafit, self.penalty, self.A, self.lmbd)
         results = {}
         for solver_name in self.config["solvers"]["solvers_name"]:
-            solver = get_solver(
-                solver_name, self.config["solvers"]["solvers_opts"]
-            )
-            print("Running {}...".format(solver_name))
-            result = solver.solve(problem)
+            if can_handle_instance(
+                solver_name,
+                self.config["dataset"]["datafit_name"],
+                self.config["dataset"]["penalty_name"],
+            ):
+                print("Running {}...".format(solver_name))
+                solver_opts = self.config["solvers"]["solvers_opts"]
+                solver = get_solver(solver_name, solver_opts)
+                if can_handle_compilation(solver_name):
+                    result = solver.solve(
+                        self.compiled_datafit,
+                        self.compiled_penalty,
+                        self.A,
+                        self.lmbd,
+                    )
+                else:
+                    result = solver.solve(
+                        self.datafit, self.penalty, self.A, self.lmbd
+                    )
+            else:
+                print("Skipping {}".format(solver_name))
+                result = None
             results[solver_name] = result
-            print(result)
+            if result is not None:
+                print(result)
         self.results = results
 
     def load_results(self):

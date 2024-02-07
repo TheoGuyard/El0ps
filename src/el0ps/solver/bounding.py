@@ -1,11 +1,13 @@
 import numpy as np
 import time
+from typing import Union
 from numba import njit
+from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
 from el0ps.datafit import BaseDatafit, SmoothDatafit
 from el0ps.penalty import BasePenalty
-from el0ps.problem import Problem
 from el0ps.solver.node import BnbNode
+from el0ps.utils import compiled_clone
 
 
 class BoundingSolver:
@@ -26,8 +28,8 @@ class BoundingSolver:
             g_i(t) = h(t) + \lambda &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| > \c2 \\
         \end{cases}
 
-    where :math:`f(\cdot)`, :math:`\lambda` and :math:`h(\cdot)` are the
-    elements of :class:`.Problem` and where :math:`S_0`, :math:`S_1` and
+    where :math:`f(\cdot)`, :math:`\lambda` and :math:`h(\cdot)` are parts of
+    the problem objective function and where :math:`S_0`, :math:`S_1` and
     :math:`S_{\bullet}` are sets of indices forced to be zero, non-zero and
     unfixed, respectively, at the current node of the Branch-and-Bound tree.
     The quantities :math:`\c1` and :math:`\c2` are the ones returned by the
@@ -43,20 +45,36 @@ class BoundingSolver:
         self.maxiter_inner = maxiter_inner
         self.maxiter_outer = maxiter_outer
 
-    def setup(self, problem: Problem) -> None:
+    def setup(
+        self,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
+        lmbd: float,
+    ) -> None:
+        if not str(type(datafit)).startswith(
+            "<class 'numba.experimental.jitclass"
+        ):
+            datafit = compiled_clone(datafit)
+        if not str(type(penalty)).startswith(
+            "<class 'numba.experimental.jitclass"
+        ):
+            penalty = compiled_clone(penalty)
+        if not A.flags.f_contiguous:
+            A = np.array(A, order="F")
+
         # Problem data
-        self.datafit = problem.datafit
-        self.penalty = problem.penalty
-        self.A = problem.A
-        self.lmbd = problem.lmbd
-        self.m = problem.m
-        self.n = problem.n
+        self.m, self.n = A.shape
+        self.datafit = datafit
+        self.penalty = penalty
+        self.A = A
+        self.lmbd = lmbd
 
         # Precomputed constants
-        self.c1 = problem.penalty.param_slope(problem.lmbd)
-        self.c2 = problem.penalty.param_limit(problem.lmbd)
-        self.c3 = np.linalg.norm(problem.A, ord=2, axis=0) ** 2
-        self.c4 = problem.datafit.L * self.c3
+        self.c1 = penalty.param_slope(lmbd)
+        self.c2 = penalty.param_limit(lmbd)
+        self.c3 = np.linalg.norm(A, ord=2, axis=0) ** 2
+        self.c4 = datafit.L * self.c3
         self.c5 = 1.0 / self.c4
         self.c6 = self.c1 * self.c5
         self.c7 = self.c6 + self.c2
@@ -404,7 +422,7 @@ class BoundingSolver:
         dv: float
             Dual value.
         """
-        return (pv - dv) / (np.abs(pv) + 1e-16)
+        return (pv - dv) / (np.abs(pv) + 1e-12)
 
     @staticmethod
     @njit
