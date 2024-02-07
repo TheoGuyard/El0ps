@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.typing import NDArray
-from el0ps.problem import Problem
 
 
 class BnbNode:
@@ -27,7 +26,7 @@ class BnbNode:
     x: NDArray[np.float64]
         Relaxation solution.
     w: NDArray[np.float64]
-        Value of `problem.A @ self.x`.
+        Value of `A @ self.x`.
     x_inc: NDArray[np.float64]
         Incumbent solution.
     """
@@ -88,7 +87,7 @@ class BnbNode:
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return (self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + 1e-16
+            np.abs(self.upper_bound) + 1e-12
         )
 
     @property
@@ -107,19 +106,19 @@ class BnbNode:
     def depth(self):
         return self.card_S0 + self.card_S1
 
-    def fix_to(self, problem: Problem, idx: int, val: bool):
+    def fix_to(self, idx: int, val: bool, A: NDArray):
         """Fix an extry of the node to zero or non-zero. Update the
         corresponding attributes of the node.
 
         Parameters
         ----------
-        problem: Problem
-            The :class:`.Problem` being solved.
         idx: int
             Index to fix.
         val: bool
             If ``False``, the entry is fixed to zero. If ``True``, the entry is
             fixed to non-zero.
+        A: NDArray
+            Matrix A.
         """
         self.Sb[idx] = False
         if val:
@@ -129,10 +128,10 @@ class BnbNode:
             self.category = 0
             self.S0[idx] = True
             if self.x[idx] != 0.0:
-                self.w -= self.x[idx] * problem.A[:, idx]
+                self.w -= self.x[idx] * A[:, idx]
                 self.x[idx] = 0.0
 
-    def child(self, problem: Problem, idx: int, val: bool):
+    def child(self, idx: int, val: bool, A: NDArray):
         child = BnbNode(
             int(val),
             np.copy(self.S0),
@@ -146,5 +145,5 @@ class BnbNode:
             np.copy(self.w),
             np.copy(self.x_inc),
         )
-        child.fix_to(problem, idx, val)
+        child.fix_to(idx, val, A)
         return child

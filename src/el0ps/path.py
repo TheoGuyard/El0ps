@@ -1,11 +1,13 @@
 import sys
 import numpy as np
 from dataclasses import dataclass
+from typing import Union
+from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
-from el0ps.problem import Problem, compute_lmbd_max
+from el0ps.utils import compiled_clone, compute_lmbd_max
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
-from el0ps.solver import BaseSolver, Results, Status
+from el0ps.solver import BaseSolver, Result, Status
 
 
 @dataclass
@@ -65,8 +67,8 @@ class PathOptions:
 class Path:
     """L0-regularization path.
 
-    The L0-regularization path corresponds to different solutions of a
-    :class:`.Problem` when the regularization parameter ``lmbd`` is varied.
+    The L0-regularization path corresponds to different solutions of an
+    L0-penalized problem when the regularization parameter ``lmbd`` is varied.
 
     Parameters
     ----------
@@ -92,6 +94,7 @@ class Path:
         "iter_count",
         "rel_gap",
         "x",
+        "lmbd_value",
         "objective_value",
         "datafit_value",
         "penalty_value",
@@ -138,18 +141,24 @@ class Path:
         return True
 
     def fill_fit_data(
-        self, lmbd_ratio: float, problem: Problem, results: Results
+        self,
+        lmbd_ratio: float,
+        datafit: JitClassType,
+        penalty: JitClassType,
+        A: NDArray,
+        lmbd: float,
+        results: Result,
     ) -> None:
         for k in self._path_keys:
             if k == "lmbd_ratio":
                 self.fit_data[k].append(lmbd_ratio)
+            elif k == "lmbd_value":
+                self.fit_data[k].append(lmbd)
             elif k == "datafit_value":
-                self.fit_data[k].append(
-                    problem.datafit.value(problem.A @ results.x)
-                )
+                self.fit_data[k].append(datafit.value(A @ results.x))
             elif k == "penalty_value":
                 self.fit_data[k].append(
-                    np.sum([problem.penalty.value(xi) for xi in results.x])
+                    np.sum([penalty.value(xi) for xi in results.x])
                 )
             else:
                 self.fit_data[k].append(getattr(results, k))
@@ -157,8 +166,8 @@ class Path:
     def fit(
         self,
         solver: BaseSolver,
-        datafit: BaseDatafit,
-        penalty: BasePenalty,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
         A: NDArray,
     ) -> dict:
         """Fit the regularization path.
@@ -178,6 +187,17 @@ class Path:
             The path fitting data stored in ``self.fit_data``.
         """
 
+        if not str(type(datafit)).startswith(
+            "<class 'numba.experimental.jitclass"
+        ):
+            datafit = compiled_clone(datafit)
+        if not str(type(penalty)).startswith(
+            "<class 'numba.experimental.jitclass"
+        ):
+            penalty = compiled_clone(penalty)
+        if not A.flags.f_contiguous:
+            A = np.array(A, order="F")
+
         if self.options.verbose:
             self.display_path_head()
 
@@ -190,10 +210,10 @@ class Path:
         x_init = np.zeros(A.shape[1])
 
         for lmbd_ratio in lmbd_ratio_grid:
-            problem = Problem(datafit, penalty, A, lmbd_ratio * lmbd_max)
-            results = solver.solve(problem, x_init=x_init)
+            lmbd = lmbd_ratio * lmbd_max
+            results = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
             x_init = np.copy(results.x)
-            self.fill_fit_data(lmbd_ratio, problem, results)
+            self.fill_fit_data(lmbd_ratio, datafit, penalty, A, lmbd, results)
             if self.options.verbose:
                 self.display_path_info()
             if not self.can_continue():

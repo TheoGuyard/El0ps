@@ -10,7 +10,11 @@ from el0ps.solver import Status
 
 sys.path.append(pathlib.Path(__file__).parent.parent.parent.absolute())
 from experiments.experiment import Experiment  # noqa
-from experiments.solvers import can_handle, get_solver  # noqa
+from experiments.solvers import (  # noqa
+    can_handle_compilation,
+    can_handle_instance,
+    get_solver,
+)
 
 
 class Realworld(Experiment):
@@ -19,16 +23,26 @@ class Realworld(Experiment):
     def run(self):
         results = {}
         for solver_name in self.config["solvers"]["solvers_name"]:
-            if can_handle(
+            if can_handle_instance(
                 solver_name,
                 self.config["dataset"]["datafit_name"],
                 self.config["dataset"]["penalty_name"],
             ):
-                solver = get_solver(
-                    solver_name, self.config["solvers"]["solvers_opts"]
-                )
+                solver_opts = self.config["solvers"]["solvers_opts"]
+                solver = get_solver(solver_name, solver_opts)
                 print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
+                if can_handle_compilation(solver_name):
+                    result = path.fit(
+                        solver,
+                        self.compiled_datafit,
+                        self.compiled_penalty,
+                        self.A,
+                    )
+                else:
+                    result = path.fit(
+                        solver, self.datafit, self.penalty, self.A
+                    )
                 result = path.fit(solver, self.datafit, self.penalty, self.A)
                 del result["x"]
             else:

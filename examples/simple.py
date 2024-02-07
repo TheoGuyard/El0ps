@@ -1,10 +1,9 @@
 import numpy as np
-from el0ps import Problem, compute_lmbd_max
 from el0ps.datafit import Leastsquares
 from el0ps.penalty import Bigm
 from el0ps.solver import BnbSolver
+from el0ps.utils import compute_lmbd_max
 
-# Syntehtic sparse regression data
 k, m, n = 5, 50, 100
 x = np.zeros(n)
 s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
@@ -17,9 +16,7 @@ M = 1.5 * np.max(np.abs(x))
 datafit = Leastsquares(y)
 penalty = Bigm(M)
 lmbd = 0.1 * compute_lmbd_max(datafit, penalty, A)
-problem = Problem(datafit, penalty, A, lmbd)
-print(problem)
 
 solver = BnbSolver()
-result = solver.solve(problem)
+result = solver.solve(datafit, penalty, A, lmbd)
 print(result)

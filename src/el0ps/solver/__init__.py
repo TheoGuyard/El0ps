@@ -1,6 +1,6 @@
 """L0-penalized problem solvers."""
 
-from .base import BaseSolver, Results, Status
+from .base import BaseSolver, Result, Status
 from .node import BnbNode
 from .bnb import (
     BnbBranchingStrategy,
@@ -11,7 +11,7 @@ from .bnb import (
 
 __all__ = [
     "BaseSolver",
-    "Results",
+    "Result",
     "Status",
     "BnbNode",
     "BnbBranchingStrategy",
