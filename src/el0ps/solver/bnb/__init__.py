@@ -1,19 +1,15 @@
-"""L0-penalized problem solvers."""
+"""L0-penalized problem Branch-and-Bound solver."""
 
-from .base import BaseSolver, Result, Status
 from .bnb import (
     BnbBranchingStrategy,
-    BnbBoundingSolver,
     BnbExplorationStrategy,
-    BnbNode,
     BnbOptions,
     BnbSolver,
 )
+from .bounding import BnbBoundingSolver
+from .node import BnbNode
 
 __all__ = [
-    "BaseSolver",
-    "Result",
-    "Status",
     "BnbBranchingStrategy",
     "BnbBoundingSolver",
     "BnbExplorationStrategy",
