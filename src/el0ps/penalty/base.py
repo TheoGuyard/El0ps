@@ -1,5 +1,6 @@
 """Base classes for penalty functions and related utilities."""
 
+import pyomo.environ as pyo
 from abc import abstractmethod
 
 
@@ -165,6 +166,28 @@ class BasePenalty:
             else:
                 b = c
         return c
+
+
+class ModelablePenalty(BasePenalty):
+    """Base class for :class:`.datafit.BasePenalty` functions that can be
+    modeled in a Pyomo model."""
+
+    @abstractmethod
+    def bind_model(self, model: pyo.Model, lmbd: float) -> None:
+        """Instantiate the relations
+        ``model.g >= lmbd * sum(model.z) + self.value(model.x)`` and
+        ``model.z[i] == 0 ==> model.x[i] == 0`` in the model.
+        The variables ``model.g``, ``model.x`` and ``model.z`` are already
+        defined in the model.
+
+        Parameters
+        ----------
+        model: pyo.Model
+            Pyomo model of the L0-penalized problem.
+        lmbd: float
+            L0-norm weight.
+        """
+        ...
 
 
 class ProximablePenalty(BasePenalty):

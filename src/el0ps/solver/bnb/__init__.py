@@ -1,4 +1,4 @@
-"""L0-penalized problem Branch-and-Bound solver."""
+"""Branch-and-Bound solver for L0-penalized problems."""
 
 from .bnb import (
     BnbBranchingStrategy,

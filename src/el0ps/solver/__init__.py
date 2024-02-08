@@ -1,4 +1,4 @@
-"""L0-penalized problem solvers."""
+"""Solvers for L0-penalized problems."""
 
 from .base import BaseSolver, Result, Status
 from .bnb import (
@@ -9,6 +9,7 @@ from .bnb import (
     BnbOptions,
     BnbSolver,
 )
+from .mip import MipOptions, MipSolver
 
 __all__ = [
     "BaseSolver",
@@ -20,4 +21,6 @@ __all__ = [
     "BnbNode",
     "BnbOptions",
     "BnbSolver",
+    "MipOptions",
+    "MipSolver",
 ]

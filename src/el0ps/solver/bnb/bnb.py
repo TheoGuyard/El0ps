@@ -102,19 +102,6 @@ class BnbOptions:
     verbose: bool = False
     trace: bool = False
 
-    def _validate_types(self):
-        for field_name, field_def in self.__dataclass_fields__.items():
-            actual_type = type(getattr(self, field_name))
-            if not issubclass(actual_type, field_def.type):
-                raise ValueError(
-                    "Expected '{}' for argument '{}', got '{}'.".format(
-                        field_def.type, field_name, actual_type
-                    )
-                )
-
-    def __post_init__(self):
-        self._validate_types()
-
 
 class BnbSolver(BaseSolver):
     """Branch-and-Bound solver for L0-penalized problems."""

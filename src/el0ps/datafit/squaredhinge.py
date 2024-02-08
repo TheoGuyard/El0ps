@@ -1,10 +1,11 @@
+import pyomo.environ as pyo
 import numpy as np
 from numba import int32, float64
 from numpy.typing import NDArray
-from .base import SmoothDatafit
+from .base import ModelableDatafit, SmoothDatafit
 
 
-class Squaredhinge(SmoothDatafit):
+class Squaredhinge(ModelableDatafit, SmoothDatafit):
     r"""Squared-Hinge datafit function given by
 
     .. math:: f(x) = \frac{1}{m}\sum_{j=1}^m\max(1 - y_j x_j, 0)^2
@@ -45,6 +46,17 @@ class Squaredhinge(SmoothDatafit):
             ** 2
             / self.m
         )
+
+    def bind_model(self, model: pyo.Model) -> None:
+        def f1_con_rule(model: pyo.Model, j: int):
+            return model.f1[j] >= 1.0 - self.y[j] * model.w[j]
+
+        def f_con_rule(model: pyo.Model):
+            return model.f >= sum(model.f1[j] ** 2 for j in model.M) / self.m
+
+        model.f1 = pyo.Var(model.M, within=pyo.NonNegativeReals)
+        model.f1_con = pyo.Constraint(model.M, rule=f1_con_rule)
+        model.f_con = pyo.Constraint(rule=f_con_rule)
 
     def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
         return -self.y * np.maximum(1.0 - self.y * x, 0.0) / (0.5 * self.m)
