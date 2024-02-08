@@ -10,10 +10,10 @@ from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
+from el0ps.solver import BaseSolver, Result, Status
 from el0ps.utils import compiled_clone
-from .base import BaseSolver, Result, Status
 from .node import BnbNode
-from .bounding import BoundingSolver
+from .bounding import BnbBoundingSolver
 
 
 class BnbExplorationStrategy(Enum):
@@ -57,7 +57,7 @@ class BnbOptions:
 
     Parameters
     ----------
-    bounding_solver: BnbBoundingSolver
+    bounding_solver: BnbBnbBoundingSolver
         Bounding solver.
     exploration_strategy: BnbExplorationStrategy
         Branch-and-Bound exploration strategy.
@@ -87,7 +87,7 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    bounding_solver: BoundingSolver = BoundingSolver()
+    bounding_solver: BnbBoundingSolver = BnbBoundingSolver()
     exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.DFS
     exploration_depth_switch: int = 0
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
@@ -101,19 +101,6 @@ class BnbOptions:
     l0screening: bool = True
     verbose: bool = False
     trace: bool = False
-
-    def _validate_types(self):
-        for field_name, field_def in self.__dataclass_fields__.items():
-            actual_type = type(getattr(self, field_name))
-            if not issubclass(actual_type, field_def.type):
-                raise ValueError(
-                    "Expected '{}' for argument '{}', got '{}'.".format(
-                        field_def.type, field_name, actual_type
-                    )
-                )
-
-    def __post_init__(self):
-        self._validate_types()
 
 
 class BnbSolver(BaseSolver):
@@ -161,7 +148,7 @@ class BnbSolver(BaseSolver):
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return (self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + 1e-12
+            np.abs(self.upper_bound) + 1e-10
         )
 
     @property

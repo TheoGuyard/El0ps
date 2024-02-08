@@ -7,18 +7,18 @@ from el0ps.solver import Status, BnbNode, BnbSolver
 
 
 def test_solver():
-    k, m, n = 3, 20, 30
+    k, m, n = 3, 50, 100
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.random.randn(k)
     A = np.random.randn(m, n)
     y = A @ x
-    y += np.random.randn(m) * 0.1 * (np.linalg.norm(y) ** 2 / m)
+    y += 0.01 * np.random.randn(m) * np.linalg.norm(y) ** 2
     M = 1.5 * np.max(np.abs(x))
 
     datafit = Leastsquares(y)
     penalty = Bigm(M)
-    lmbd = 0.01 * compute_lmbd_max(datafit, penalty, A)
+    lmbd = 0.1 * compute_lmbd_max(datafit, penalty, A)
 
     S0 = np.zeros(n, dtype=bool)
     S1 = np.zeros(n, dtype=bool)

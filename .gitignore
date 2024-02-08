@@ -28,6 +28,9 @@ htmlcov
 /doc/generated/
 /doc/auto_examples/
 
+# pyomo
+*.log
+
 # experiments
 **/datasets/*.npy
 **/results/*.pickle

@@ -1,5 +1,6 @@
 """Base classes for data-fidelity functions and related utilities."""
 
+import pyomo.environ as pyo
 import numpy as np
 from abc import abstractmethod
 from numpy.typing import NDArray
@@ -59,6 +60,23 @@ class BaseDatafit:
         -------
         value: float
             The conjugate value at ``x``.
+        """
+        ...
+
+
+class ModelableDatafit(BaseDatafit):
+    """Base class for :class:`.datafit.BaseDatafit` functions that can be
+    modeled in a Pyomo model."""
+
+    @abstractmethod
+    def bind_model(self, model: pyo.Model) -> None:
+        """Instantiate the relation ``model.f >= self.value(model.w)``. The
+        variables ``model.f`` and ``model.w`` are already defined in the model.
+
+        Parameters
+        ----------
+        model: pyo.Model
+            Pyomo model of the L0-penalized problem.
         """
         ...
 

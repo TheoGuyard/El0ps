@@ -6,11 +6,11 @@ from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
 from el0ps.datafit import BaseDatafit, SmoothDatafit
 from el0ps.penalty import BasePenalty
-from el0ps.solver.node import BnbNode
 from el0ps.utils import compiled_clone
+from .node import BnbNode
 
 
-class BoundingSolver:
+class BnbBoundingSolver:
     r"""Node bounding problem solver.
 
     The bounding problem has the form
@@ -422,7 +422,7 @@ class BoundingSolver:
         dv: float
             Dual value.
         """
-        return (pv - dv) / (np.abs(pv) + 1e-12)
+        return (pv - dv) / (np.abs(pv) + 1e-10)
 
     @staticmethod
     @njit

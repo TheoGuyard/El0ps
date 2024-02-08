@@ -87,7 +87,7 @@ class BnbNode:
     def rel_gap(self):
         """Relative gap between the lower and upper bounds."""
         return (self.upper_bound - self.lower_bound) / (
-            np.abs(self.upper_bound) + 1e-12
+            np.abs(self.upper_bound) + 1e-10
         )
 
     @property
