@@ -35,14 +35,14 @@ class L1norm(BasePenalty):
     def prox(self, x: float, eta: float) -> float:
         return np.sign(x) * np.maximum(0.0, np.abs(x) - eta * self.alpha)
 
-    def subdiff(self, x: float) -> tuple[float]:
+    def subdiff(self, x: float) -> tuple:
         if x == 0:
             return (-self.alpha, self.alpha)
         else:
             s = self.alpha * np.sign(x)
             return (s, s)
 
-    def conjugate_subdiff(self, x: float) -> tuple[float]:
+    def conjugate_subdiff(self, x: float) -> tuple:
         if np.abs(x) < self.alpha:
             return (0.0, 0.0)
         elif x == -self.alpha:

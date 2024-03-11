@@ -79,7 +79,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def subdiff(self, x: float) -> tuple[float]:
+    def subdiff(self, x: float) -> tuple:
         """Subdifferential operator of the function at ``x``.
 
         Parameters
@@ -95,7 +95,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def conjugate_subdiff(self, x: float) -> tuple[float]:
+    def conjugate_subdiff(self, x: float) -> tuple:
         """Subdifferential operator of the function conjugate at ``x``.
 
         Parameters

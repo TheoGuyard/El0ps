@@ -35,11 +35,11 @@ class L2norm(BasePenalty):
     def prox(self, x: float, eta: float) -> float:
         return x / (1.0 + 2.0 * eta * self.alpha)
 
-    def subdiff(self, x: float) -> tuple[float]:
+    def subdiff(self, x: float) -> tuple:
         s = 2.0 * self.alpha * x
         return (s, s)
 
-    def conjugate_subdiff(self, x: float) -> tuple[float]:
+    def conjugate_subdiff(self, x: float) -> tuple:
         s = x / (2.0 * self.alpha)
         return (s, s)
 
