@@ -1,7 +1,7 @@
 import pyomo.environ as pyo
 import numpy as np
 from numba import int32, float64
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from .base import ModelableDatafit, ProximableDatafit, SmoothDatafit
 
 
@@ -14,11 +14,11 @@ class Leastsquares(ModelableDatafit, ProximableDatafit, SmoothDatafit):
 
     Parameters
     ----------
-    y: NDArray[np.float64]
+    y: ArrayLike
         Data vector.
     """
 
-    def __init__(self, y: NDArray[np.float64]) -> None:
+    def __init__(self, y: ArrayLike) -> None:
         self.y = y
         self.m = y.size
         self.L = 1.0 / y.size
@@ -33,10 +33,10 @@ class Leastsquares(ModelableDatafit, ProximableDatafit, SmoothDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: NDArray[np.float64]) -> float:
+    def value(self, x: ArrayLike) -> float:
         return np.linalg.norm(x - self.y, 2) ** 2 / (2.0 * self.m)
 
-    def conjugate(self, x: NDArray[np.float64]) -> float:
+    def conjugate(self, x: ArrayLike) -> float:
         return (0.5 * self.m) * np.dot(x, x) + np.dot(x, self.y)
 
     def bind_model(self, model: pyo.Model) -> None:
@@ -47,8 +47,8 @@ class Leastsquares(ModelableDatafit, ProximableDatafit, SmoothDatafit):
 
         model.f_con = pyo.Constraint(rule=f_con_rule)
 
-    def prox(self, x: NDArray[np.float64], eta: float) -> NDArray[np.float64]:
+    def prox(self, x: ArrayLike, eta: float) -> ArrayLike:
         return (x + (eta / self.m) * self.y) / (1.0 + eta / self.m)
 
-    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+    def gradient(self, x: ArrayLike) -> ArrayLike:
         return (x - self.y) / self.m

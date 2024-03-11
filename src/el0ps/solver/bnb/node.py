@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 
 
 class BnbNode:
@@ -9,11 +9,11 @@ class BnbNode:
     ----------
     category: int
         Node category (root: -1, zero: 0, one: 1).
-    S0: NDArray[np.bool_]
+    S0: ArrayLike
         Set of indices forced to be zero.
-    S1: NDArray[np.bool_]
+    S1: ArrayLike
         Set of indices forced to be non-zero.
-    Sb: NDArray[np.bool_]
+    Sb: ArrayLike
         Set of free indices.
     lower_bound: float
         BnbNode lower bound.
@@ -23,27 +23,27 @@ class BnbNode:
         Time to compute the lower bound.
     time_upper_bound: float
         Time to compute the upper bound.
-    x: NDArray[np.float64]
+    x: ArrayLike
         Relaxation solution.
-    w: NDArray[np.float64]
+    w: ArrayLike
         Value of `A @ self.x`.
-    x_inc: NDArray[np.float64]
+    x_inc: ArrayLike
         Incumbent solution.
     """
 
     def __init__(
         self,
         category: int,
-        S0: NDArray,
-        S1: NDArray,
-        Sb: NDArray,
+        S0: ArrayLike,
+        S1: ArrayLike,
+        Sb: ArrayLike,
         lower_bound: float,
         upper_bound: float,
         time_lower_bound: float,
         time_upper_bound: float,
-        x: NDArray,
-        w: NDArray,
-        x_inc: NDArray,
+        x: ArrayLike,
+        w: ArrayLike,
+        x_inc: ArrayLike,
     ) -> None:
         self.category = category
         self.S0 = S0
@@ -106,7 +106,7 @@ class BnbNode:
     def depth(self):
         return self.card_S0 + self.card_S1
 
-    def fix_to(self, idx: int, val: bool, A: NDArray):
+    def fix_to(self, idx: int, val: bool, A: ArrayLike):
         """Fix an extry of the node to zero or non-zero. Update the
         corresponding attributes of the node.
 
@@ -117,7 +117,7 @@ class BnbNode:
         val: bool
             If ``False``, the entry is fixed to zero. If ``True``, the entry is
             fixed to non-zero.
-        A: NDArray
+        A: ArrayLike
             Matrix A.
         """
         self.Sb[idx] = False
@@ -131,7 +131,7 @@ class BnbNode:
                 self.w -= self.x[idx] * A[:, idx]
                 self.x[idx] = 0.0
 
-    def child(self, idx: int, val: bool, A: NDArray):
+    def child(self, idx: int, val: bool, A: ArrayLike):
         child = BnbNode(
             int(val),
             np.copy(self.S0),

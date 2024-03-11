@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 from el0ps.solver import BaseSolver, Result, Status
@@ -173,9 +173,9 @@ class BnbSolver(BaseSolver):
         self,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BasePenalty, JitClassType],
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
-        x_init: NDArray,
+        x_init: ArrayLike,
     ):
         if not str(type(datafit)).startswith(
             "<class 'numba.experimental.jitclass"
@@ -222,7 +222,7 @@ class BnbSolver(BaseSolver):
         )
         self.queue.append(root)
 
-    def value(self, x: NDArray, Ax: Union[NDArray, None] = None) -> float:
+    def value(self, x: ArrayLike, Ax: Union[ArrayLike, None] = None) -> float:
         if Ax is None:
             Ax = self.A @ x
         return (
@@ -372,9 +372,9 @@ class BnbSolver(BaseSolver):
         self,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BasePenalty, JitClassType],
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Union[ArrayLike, None] = None,
     ):
         if x_init is None:
             x_init = np.zeros(A.shape[1])

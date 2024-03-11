@@ -3,13 +3,13 @@
 import numpy as np
 from functools import lru_cache
 from numba.experimental import jitclass
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 
 
 def compute_lmbd_max(
-    datafit: BaseDatafit, penalty: BasePenalty, A: NDArray
+    datafit: BaseDatafit, penalty: BasePenalty, A: ArrayLike
 ) -> float:
     """Return a value of ``lmbd`` above which the all-zero vector is always a
     solution of the L0-penalized problem.
@@ -20,7 +20,7 @@ def compute_lmbd_max(
         Datafit function.
     penalty: BasePenalty
         Penalty function.
-    A: NDArray
+    A: ArrayLike
         Linear operator.
 
     Returns

@@ -3,8 +3,8 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
+from numpy.typing import ArrayLike
 from typing import Union
-from numpy.typing import NDArray
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 
@@ -50,9 +50,9 @@ class Result:
         Solver iter count.
     rel_gap: float
         Solver relative gap.
-    x: NDArray
+    x: ArrayLike
         Problem solution.
-    z: NDArray
+    z: ArrayLike
         Binary vector coding where non-zeros are located in ``x``.
     objective_value: float
         Problem objective value.
@@ -66,8 +66,8 @@ class Result:
     solve_time: float
     iter_count: int
     rel_gap: float
-    x: NDArray
-    z: NDArray
+    x: ArrayLike
+    z: ArrayLike
     objective_value: float
     n_nnz: int
     trace: dict
@@ -92,9 +92,9 @@ class BaseSolver:
         self,
         datafit: BaseDatafit,
         penalty: BasePenalty,
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Union[ArrayLike, None] = None,
     ):
         r"""Solve an L0-penalized problem of the form
 
@@ -110,11 +110,11 @@ class BaseSolver:
             Datafit function.
         penalty: BasePenalty
             Penalty function.
-        A: NDArray
+        A: ArrayLike
             Linear operator.
         lmbd: float, positive
             L0-norm weight.
-        x_init: Union[NDArray, None] = None
+        x_init: Union[ArrayLike, None] = None
             Stating value of ``x``.
 
         Returns

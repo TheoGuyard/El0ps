@@ -3,7 +3,7 @@
 import pyomo.environ as pyo
 import numpy as np
 from abc import abstractmethod
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 
 
 class BaseDatafit:
@@ -32,12 +32,12 @@ class BaseDatafit:
         ...
 
     @abstractmethod
-    def value(self, x: NDArray[np.float64]) -> float:
+    def value(self, x: ArrayLike) -> float:
         """Value of function at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the function is evaluated.
 
         Returns
@@ -48,12 +48,12 @@ class BaseDatafit:
         ...
 
     @abstractmethod
-    def conjugate(self, x: NDArray[np.float64]) -> float:
+    def conjugate(self, x: ArrayLike) -> float:
         """Value of the conjugate of the function at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the conjugate is evaluated.
 
         Returns
@@ -85,19 +85,19 @@ class ProximableDatafit(BaseDatafit):
     """Base class for proximable :class:`.datafit.BaseDatafit` functions."""
 
     @abstractmethod
-    def prox(self, x: NDArray[np.float64], eta: float) -> NDArray[np.float64]:
+    def prox(self, x: ArrayLike, eta: float) -> ArrayLike:
         """Prox of ``eta`` times the function at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the prox is evaluated.
         eta: float, positive
             Multiplicative factor in front of the function.
 
         Returns
         -------
-        p: NDArray[np.float64]
+        p: ArrayLike
             The proximity operator at ``x``.
         """
         ...
@@ -110,17 +110,17 @@ class SmoothDatafit(BaseDatafit):
     value."""
 
     @abstractmethod
-    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+    def gradient(self, x: ArrayLike) -> ArrayLike:
         """Value of gradient at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the gradient is evaluated.
 
         Returns
         -------
-        g: NDArray[np.float64]
+        g: ArrayLike
             The gradient at ``x``.
         """
         ...

@@ -1,7 +1,7 @@
 import pyomo.environ as pyo
 import numpy as np
 from numba import int32, float64
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from .base import ModelableDatafit, SmoothDatafit
 
 
@@ -14,11 +14,11 @@ class Squaredhinge(ModelableDatafit, SmoothDatafit):
 
     Parameters
     ----------
-    y: NDArray[np.float64]
+    y: ArrayLike
         Data vector.
     """
 
-    def __init__(self, y: NDArray[np.float64]) -> None:
+    def __init__(self, y: ArrayLike) -> None:
         self.y = y
         self.m = y.size
         self.L = 2.0 / y.size
@@ -33,12 +33,12 @@ class Squaredhinge(ModelableDatafit, SmoothDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: NDArray[np.float64]) -> float:
+    def value(self, x: ArrayLike) -> float:
         return (
             np.linalg.norm(np.maximum(1.0 - self.y * x, 0.0), 2) ** 2 / self.m
         )
 
-    def conjugate(self, x: NDArray[np.float64]) -> float:
+    def conjugate(self, x: ArrayLike) -> float:
         return (
             (0.5 * self.m) * np.dot(x, x)
             + np.dot(self.y, x)
@@ -58,5 +58,5 @@ class Squaredhinge(ModelableDatafit, SmoothDatafit):
         model.f1_con = pyo.Constraint(model.M, rule=f1_con_rule)
         model.f_con = pyo.Constraint(rule=f_con_rule)
 
-    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+    def gradient(self, x: ArrayLike) -> ArrayLike:
         return -self.y * np.maximum(1.0 - self.y * x, 0.0) / (0.5 * self.m)
