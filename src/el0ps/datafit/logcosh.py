@@ -7,7 +7,7 @@ from .base import SmoothDatafit
 class Logcosh(SmoothDatafit):
     r"""Logcosh datafit function given by
 
-    .. math:: f(x) = \frac{1}{m} \sum_{j=1}^m \log(\cosh(x_j - y_j))
+    .. math:: f(x) = 1 / m \sum_(j=1)^m \log(\cosh(x_j - y_j))
 
     where ``m`` is the size of the vector ``y``.
 
@@ -15,7 +15,7 @@ class Logcosh(SmoothDatafit):
     ----------
     y: ArrayLike
         Data vector.
-    """  # noqa: E501
+    """
 
     def __init__(self, y: ArrayLike) -> None:
         self.y = y
@@ -41,6 +41,9 @@ class Logcosh(SmoothDatafit):
         else:
             z = np.arctanh(self.m * x) + self.y
         return np.sum(z * x) - np.sum(np.log(np.cosh(z - self.y))) / self.m
+    
+    def lipschitz_constant(self) -> float:
+        return self.L
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return np.tanh(x - self.y) / self.m

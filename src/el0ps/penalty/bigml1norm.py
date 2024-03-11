@@ -1,14 +1,13 @@
 import numpy as np
 from numba import float64
-from .base import ProximablePenalty
+from .base import BasePenalty
 
 
-class BigmL1norm(ProximablePenalty):
-    r"""Big-M constraint plus L1-norm penalty function given by
-
-    .. math:: h(x) = \alpha|x| \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x)=+\infty \ \ \text{otherwise}
-
-    with :math:`M>0` and :math:`\alpha>0`.
+class BigmL1norm(BasePenalty):
+    r"""Big-M constraint plus L1-norm penalty function given by 
+    :math:`h(x) = \alpha |x|` when :math:`|x| <= M` and 
+    :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and 
+    :math:`\alpha > 0`.
 
     Parameters
     ----------
@@ -16,7 +15,7 @@ class BigmL1norm(ProximablePenalty):
         Big-M value.
     alpha: float
         L1-norm weight.
-    """  # noqa: E501
+    """
 
     def __init__(self, M: float, alpha: float) -> None:
         self.M = M
@@ -41,9 +40,6 @@ class BigmL1norm(ProximablePenalty):
 
     def conjugate(self, x: float) -> float:
         return self.M * np.maximum(np.abs(x) - self.alpha, 0.0)
-
-    def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.0
 
     def param_slope(self, lmbd: float) -> float:
         return (lmbd / self.M) + self.alpha

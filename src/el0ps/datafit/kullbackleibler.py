@@ -7,7 +7,7 @@ from .base import SmoothDatafit
 class Kullbackleibler(SmoothDatafit):
     r"""Kullback-Leibler datafit function given by
 
-    .. math:: f(x) = \frac{1}{m} \sum_{j=1}^m y_ij \log(y_j / (x_j + e)) + x_j + e - y_j
+    .. math:: f(x) = 1 / m \sum_(j=1)^m y_ij \log(y_j / (x_j + e)) + x_j + e - y_j
 
     where ``m`` is the size of the vector ``y`` and ``e`` is a smoothing
     parameter.
@@ -17,7 +17,7 @@ class Kullbackleibler(SmoothDatafit):
     y: ArrayLike
         Data vector.
     e: float = 1e-6
-        Smoothing parameter, must be non-negative.
+        Smoothing parameter, positive.
     """  # noqa: E501
 
     def __init__(self, y: ArrayLike, e: float = 1e-6) -> None:
@@ -36,7 +36,7 @@ class Kullbackleibler(SmoothDatafit):
             ("e", float64),
             ("m", int32),
             ("L", float64),
-            ("log_yy", float64),
+            ("log_yy", float64[::1]),
         )
         return spec
 
@@ -49,12 +49,13 @@ class Kullbackleibler(SmoothDatafit):
 
     def conjugate(self, x: ArrayLike) -> float:
         u = self.m * x
-        if not np.all(u < 1.0):
+        v = 1. - u
+        if np.any(v <= 0.):
             return np.inf
-        return (
-            np.sum(self.y * (self.log_yy - np.log(1.0 - u)) - self.e * u)
-            / self.m
-        )
+        return np.sum(self.y * (self.log_yy - np.log(v)) - self.e * u) / self.m
+
+    def lipschitz_constant(self) -> float:
+        return self.L
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         z = np.maximum(x, 0.0) + self.e

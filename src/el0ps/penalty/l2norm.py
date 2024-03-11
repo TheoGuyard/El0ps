@@ -1,14 +1,11 @@
 import numpy as np
 from numba import float64
-from .base import ProximablePenalty
+from .base import BasePenalty
 
 
-class L2norm(ModelablePenalty, ProximablePenalty):
-    r"""L2-norm penalty function given by
-
-    .. math:: f(x) = \alpha x^2
-
-    with :math:`\alpha>0`.
+class L2norm(BasePenalty):
+    r"""L2-norm penalty function given by :math:`h(x) = \alpha x^2`, with 
+    :math:`\alpha>0`.
 
     Parameters
     ----------
@@ -34,10 +31,7 @@ class L2norm(ModelablePenalty, ProximablePenalty):
 
     def conjugate(self, x: float) -> float:
         return x**2 / (4.0 * self.alpha)
-
-    def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.0
-
+    
     def param_slope(self, lmbd: float) -> float:
         return 2.0 * np.sqrt(lmbd * self.alpha)
 

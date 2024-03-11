@@ -1,14 +1,13 @@
 import numpy as np
 from numba import float64
-from .base import ModelablePenalty, ProximablePenalty
+from .base import BasePenalty
 
 
-class BigmL2norm(ModelablePenalty, ProximablePenalty):
-    r"""Big-M constraint plus L2-norm penalty function given by
-
-    .. math:: h(x) = \alpha x^2 \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x)=+\infty \ \ \text{otherwise}
-
-    with :math:`M>0` and :math:`\alpha>0`.
+class BigmL2norm(BasePenalty):
+    r"""Big-M constraint plus L2-norm penalty function given by 
+    :math:`h(x) = \alpha x^2` when :math:`|x| <= M` and 
+    :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and 
+    :math:`\alpha > 0`.
 
     Parameters
     ----------
@@ -16,7 +15,7 @@ class BigmL2norm(ModelablePenalty, ProximablePenalty):
         Big-M value.
     alpha: float
         L2-norm weight.
-    """  # noqa: E501
+    """
 
     def __init__(self, M: float, alpha: float) -> None:
         self.M = M
@@ -41,9 +40,6 @@ class BigmL2norm(ModelablePenalty, ProximablePenalty):
     def conjugate(self, x: float) -> float:
         r = np.maximum(np.minimum(x / (2.0 * self.alpha), self.M), -self.M)
         return x * r - self.alpha * r**2
-
-    def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.0
 
     def param_slope(self, lmbd: float) -> float:
         if lmbd < self.alpha * self.M**2:

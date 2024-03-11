@@ -8,7 +8,7 @@ from .base import SmoothDatafit
 class Squaredhinge(SmoothDatafit):
     r"""Squared-Hinge datafit function given by
 
-    .. math:: f(x) = \frac{1}{m}\sum_{j=1}^m\max(1 - y_j x_j, 0)^2
+    .. math:: f(x) = 1 / m \sum_(j=1)^m \max(1 - y_j * x_j, 0)^2
 
     where ``m`` is the size of the vector ``y``.
 
@@ -34,18 +34,19 @@ class Squaredhinge(SmoothDatafit):
         return dict(y=self.y)
 
     def value(self, x: ArrayLike) -> float:
-        return (
-            np.linalg.norm(np.maximum(1.0 - self.y * x, 0.0), 2) ** 2 / self.m
-        )
+        v = np.maximum(1.0 - self.y * x, 0.0)
+        return np.dot(v, v) / self.m
 
     def conjugate(self, x: ArrayLike) -> float:
+        v = np.maximum(-0.5 * self.m * (self.y * x), 0.0)
         return (
             (0.5 * self.m) * np.dot(x, x)
             + np.dot(self.y, x)
-            - np.linalg.norm(np.maximum(-0.5 * self.m * (self.y * x), 0.0), 2)
-            ** 2
-            / self.m
+            - np.dot(v, v) / self.m
         )
+    
+    def lipschitz_constant(self) -> float:
+        return self.L
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return -self.y * np.maximum(1.0 - self.y * x, 0.0) / (0.5 * self.m)

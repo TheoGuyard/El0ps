@@ -1,5 +1,6 @@
 """Base classes for penalty functions and related utilities."""
 
+import numpy as np
 from abc import abstractmethod
 
 
@@ -61,19 +62,20 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def conjugate_scaling_factor(self, x: float) -> float:
-        """Return a scalar ``s`` such that ``s * x`` is within the domain of
-        the conjugate of the function.
+    def prox(self, x: float, eta: float) -> float:
+        """Proximity operator of ``eta`` times the function at ``x``.
 
         Parameters
         ----------
         x: float
-            Value to be scaled.
+            Value at which the prox is evaluated.
+        eta: float, positive
+            Multiplicative factor of the function.
 
         Returns
         -------
-        s: float
-            The scaling factor.
+        p: float
+            The proximity operator of ``eta`` times the function at ``x``.
         """
         ...
 
@@ -123,66 +125,3 @@ class BasePenalty:
         """
         ...
 
-    @abstractmethod
-    def param_maxzer(self) -> float:
-        """Maximum value of x such that the conjugate of the function at x
-        equals zero.
-
-        Returns
-        -------
-        value: float
-            The maximum value of x such that the conjugate of the function at x
-            equals zero.
-        """
-        ...
-
-    def approximate_param_slope(
-        self, lmbd: float, tol: float = 1e-4, maxit: int = 100
-    ) -> float:
-        """Utility function to approximate the value of :func:`.param_slope`
-        when no closed-form is available.
-
-        Parameters
-        ----------
-        tol: float = 1e-4
-            Tolerance for the approximation.
-        maxit: int = 100
-            Maximum number of bisection iterations.
-        """
-        a = 0.0
-        b = 1.0
-        c = 0.5
-        while self.conjugate(b) < lmbd:
-            b *= 2.0
-        for _ in range(maxit):
-            c = (a + b) / 2.0
-            fa = self.conjugate(a) - lmbd
-            fc = self.conjugate(c) - lmbd
-            if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
-                return c
-            if fc * fa >= 0.0:
-                a = c
-            else:
-                b = c
-        return c
-
-class ProximablePenalty(BasePenalty):
-    """Base class for proximable penalty functions."""
-
-    @abstractmethod
-    def prox(self, x: float, eta: float) -> float:
-        """Proximity operator of ``eta`` times the function at ``x``.
-
-        Parameters
-        ----------
-        x: float
-            Value at which the prox is evaluated.
-        eta: float, positive
-            Multiplicative factor in front of the function.
-
-        Returns
-        -------
-        p: float
-            The proximity operator of ``eta`` times the function at ``x``.
-        """
-        ...

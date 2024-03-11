@@ -1,13 +1,13 @@
 import numpy as np
 from numba import int32, float64
 from numpy.typing import ArrayLike
-from .base import ProximableDatafit, SmoothDatafit
+from .base import SmoothDatafit
 
 
-class Leastsquares(ProximableDatafit, SmoothDatafit):
+class Leastsquares(SmoothDatafit):
     r"""Least-squares datafit function given by
 
-    .. math:: f(x) = \frac{1}{2m} \|x - y\|_2^2
+    .. math:: f(x) = 1 / 2m ||x - y||_2^2
 
     where ``m`` is the size of the vector ``y``.
 
@@ -33,13 +33,14 @@ class Leastsquares(ProximableDatafit, SmoothDatafit):
         return dict(y=self.y)
 
     def value(self, x: ArrayLike) -> float:
-        return np.linalg.norm(x - self.y, 2) ** 2 / (2.0 * self.m)
+        v = x - self.y
+        return np.dot(v, v) / (2.0 * self.m)
 
     def conjugate(self, x: ArrayLike) -> float:
         return (0.5 * self.m) * np.dot(x, x) + np.dot(x, self.y)
 
-    def prox(self, x: ArrayLike, eta: float) -> ArrayLike:
-        return (x + (eta / self.m) * self.y) / (1.0 + eta / self.m)
-
+    def lipschitz_constant(self) -> float:
+        return self.L
+    
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return (x - self.y) / self.m

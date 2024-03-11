@@ -1,4 +1,4 @@
-"""Base classes for data-fidelity functions and related utilities."""
+"""Base classes for datafit functions and related utilities."""
 
 from abc import abstractmethod
 from numpy.typing import ArrayLike
@@ -31,7 +31,7 @@ class BaseDatafit:
 
     @abstractmethod
     def value(self, x: ArrayLike) -> float:
-        """Value of function at ``x``.
+        """Value of the function at ``x``.
 
         Parameters
         ----------
@@ -62,33 +62,20 @@ class BaseDatafit:
         ...
 
 
-class ProximableDatafit(BaseDatafit):
-    """Base class for proximable :class:`.datafit.BaseDatafit` functions."""
+class SmoothDatafit(BaseDatafit):
+    """Base class for differentiable :class:`.datafit.BaseDatafit` functions
+    with a Lipschitz-continuous gradient."""
 
     @abstractmethod
-    def prox(self, x: ArrayLike, eta: float) -> ArrayLike:
-        """Prox of ``eta`` times the function at ``x``.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            Vector at which the prox is evaluated.
-        eta: float, positive
-            Multiplicative factor in front of the function.
+    def lipschitz_constant(self) -> float:
+        """Lipschitz constant of the gradient.
 
         Returns
         -------
-        p: ArrayLike
-            The proximity operator at ``x``.
+        L: float
+            The Lipschitz constant of the gradient.
         """
         ...
-
-
-class SmoothDatafit(BaseDatafit):
-    """Base class for differentiable :class:`.datafit.BaseDatafit` functions
-    with a Lipschitz-continuous gradient. Functions deriving from this class
-    must set an attribute ``L`` giving the gradient Lipschitz constant
-    value."""
 
     @abstractmethod
     def gradient(self, x: ArrayLike) -> ArrayLike:

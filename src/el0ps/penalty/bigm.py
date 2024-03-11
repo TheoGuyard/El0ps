@@ -1,20 +1,17 @@
 import numpy as np
 from numba import float64
-from .base import ProximablePenalty
+from .base import BasePenalty
 
 
-class Bigm(ProximablePenalty):
-    r"""Big-M penalty function given by
-
-    .. math:: h(x) = 0 \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x) = +\infty \ \ \text{otherwise}
-
-    with :math:`M>0`.
+class Bigm(BasePenalty):
+    """Big-M penalty function given by :math:`h(x) = 0` when :math:`|x| <= M`
+    and :math:`h(x) = +\infty` otherwise, with :math:`M > 0`.
 
     Parameters
     ----------
     M: float
         Big-M value.
-    """  # noqa: E501
+    """
 
     def __init__(self, M: float) -> None:
         self.M = M
@@ -34,9 +31,6 @@ class Bigm(ProximablePenalty):
 
     def conjugate(self, x: float) -> float:
         return self.M * np.abs(x)
-
-    def conjugate_scaling_factor(self, x: float) -> float:
-        return 1.0
 
     def param_slope(self, lmbd: float) -> float:
         return lmbd / self.M

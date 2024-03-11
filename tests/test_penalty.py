@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from el0ps.penalty import (
-    ProximablePenalty,
     Bigm,
     BigmL1norm,
     BigmL2norm,
@@ -61,10 +60,9 @@ def test_instances(penalty):
         assert penalty.conjugate(maxval) == np.inf
     assert penalty.conjugate(maxzer) == 0.0
 
-    if isinstance(penalty, ProximablePenalty):
-        eta = np.random.rand()
-        for xi in x:
-            pi = penalty.prox(xi, eta)
-            v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(pi)
-            v2 = eta * penalty.value(xi)
-            assert v1 <= v2
+    eta = np.random.rand()
+    for xi in x:
+        pi = penalty.prox(xi, eta)
+        v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(pi)
+        v2 = eta * penalty.value(xi)
+        assert v1 <= v2

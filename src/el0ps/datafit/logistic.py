@@ -7,7 +7,7 @@ from .base import SmoothDatafit
 class Logistic(SmoothDatafit):
     r"""Logistic datafit function given by
 
-    .. math:: f(x) = \frac{1}{m} \sum_{j=1}^m \log(1 + \exp(-y_j x_j))
+    .. math:: f(x) = 1 / m \sum_(j=1)^m \log(1 + \exp(-y_j * x_j))
 
     where ``m`` is the size of the vector ``y``.
 
@@ -41,6 +41,9 @@ class Logistic(SmoothDatafit):
             return np.inf
         r = 1.0 - c
         return (np.dot(c, np.log(c)) + np.dot(r, np.log(r))) / self.m
+
+    def lipschitz_constant(self) -> float:
+        return self.L
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return -self.y / (self.m * (1.0 + np.exp(self.y * x)))
