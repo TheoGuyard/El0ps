@@ -4,7 +4,7 @@ from .base import BasePenalty
 
 
 class Bigm(BasePenalty):
-    """Big-M penalty function given by :math:`h(x) = 0` when :math:`|x| <= M`
+    r"""Big-M penalty function given by :math:`h(x) = 0` when :math:`|x| <= M`
     and :math:`h(x) = +\infty` otherwise, with :math:`M > 0`.
 
     Parameters
@@ -31,7 +31,7 @@ class Bigm(BasePenalty):
 
     def conjugate(self, x: float) -> float:
         return self.M * np.abs(x)
-    
+
     def prox(self, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.M), -self.M)
 
@@ -43,6 +43,6 @@ class Bigm(BasePenalty):
 
     def param_maxval(self) -> float:
         return np.inf
-    
+
     def param_maxdom(self) -> float:
         return np.inf

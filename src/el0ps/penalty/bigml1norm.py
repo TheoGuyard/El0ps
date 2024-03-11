@@ -4,9 +4,9 @@ from .base import BasePenalty
 
 
 class BigmL1norm(BasePenalty):
-    r"""Big-M constraint plus L1-norm penalty function given by 
-    :math:`h(x) = \alpha |x|` when :math:`|x| <= M` and 
-    :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and 
+    r"""Big-M constraint plus L1-norm penalty function given by
+    :math:`h(x) = \alpha |x|` when :math:`|x| <= M` and
+    :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and
     :math:`\alpha > 0`.
 
     Parameters
@@ -40,7 +40,7 @@ class BigmL1norm(BasePenalty):
 
     def conjugate(self, x: float) -> float:
         return self.M * np.maximum(np.abs(x) - self.alpha, 0.0)
-    
+
     def prox(self, x: float, eta: float) -> float:
         v = np.abs(x) - eta * self.alpha
         return np.sign(x) * np.maximum(np.minimum(v, self.M), 0.0)
@@ -53,6 +53,6 @@ class BigmL1norm(BasePenalty):
 
     def param_maxval(self) -> float:
         return np.inf
-    
+
     def param_maxdom(self) -> float:
         return np.inf

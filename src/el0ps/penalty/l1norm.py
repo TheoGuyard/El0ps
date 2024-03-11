@@ -4,7 +4,7 @@ from .base import BasePenalty
 
 
 class L1norm(BasePenalty):
-    r"""L1-norm penalty function given by :math:`h(x) = \alpha |x|`, with 
+    r"""L1-norm penalty function given by :math:`h(x) = \alpha |x|`, with
     :math:`\alpha>0`.
 
     Parameters
@@ -43,6 +43,6 @@ class L1norm(BasePenalty):
 
     def param_maxval(self) -> float:
         return 0.0
-    
+
     def param_maxdom(self) -> float:
         return self.alpha

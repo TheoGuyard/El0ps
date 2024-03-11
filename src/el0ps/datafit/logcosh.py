@@ -41,7 +41,7 @@ class Logcosh(SmoothDatafit):
         else:
             z = np.arctanh(self.m * x) + self.y
         return np.sum(z * x) - np.sum(np.log(np.cosh(z - self.y))) / self.m
-    
+
     def lipschitz_constant(self) -> float:
         return self.L
 

@@ -1,4 +1,3 @@
-import pyomo.environ as pyo
 import numpy as np
 from numba import int32, float64
 from numpy.typing import ArrayLike
@@ -44,7 +43,7 @@ class Squaredhinge(SmoothDatafit):
             + np.dot(self.y, x)
             - np.dot(v, v) / self.m
         )
-    
+
     def lipschitz_constant(self) -> float:
         return self.L
 

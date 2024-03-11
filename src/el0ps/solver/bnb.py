@@ -41,6 +41,7 @@ class BnbExplorationStrategy(Enum):
     def mix_threshold(self):
         return 1e-1
 
+
 class BnbBranchingStrategy(Enum):
     """:class:`.solver.BnbSolver` exploration strategy.
 
@@ -309,7 +310,9 @@ class BnbSolver(BaseSolver):
                 np.argmin([qnode.lower_bound for qnode in self.queue])
             )
         elif self.options.exploration_strategy == BnbExplorationStrategy.MIX:
-            if (self.rel_gap / self.options.rel_tol) < self.options.exploration_strategy.mix_threshold():
+            if (
+                self.rel_gap / self.options.rel_tol
+            ) < self.options.exploration_strategy.mix_threshold():
                 next_node = self.queue.pop(
                     np.argmin([qnode.lower_bound for qnode in self.queue])
                 )

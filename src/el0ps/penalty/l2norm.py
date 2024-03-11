@@ -4,7 +4,7 @@ from .base import BasePenalty
 
 
 class L2norm(BasePenalty):
-    r"""L2-norm penalty function given by :math:`h(x) = \alpha x^2`, with 
+    r"""L2-norm penalty function given by :math:`h(x) = \alpha x^2`, with
     :math:`\alpha>0`.
 
     Parameters
@@ -31,10 +31,10 @@ class L2norm(BasePenalty):
 
     def conjugate(self, x: float) -> float:
         return x**2 / (4.0 * self.alpha)
-    
+
     def prox(self, x: float, eta: float) -> float:
         return x / (1.0 + 2.0 * eta * self.alpha)
-    
+
     def param_slope(self, lmbd: float) -> float:
         return 2.0 * np.sqrt(lmbd * self.alpha)
 

@@ -46,7 +46,7 @@ def compute_lmbd_max(
 def compute_param_slope(
     penalty: BasePenalty, lmbd: float, tol: float = 1e-4, maxit: int = 100
 ) -> float:
-    """Utility function to compute the value of `param_slope` in a 
+    """Utility function to compute the value of `param_slope` in a
     ``BasePenalty`` instance when no closed-form is available.
 
     Parameters

@@ -1,6 +1,5 @@
 """Base classes for penalty functions and related utilities."""
 
-import numpy as np
 from abc import abstractmethod
 
 

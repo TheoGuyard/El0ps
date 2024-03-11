@@ -49,8 +49,8 @@ class Kullbackleibler(SmoothDatafit):
 
     def conjugate(self, x: ArrayLike) -> float:
         u = self.m * x
-        v = 1. - u
-        if np.any(v <= 0.):
+        v = 1.0 - u
+        if np.any(v <= 0.0):
             return np.inf
         return np.sum(self.y * (self.log_yy - np.log(v)) - self.e * u) / self.m
 

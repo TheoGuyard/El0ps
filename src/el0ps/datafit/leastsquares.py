@@ -41,6 +41,6 @@ class Leastsquares(SmoothDatafit):
 
     def lipschitz_constant(self) -> float:
         return self.L
-    
+
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return (x - self.y) / self.m

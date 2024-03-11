@@ -14,7 +14,7 @@ def test_solver():
     A = np.random.randn(m, n)
     y = A @ x
     e = np.random.randn(m)
-    e *= np.sqrt((y @ y) / (10. * (e @ e)))
+    e *= np.sqrt((y @ y) / (10.0 * (e @ e)))
     y += e
     M = 1.5 * np.max(np.abs(x))
 
@@ -28,7 +28,9 @@ def test_solver():
     x = np.random.randn(n)
     w = A @ x
 
-    node = BnbNode(-1, S0, S1, Sb, -np.inf, +np.inf, 0., 0., x, w, np.copy(x))
+    node = BnbNode(
+        -1, S0, S1, Sb, -np.inf, +np.inf, 0.0, 0.0, x, w, np.copy(x)
+    )
     assert isinstance(node, BnbNode)
     assert isinstance(node.__str__(), str)
 

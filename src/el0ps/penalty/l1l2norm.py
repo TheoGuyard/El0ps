@@ -4,8 +4,8 @@ from .base import BasePenalty
 
 
 class L1L2norm(BasePenalty):
-    r"""L1L2-norm penalty function given by 
-    :math:`h(x) = \alpha |x| + \beta x^2`, with :math:`\alpha>0` and 
+    r"""L1L2-norm penalty function given by
+    :math:`h(x) = \alpha |x| + \beta x^2`, with :math:`\alpha>0` and
     :math:`\beta>0`.
 
     Parameters
@@ -38,7 +38,7 @@ class L1L2norm(BasePenalty):
 
     def conjugate(self, x: float) -> float:
         return np.maximum(np.abs(x) - self.alpha, 0.0) ** 2 / (4.0 * self.beta)
-    
+
     def prox(self, x: float, eta: float) -> float:
         v = np.sign(x) / (1.0 + 2.0 * eta * self.beta)
         return v * np.maximum(np.abs(x) - eta * self.alpha, 0.0)
