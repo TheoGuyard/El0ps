@@ -35,6 +35,23 @@ class Bigm(BasePenalty):
     def prox(self, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.M), -self.M)
 
+    def subdiff(self, x: float) -> tuple[float]:
+        if np.abs(x) < self.M:
+            return (0.0, 0.0)
+        elif x == -self.M:
+            return (-np.inf, 0.0)
+        elif x == self.M:
+            return (0.0, np.inf)
+        else:
+            return ()
+
+    def conjugate_subdiff(self, x: float) -> tuple[float]:
+        if x == 0.0:
+            return (-self.M, self.M)
+        else:
+            s = np.sign(x) * self.M
+            return (s, s)
+
     def param_slope(self, lmbd: float) -> float:
         return lmbd / self.M
 

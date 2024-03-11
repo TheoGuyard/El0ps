@@ -79,6 +79,38 @@ class BasePenalty:
         ...
 
     @abstractmethod
+    def subdiff(self, x: float) -> tuple[float]:
+        """Subdifferential operator of the function at ``x``.
+
+        Parameters
+        ----------
+        x: float
+            Value at which the prox is evaluated.
+
+        Returns
+        -------
+        s: float
+            The subdifferential operator of the function at ``x``.
+        """
+        ...
+
+    @abstractmethod
+    def conjugate_subdiff(self, x: float) -> tuple[float]:
+        """Subdifferential operator of the function conjugate at ``x``.
+
+        Parameters
+        ----------
+        x: float
+            Value at which the prox is evaluated.
+
+        Returns
+        -------
+        s: float
+            The subdifferential operator of the function conjugate at ``x``.
+        """
+        ...
+
+    @abstractmethod
     def param_slope(self, lmbd: float) -> float:
         """Maximum value of ``x`` such that the function is below ``lmbd``.
 

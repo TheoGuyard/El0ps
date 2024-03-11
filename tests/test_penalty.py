@@ -9,7 +9,7 @@ from el0ps.penalty import (
     L2norm,
     L1L2norm,
 )
-from el0ps.utils import compute_param_slope
+from el0ps.utils import compute_param_slope, compute_param_limit
 
 n = 100
 x = np.random.randn(n)
@@ -42,11 +42,13 @@ def test_instances(penalty):
     maxval = penalty.param_maxval()
     maxdom = penalty.param_maxdom()
     slope_approx = compute_param_slope(penalty, lmbd, tol=1e-8)
+    limit_approx = compute_param_limit(penalty, lmbd)
     assert slope >= 0.0
     assert limit >= 0.0
     assert maxval >= 0.0
     assert maxdom >= 0.0
     assert slope == pytest.approx(slope_approx)
+    assert limit == pytest.approx(limit_approx)
     if limit < np.inf:
         assert penalty.conjugate(slope) == pytest.approx(lmbd)
         assert (

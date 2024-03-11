@@ -43,6 +43,24 @@ class L1L2norm(BasePenalty):
         v = np.sign(x) / (1.0 + 2.0 * eta * self.beta)
         return v * np.maximum(np.abs(x) - eta * self.alpha, 0.0)
 
+    def subdiff(self, x: float) -> tuple[float]:
+        if x == 0:
+            return (-self.alpha, self.alpha)
+        else:
+            s = self.alpha * np.sign(x) + 2.0 * self.beta * x
+            return (s, s)
+
+    def conjugate_subdiff(self, x: float) -> tuple[float]:
+        if np.abs(x) < self.alpha:
+            return (0.0, 0.0)
+        elif x == -self.alpha:
+            return ((x + self.alpha) / (2.0 * self.beta), 0.0)
+        elif x == self.alpha:
+            return (0.0, (x - self.alpha) / (2.0 * self.beta))
+        else:
+            s = (x - self.alpha * np.sign(x)) / (2.0 * self.beta)
+            return (s, s)
+
     def param_slope(self, lmbd: float) -> float:
         return self.alpha + np.sqrt(4.0 * self.beta * lmbd)
 

@@ -51,6 +51,10 @@ def compute_param_slope(
 
     Parameters
     ----------
+    penalty: BasePenalty
+        The penalty instance.
+    lmbd: float
+        L0-regularization parameter.
     tol: float = 1e-4
         Bisection tolerance.
     maxit: int = 100
@@ -73,6 +77,20 @@ def compute_param_slope(
         else:
             b = c
     return c
+
+
+def compute_param_limit(penalty: BasePenalty, lmbd: float) -> float:
+    """Utility function to compute the value of `param_limit` in a
+    ``BasePenalty`` instance when no closed-form is available.
+
+    Parameters
+    ----------
+    penalty: BasePenalty
+        The penalty instance.
+    lmbd: float
+        L0-regularization parameter.
+    """
+    return np.max(penalty.conjugate_subdiff(penalty.param_slope(lmbd)))
 
 
 @lru_cache()

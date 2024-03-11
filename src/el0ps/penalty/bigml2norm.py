@@ -45,6 +45,21 @@ class BigmL2norm(BasePenalty):
         v = x / (1.0 + 2.0 * eta * self.alpha)
         return np.maximum(np.minimum(v, self.M), -self.M)
 
+    def subdiff(self, x: float) -> tuple[float]:
+        if np.abs(x) < self.M:
+            s = 2.0 * self.alpha * x
+            return (s, s)
+        elif x == -self.M:
+            return (-np.inf, 2.0 * self.alpha * x)
+        elif x == self.M:
+            return (2.0 * self.alpha * x, np.inf)
+        else:
+            return ()
+
+    def conjugate_subdiff(self, x: float) -> tuple[float]:
+        s = np.maximum(np.minimum(x / (2.0 * self.alpha), self.M), -self.M)
+        return (s, s)
+
     def param_slope(self, lmbd: float) -> float:
         if lmbd < self.alpha * self.M**2:
             return np.sqrt(4.0 * lmbd * self.alpha)
