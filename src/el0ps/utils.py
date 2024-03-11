@@ -57,7 +57,7 @@ def compute_param_slope(
         Maximum number of bisection iterations.
     """
     if penalty.param_maxval() < lmbd:
-        return np.inf
+        return penalty.param_maxdom()
     a = 0.0
     b = 1.0
     while penalty.conjugate(b) < lmbd:

@@ -43,6 +43,6 @@ class L1norm(BasePenalty):
 
     def param_maxval(self) -> float:
         return 0.0
-
-    def param_maxzer(self) -> float:
+    
+    def param_maxdom(self) -> float:
         return self.alpha

@@ -125,3 +125,13 @@ class BasePenalty:
         """
         ...
 
+    @abstractmethod
+    def param_maxdom(self) -> float:
+        """Right boundary of the conjugate domain.
+
+        Returns
+        -------
+        value: float
+            The right boundary of the conjugate domain.
+        """
+        ...

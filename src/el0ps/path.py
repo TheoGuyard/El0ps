@@ -187,13 +187,9 @@ class Path:
             The path fitting data stored in ``self.fit_data``.
         """
 
-        if not str(type(datafit)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
+        if isinstance(datafit, BaseDatafit):
             datafit = compiled_clone(datafit)
-        if not str(type(penalty)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
+        if isinstance(penalty, BasePenalty):
             penalty = compiled_clone(penalty)
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")

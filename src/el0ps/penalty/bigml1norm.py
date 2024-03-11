@@ -40,6 +40,10 @@ class BigmL1norm(BasePenalty):
 
     def conjugate(self, x: float) -> float:
         return self.M * np.maximum(np.abs(x) - self.alpha, 0.0)
+    
+    def prox(self, x: float, eta: float) -> float:
+        v = np.abs(x) - eta * self.alpha
+        return np.sign(x) * np.maximum(np.minimum(v, self.M), 0.0)
 
     def param_slope(self, lmbd: float) -> float:
         return (lmbd / self.M) + self.alpha
@@ -49,11 +53,6 @@ class BigmL1norm(BasePenalty):
 
     def param_maxval(self) -> float:
         return np.inf
-
-    def param_maxzer(self) -> float:
-        return self.alpha
-
-    def prox(self, x: float, eta: float) -> float:
-        return np.sign(x) * np.maximum(
-            np.minimum(np.abs(x) - eta * self.alpha, self.M), 0.0
-        )
+    
+    def param_maxdom(self) -> float:
+        return np.inf

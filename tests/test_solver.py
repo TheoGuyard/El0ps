@@ -10,10 +10,12 @@ def test_solver():
     k, m, n = 3, 50, 100
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
-    x[s] = np.random.randn(k)
+    x[s] = np.sign(np.random.randn(k))
     A = np.random.randn(m, n)
     y = A @ x
-    y += 0.01 * np.random.randn(m) * np.linalg.norm(y) ** 2
+    e = np.random.randn(m)
+    e *= np.sqrt((y @ y) / (10. * (e @ e)))
+    y += e
     M = 1.5 * np.max(np.abs(x))
 
     datafit = Leastsquares(y)
