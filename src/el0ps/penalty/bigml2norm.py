@@ -1,4 +1,3 @@
-import pyomo.environ as pyo
 import numpy as np
 from numba import float64
 from .base import ModelablePenalty, ProximablePenalty
@@ -63,28 +62,6 @@ class BigmL2norm(ModelablePenalty, ProximablePenalty):
 
     def param_maxzer(self) -> float:
         return 0.0
-
-    def bind_model(self, model: pyo.Model, lmbd: float) -> None:
-        def gpos_con_rule(model: pyo.Model, i: int):
-            return model.x[i] <= self.M * model.z[i]
-
-        def gneg_con_rule(model: pyo.Model, i: int):
-            return model.x[i] >= -self.M * model.z[i]
-
-        def g1_con_rule(model: pyo.Model, i: int):
-            return model.x[i] ** 2 <= model.g1[i] * model.z[i]
-
-        def g_con_rule(model: pyo.Model):
-            return model.g >= (
-                lmbd * sum(model.z[i] for i in model.N)
-                + self.alpha * sum(model.g1[i] for i in model.N)
-            )
-
-        model.g1 = pyo.Var(model.N, within=pyo.Reals)
-        model.gpos_con = pyo.Constraint(model.N, rule=gpos_con_rule)
-        model.gneg_con = pyo.Constraint(model.N, rule=gneg_con_rule)
-        model.g1_con = pyo.Constraint(model.N, rule=g1_con_rule)
-        model.g_con = pyo.Constraint(rule=g_con_rule)
 
     def prox(self, x: float, eta: float) -> float:
         return np.maximum(

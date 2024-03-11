@@ -1,10 +1,9 @@
-import pyomo.environ as pyo
 import numpy as np
 from numba import float64
-from .base import ModelablePenalty, ProximablePenalty
+from .base import ProximablePenalty
 
 
-class L1L2norm(ModelablePenalty, ProximablePenalty):
+class L1L2norm(ProximablePenalty):
     r"""L1L2-norm penalty function given by
 
     .. math:: h(x) = \alpha|x| + \beta x^2
@@ -56,30 +55,6 @@ class L1L2norm(ModelablePenalty, ProximablePenalty):
 
     def param_maxzer(self) -> float:
         return self.alpha
-
-    def bind_model(self, model: pyo.Model, lmbd: float) -> None:
-        def g1pos_con_rule(model: pyo.Model, i: int):
-            return model.g1[i] >= model.x[i]
-
-        def g1neg_con_rule(model: pyo.Model, i: int):
-            return model.g1[i] >= -model.x[i]
-
-        def g2_con_rule(model: pyo.Model, i: int):
-            return model.x[i] ** 2 <= model.g2[i] * model.z[i]
-
-        def g_con_rule(model: pyo.Model):
-            return model.g >= (
-                lmbd * sum(model.z[i] for i in model.N)
-                + self.alpha * sum(model.g1[i] for i in model.N)
-                + self.beta * sum(model.g2[i] for i in model.N)
-            )
-
-        model.g1 = pyo.Var(model.N, within=pyo.Reals)
-        model.g2 = pyo.Var(model.N, within=pyo.Reals)
-        model.g1pos_con = pyo.Constraint(model.N, rule=g1pos_con_rule)
-        model.g2neg_con = pyo.Constraint(model.N, rule=g1neg_con_rule)
-        model.g2_con = pyo.Constraint(model.N, rule=g2_con_rule)
-        model.g_con = pyo.Constraint(rule=g_con_rule)
 
     def prox(self, x: float, eta: float) -> float:
         return (np.sign(x) / (1.0 + 2.0 * eta * self.beta)) * np.maximum(

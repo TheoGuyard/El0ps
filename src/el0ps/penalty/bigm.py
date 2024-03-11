@@ -1,10 +1,9 @@
-import pyomo.environ as pyo
 import numpy as np
 from numba import float64
-from .base import ModelablePenalty, ProximablePenalty
+from .base import ProximablePenalty
 
 
-class Bigm(ModelablePenalty, ProximablePenalty):
+class Bigm(ProximablePenalty):
     r"""Big-M penalty function given by
 
     .. math:: h(x) = 0 \ \ \text{if} \ \ |x| \leq M \ \ \text{and} \ \ h(x) = +\infty \ \ \text{otherwise}
@@ -50,20 +49,6 @@ class Bigm(ModelablePenalty, ProximablePenalty):
 
     def param_maxzer(self) -> float:
         return 0.0
-
-    def bind_model(self, model: pyo.Model, lmbd: float) -> None:
-        def gpos_con_rule(model: pyo.Model, i: int):
-            return model.x[i] <= self.M * model.z[i]
-
-        def gneg_con_rule(model: pyo.Model, i: int):
-            return model.x[i] >= -self.M * model.z[i]
-
-        def g_con_rule(model: pyo.Model):
-            return model.g >= lmbd * sum(model.z[i] for i in model.N)
-
-        model.gpos_con = pyo.Constraint(model.N, rule=gpos_con_rule)
-        model.gneg_con = pyo.Constraint(model.N, rule=gneg_con_rule)
-        model.g_con = pyo.Constraint(rule=g_con_rule)
 
     def prox(self, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.M), -self.M)
