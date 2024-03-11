@@ -1,11 +1,6 @@
 """Data-fidelity functions."""
 
-from .base import (
-    BaseDatafit,
-    ModelableDatafit,
-    SmoothDatafit,
-    ProximableDatafit,
-)
+from .base import BaseDatafit, SmoothDatafit
 from .kullbackleibler import Kullbackleibler
 from .leastsquares import Leastsquares
 from .logcosh import Logcosh
@@ -14,8 +9,6 @@ from .squaredhinge import Squaredhinge
 
 __all__ = [
     "BaseDatafit",
-    "ModelableDatafit",
-    "ProximableDatafit",
     "SmoothDatafit",
     "Kullbackleibler",
     "Leastsquares",

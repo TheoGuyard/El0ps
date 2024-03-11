@@ -3,7 +3,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from el0ps.utils import compiled_clone, compute_lmbd_max
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
@@ -145,7 +145,7 @@ class Path:
         lmbd_ratio: float,
         datafit: JitClassType,
         penalty: JitClassType,
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
         results: Result,
     ) -> None:
@@ -168,7 +168,7 @@ class Path:
         solver: BaseSolver,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BasePenalty, JitClassType],
-        A: NDArray,
+        A: ArrayLike,
     ) -> dict:
         """Fit the regularization path.
 
@@ -178,7 +178,7 @@ class Path:
             Datafit function.
         penalty: BasePenalty
             Penalty function.
-        A: NDArray
+        A: ArrayLike
             Linear operator.
 
         Returns
@@ -187,13 +187,9 @@ class Path:
             The path fitting data stored in ``self.fit_data``.
         """
 
-        if not str(type(datafit)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
+        if isinstance(datafit, BaseDatafit):
             datafit = compiled_clone(datafit)
-        if not str(type(penalty)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
+        if isinstance(penalty, BasePenalty):
             penalty = compiled_clone(penalty)
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")

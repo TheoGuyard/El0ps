@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from el0ps.penalty import (
-    ProximablePenalty,
     Bigm,
     BigmL1norm,
     BigmL2norm,
@@ -10,6 +9,7 @@ from el0ps.penalty import (
     L2norm,
     L1L2norm,
 )
+from el0ps.utils import compute_param_slope
 
 n = 100
 x = np.random.randn(n)
@@ -40,12 +40,12 @@ def test_instances(penalty):
     slope = penalty.param_slope(lmbd)
     limit = penalty.param_limit(lmbd)
     maxval = penalty.param_maxval()
-    maxzer = penalty.param_maxzer()
-    slope_approx = penalty.approximate_param_slope(lmbd, tol=1e-8)
+    maxdom = penalty.param_maxdom()
+    slope_approx = compute_param_slope(penalty, lmbd, tol=1e-8)
     assert slope >= 0.0
     assert limit >= 0.0
     assert maxval >= 0.0
-    assert maxzer >= 0.0
+    assert maxdom >= 0.0
     assert slope == pytest.approx(slope_approx)
     if limit < np.inf:
         assert penalty.conjugate(slope) == pytest.approx(lmbd)
@@ -59,12 +59,12 @@ def test_instances(penalty):
         assert penalty.conjugate(maxval) < np.inf
     else:
         assert penalty.conjugate(maxval) == np.inf
-    assert penalty.conjugate(maxzer) == 0.0
+    if maxdom < np.inf:
+        assert penalty.conjugate(maxdom) < np.inf
 
-    if isinstance(penalty, ProximablePenalty):
-        eta = np.random.rand()
-        for xi in x:
-            pi = penalty.prox(xi, eta)
-            v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(pi)
-            v2 = eta * penalty.value(xi)
-            assert v1 <= v2
+    eta = np.random.rand()
+    for xi in x:
+        pi = penalty.prox(xi, eta)
+        v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(pi)
+        v2 = eta * penalty.value(xi)
+        assert v1 <= v2

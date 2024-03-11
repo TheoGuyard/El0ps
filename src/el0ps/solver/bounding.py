@@ -3,7 +3,7 @@ import time
 from typing import Union
 from numba import njit
 from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from el0ps.datafit import BaseDatafit, SmoothDatafit
 from el0ps.penalty import BasePenalty
 from el0ps.utils import compiled_clone
@@ -49,7 +49,7 @@ class BnbBoundingSolver:
         self,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BasePenalty, JitClassType],
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
     ) -> None:
         if not str(type(datafit)).startswith(
@@ -278,15 +278,15 @@ class BnbBoundingSolver:
     def cd_loop(
         datafit: SmoothDatafit,
         penalty: BasePenalty,
-        A: NDArray[np.float64],
-        c5: NDArray[np.float64],
-        c6: NDArray[np.float64],
-        c7: NDArray[np.float64],
-        x: NDArray[np.float64],
-        w: NDArray[np.float64],
-        u: NDArray[np.float64],
-        Ws: NDArray[np.bool_],
-        Sb: NDArray[np.bool_],
+        A: ArrayLike,
+        c5: ArrayLike,
+        c6: ArrayLike,
+        c7: ArrayLike,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike,
+        Ws: ArrayLike,
+        Sb: ArrayLike,
     ) -> float:
         for i in np.flatnonzero(Ws):
             ai = A[:, i]
@@ -304,14 +304,14 @@ class BnbBoundingSolver:
     @njit
     def ws_update(
         penalty: BasePenalty,
-        A: NDArray[np.float64],
+        A: ArrayLike,
         lmbd: float,
         c1: float,
-        u: NDArray[np.float64],
-        v: NDArray[np.float64],
-        p: NDArray[np.float64],
-        Ws: NDArray[np.bool_],
-        Sbi: NDArray[np.bool_],
+        u: ArrayLike,
+        v: ArrayLike,
+        p: ArrayLike,
+        Ws: ArrayLike,
+        Sbi: ArrayLike,
     ) -> bool:
         flag = False
         for i in np.flatnonzero(~Ws & Sbi):
@@ -330,10 +330,10 @@ class BnbBoundingSolver:
         lmbd: float,
         c1: float,
         c2: float,
-        x: NDArray[np.float64],
-        w: NDArray[np.float64],
-        S1: NDArray[np.bool_],
-        Sb: NDArray[np.bool_],
+        x: ArrayLike,
+        w: ArrayLike,
+        S1: ArrayLike,
+        Sb: ArrayLike,
     ) -> float:
         """Compute the primal value of the bounding problem.
 
@@ -349,13 +349,13 @@ class BnbBoundingSolver:
             L1-norm weight.
         c2: float
             L1-norm threshold.
-        x: NDArray[np.float64]
+        x: ArrayLike
             Value at which the primal is evaluated.
-        w: NDArray[np.float64]
+        w: ArrayLike
             Value of ``A @ x``.
-        S1: NDArray[np.bool_]
+        S1: ArrayLike
             Set of indices forced to be non-zero.
-        Sb: NDArray[np.bool_]
+        Sb: ArrayLike
             Set of unfixed indices.
         """
         pv = datafit.value(w)
@@ -371,13 +371,13 @@ class BnbBoundingSolver:
     def compute_dv(
         datafit: BaseDatafit,
         penalty: BasePenalty,
-        A: NDArray[np.float64],
+        A: ArrayLike,
         lmbd: float,
-        u: NDArray[np.float64],
-        v: NDArray[np.float64],
-        p: NDArray[np.float64],
-        S1: NDArray[np.bool_],
-        Sb: NDArray[np.bool_],
+        u: ArrayLike,
+        v: ArrayLike,
+        p: ArrayLike,
+        S1: ArrayLike,
+        Sb: ArrayLike,
     ) -> float:
         """Compute the dual value of the bounding problem.
 
@@ -387,20 +387,20 @@ class BnbBoundingSolver:
             Datafit function.
         penalty: BasePenalty
             Penalty function.
-        A: NDArray[np.float64]
+        A: ArrayLike
             Linear operator.
         lmbd: float
             Constant offset of the penalty.
-        u: NDArray[np.float64]
+        u: ArrayLike
             Value at which the dual is evaluated.
-        w: NDArray[np.float64]
+        w: ArrayLike
             Value of ``A.T @ u``.
-        p: NDArray[np.float64]
+        p: ArrayLike
             Empty vector to store the values of ``penalty.conjugate(v) - lmbd``
             over indices in ``S1`` or ``Sb``.
-        S1: NDArray[np.bool_]
+        S1: ArrayLike
             Set of indices forced to be non-zero.
-        Sb: NDArray[np.bool_]
+        Sb: ArrayLike
             Set of unfixed indices.
         """
         dv = -datafit.conjugate(-u)
@@ -428,19 +428,19 @@ class BnbBoundingSolver:
     @njit
     def l0screening(
         datafit: BaseDatafit,
-        A: NDArray[np.float64],
-        x: NDArray[np.float64],
-        w: NDArray[np.float64],
-        u: NDArray[np.float64],
-        p: NDArray[np.float64],
+        A: ArrayLike,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike,
+        p: ArrayLike,
         ub: float,
         dv: float,
-        S0: NDArray[np.bool_],
-        S1: NDArray[np.bool_],
-        Sb: NDArray[np.bool_],
-        Ws: NDArray[np.bool_],
-        Sb0: NDArray[np.bool_],
-        Sbi: NDArray[np.bool_],
+        S0: ArrayLike,
+        S1: ArrayLike,
+        Sb: ArrayLike,
+        Ws: ArrayLike,
+        Sb0: ArrayLike,
+        Sbi: ArrayLike,
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
@@ -467,18 +467,18 @@ class BnbBoundingSolver:
     @njit
     def l1screening(
         datafit: BaseDatafit,
-        A: NDArray[np.float64],
-        x: NDArray[np.float64],
-        w: NDArray[np.float64],
-        u: NDArray[np.float64],
-        v: NDArray[np.float64],
+        A: ArrayLike,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike,
+        v: ArrayLike,
         c1: float,
         c4: float,
         pv: float,
         dv: float,
-        Ws: NDArray[np.bool_],
-        Sb0: NDArray[np.bool_],
-        Sbi: NDArray[np.bool_],
+        Ws: ArrayLike,
+        Sb0: ArrayLike,
+        Sbi: ArrayLike,
     ) -> None:
         flag = False
         r = np.sqrt(2.0 * np.abs(pv - dv) * c4)

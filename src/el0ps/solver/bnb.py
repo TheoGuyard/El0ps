@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 from el0ps.solver import BaseSolver, Result, Status
@@ -27,15 +27,19 @@ class BnbExplorationStrategy(Enum):
         Depth-first search.
     BBS: str
         Best-bound search.
-    WBS: str
-        Worst-bound search.
+    MIX: str
+        Starts with a DFS strategy and switches to a BBS strategy when the
+        relative mip gap is within a factor `mix_threshold` from the target
+        one.
     """
 
     BFS = "BFS"
     DFS = "DFS"
     BBS = "BBS"
-    WBS = "WBS"
-    # TODO mixed BFS-DFS
+    MIX = "MIX"
+
+    def mix_threshold(self):
+        return 1e-1
 
 
 class BnbBranchingStrategy(Enum):
@@ -61,8 +65,6 @@ class BnbOptions:
         Bounding solver.
     exploration_strategy: BnbExplorationStrategy
         Branch-and-Bound exploration strategy.
-    exploration_depth_switch: int
-        Depth switch for the BnbExplorationStrategy.MIX exploration strategy.
     branching_strategy: BnbBranchingStrategy
         Branch-and-Bound branching strategy.
     time_limit: float
@@ -88,8 +90,7 @@ class BnbOptions:
     """
 
     bounding_solver: BnbBoundingSolver = BnbBoundingSolver()
-    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.DFS
-    exploration_depth_switch: int = 0
+    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.MIX
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
     time_limit: float = float(sys.maxsize)
     node_limit: int = sys.maxsize
@@ -173,17 +174,13 @@ class BnbSolver(BaseSolver):
         self,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BasePenalty, JitClassType],
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
-        x_init: NDArray,
+        x_init: ArrayLike,
     ):
-        if not str(type(datafit)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
+        if isinstance(datafit, BaseDatafit):
             datafit = compiled_clone(datafit)
-        if not str(type(penalty)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
+        if isinstance(penalty, BasePenalty):
             penalty = compiled_clone(penalty)
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")
@@ -222,7 +219,7 @@ class BnbSolver(BaseSolver):
         )
         self.queue.append(root)
 
-    def value(self, x: NDArray, Ax: Union[NDArray, None] = None) -> float:
+    def value(self, x: ArrayLike, Ax: Union[ArrayLike, None] = None) -> float:
         if Ax is None:
             Ax = self.A @ x
         return (
@@ -310,12 +307,17 @@ class BnbSolver(BaseSolver):
             next_node = self.queue.pop(0)
         elif self.options.exploration_strategy == BnbExplorationStrategy.BBS:
             next_node = self.queue.pop(
-                np.argmax([qnode.lower_bound for qnode in self.queue])
-            )
-        elif self.options.exploration_strategy == BnbExplorationStrategy.WBS:
-            next_node = self.queue.pop(
                 np.argmin([qnode.lower_bound for qnode in self.queue])
             )
+        elif self.options.exploration_strategy == BnbExplorationStrategy.MIX:
+            if (
+                self.rel_gap / self.options.rel_tol
+            ) < self.options.exploration_strategy.mix_threshold():
+                next_node = self.queue.pop(
+                    np.argmin([qnode.lower_bound for qnode in self.queue])
+                )
+            else:
+                next_node = self.queue.pop()
         else:
             raise NotImplementedError
         self.iter_count += 1
@@ -372,9 +374,9 @@ class BnbSolver(BaseSolver):
         self,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BasePenalty, JitClassType],
-        A: NDArray,
+        A: ArrayLike,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Union[ArrayLike, None] = None,
     ):
         if x_init is None:
             x_init = np.zeros(A.shape[1])

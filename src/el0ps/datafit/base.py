@@ -1,9 +1,7 @@
-"""Base classes for data-fidelity functions and related utilities."""
+"""Base classes for datafit functions and related utilities."""
 
-import pyomo.environ as pyo
-import numpy as np
 from abc import abstractmethod
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike
 
 
 class BaseDatafit:
@@ -32,12 +30,12 @@ class BaseDatafit:
         ...
 
     @abstractmethod
-    def value(self, x: NDArray[np.float64]) -> float:
-        """Value of function at ``x``.
+    def value(self, x: ArrayLike) -> float:
+        """Value of the function at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the function is evaluated.
 
         Returns
@@ -48,12 +46,12 @@ class BaseDatafit:
         ...
 
     @abstractmethod
-    def conjugate(self, x: NDArray[np.float64]) -> float:
+    def conjugate(self, x: ArrayLike) -> float:
         """Value of the conjugate of the function at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the conjugate is evaluated.
 
         Returns
@@ -64,63 +62,33 @@ class BaseDatafit:
         ...
 
 
-class ModelableDatafit(BaseDatafit):
-    """Base class for :class:`.datafit.BaseDatafit` functions that can be
-    modeled in a Pyomo model."""
+class SmoothDatafit(BaseDatafit):
+    """Base class for differentiable :class:`.datafit.BaseDatafit` functions
+    with a Lipschitz-continuous gradient."""
 
     @abstractmethod
-    def bind_model(self, model: pyo.Model) -> None:
-        """Instantiate the relation ``model.f >= self.value(model.w)``. The
-        variables ``model.f`` and ``model.w`` are already defined in the model.
-
-        Parameters
-        ----------
-        model: pyo.Model
-            Pyomo model of the L0-penalized problem.
-        """
-        ...
-
-
-class ProximableDatafit(BaseDatafit):
-    """Base class for proximable :class:`.datafit.BaseDatafit` functions."""
-
-    @abstractmethod
-    def prox(self, x: NDArray[np.float64], eta: float) -> NDArray[np.float64]:
-        """Prox of ``eta`` times the function at ``x``.
-
-        Parameters
-        ----------
-        x: NDArray[np.float64]
-            Vector at which the prox is evaluated.
-        eta: float, positive
-            Multiplicative factor in front of the function.
+    def lipschitz_constant(self) -> float:
+        """Lipschitz constant of the gradient.
 
         Returns
         -------
-        p: NDArray[np.float64]
-            The proximity operator at ``x``.
+        L: float
+            The Lipschitz constant of the gradient.
         """
         ...
 
-
-class SmoothDatafit(BaseDatafit):
-    """Base class for differentiable :class:`.datafit.BaseDatafit` functions
-    with a Lipschitz-continuous gradient. Functions deriving from this class
-    must set an attribute ``L`` giving the gradient Lipschitz constant
-    value."""
-
     @abstractmethod
-    def gradient(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+    def gradient(self, x: ArrayLike) -> ArrayLike:
         """Value of gradient at ``x``.
 
         Parameters
         ----------
-        x: NDArray[np.float64]
+        x: ArrayLike
             Vector at which the gradient is evaluated.
 
         Returns
         -------
-        g: NDArray[np.float64]
+        g: ArrayLike
             The gradient at ``x``.
         """
         ...

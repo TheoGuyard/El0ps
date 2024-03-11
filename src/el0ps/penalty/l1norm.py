@@ -1,14 +1,11 @@
 import numpy as np
 from numba import float64
-from .base import ProximablePenalty
+from .base import BasePenalty
 
 
-class L1norm(ProximablePenalty):
-    r"""L1-norm penalty function given by
-
-    .. math:: f(x) = \alpha |x|
-
-    with :math:`\alpha>0`.
+class L1norm(BasePenalty):
+    r"""L1-norm penalty function given by :math:`h(x) = \alpha |x|`, with
+    :math:`\alpha>0`.
 
     Parameters
     ----------
@@ -38,9 +35,6 @@ class L1norm(ProximablePenalty):
     def prox(self, x: float, eta: float) -> float:
         return np.sign(x) * np.maximum(0.0, np.abs(x) - eta * self.alpha)
 
-    def conjugate_scaling_factor(self, x: float) -> float:
-        return self.alpha / (np.abs(x) + 1e-10)
-
     def param_slope(self, lmbd: float) -> float:
         return self.alpha
 
@@ -50,5 +44,5 @@ class L1norm(ProximablePenalty):
     def param_maxval(self) -> float:
         return 0.0
 
-    def param_maxzer(self) -> float:
+    def param_maxdom(self) -> float:
         return self.alpha
