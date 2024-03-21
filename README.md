@@ -4,11 +4,12 @@ El0ps
 
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/release/python-380/)
+[![Codecov](https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/gh/TheoGuyard/El0ps)
+[![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/benchopt/benchopt/blob/main/LICENSE)
+
+<!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
 <!-- [![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://el0ps.github.io) -->
 <!-- [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml) -->
-[![Codecov](https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/gh/TheoGuyard/El0ps)
-<!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
-[![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/benchopt/benchopt/blob/main/LICENSE)
 
 
 `el0ps` is a Python package to solve L0-penalized optimization problems of the form
