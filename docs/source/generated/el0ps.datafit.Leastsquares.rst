@@ -17,8 +17,8 @@
       ~Leastsquares.conjugate
       ~Leastsquares.get_spec
       ~Leastsquares.gradient
+      ~Leastsquares.lipschitz_constant
       ~Leastsquares.params_to_dict
-      ~Leastsquares.prox
       ~Leastsquares.value
    
    

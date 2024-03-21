@@ -17,6 +17,7 @@
       ~SmoothDatafit.conjugate
       ~SmoothDatafit.get_spec
       ~SmoothDatafit.gradient
+      ~SmoothDatafit.lipschitz_constant
       ~SmoothDatafit.params_to_dict
       ~SmoothDatafit.value
    

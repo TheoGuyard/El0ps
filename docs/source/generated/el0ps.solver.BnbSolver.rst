@@ -14,7 +14,21 @@
    .. autosummary::
    
       ~BnbSolver.__init__
+      ~BnbSolver.branch
+      ~BnbSolver.can_continue
+      ~BnbSolver.compute_lower_bound
+      ~BnbSolver.compute_upper_bound
+      ~BnbSolver.is_feasible
+      ~BnbSolver.next_node
+      ~BnbSolver.print_footer
+      ~BnbSolver.print_header
+      ~BnbSolver.print_progress
+      ~BnbSolver.prune
+      ~BnbSolver.setup
       ~BnbSolver.solve
+      ~BnbSolver.update_bounds
+      ~BnbSolver.update_trace
+      ~BnbSolver.value
    
    
 
@@ -28,5 +42,6 @@
       ~BnbSolver.queue_length
       ~BnbSolver.rel_gap
       ~BnbSolver.solve_time
+      ~BnbSolver.supp_left
    
    

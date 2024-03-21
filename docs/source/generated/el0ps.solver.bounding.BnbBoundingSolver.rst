@@ -14,14 +14,15 @@
    .. autosummary::
    
       ~BnbBoundingSolver.__init__
-      ~BnbBoundingSolver.abs_gap
       ~BnbBoundingSolver.bound
+      ~BnbBoundingSolver.cd_loop
       ~BnbBoundingSolver.compute_dv
       ~BnbBoundingSolver.compute_pv
       ~BnbBoundingSolver.l0screening
       ~BnbBoundingSolver.l1screening
       ~BnbBoundingSolver.rel_gap
       ~BnbBoundingSolver.setup
+      ~BnbBoundingSolver.ws_update
    
    
 

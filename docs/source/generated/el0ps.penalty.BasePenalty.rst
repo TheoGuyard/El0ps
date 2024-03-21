@@ -14,15 +14,16 @@
    .. autosummary::
    
       ~BasePenalty.__init__
-      ~BasePenalty.approximate_param_slope
       ~BasePenalty.conjugate
-      ~BasePenalty.conjugate_scaling_factor
+      ~BasePenalty.conjugate_subdiff
       ~BasePenalty.get_spec
       ~BasePenalty.param_limit
+      ~BasePenalty.param_maxdom
       ~BasePenalty.param_maxval
-      ~BasePenalty.param_maxzer
       ~BasePenalty.param_slope
       ~BasePenalty.params_to_dict
+      ~BasePenalty.prox
+      ~BasePenalty.subdiff
       ~BasePenalty.value
    
    

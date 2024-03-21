@@ -17,6 +17,7 @@
       ~Squaredhinge.conjugate
       ~Squaredhinge.get_spec
       ~Squaredhinge.gradient
+      ~Squaredhinge.lipschitz_constant
       ~Squaredhinge.params_to_dict
       ~Squaredhinge.value
    

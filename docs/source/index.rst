@@ -9,33 +9,17 @@ El0ps
 *-An Exact L0-Problem Solver-*
 
 
-|Python 3.8+| |Documentation| |Test Status| |Codecov| |PyPI version| |License|
+|Python 3.8+| |Codecov| |License|
 
-``el0ps`` is a Python package to solve L0-penalized optimization problems of the form
+``el0ps`` is a Python package to solve optimization problems of the form
 
 .. math::
 
    \textstyle\min_x f(Ax) + \lambda\|x\|_0 + h(x)
 
-where :math:`f(\cdot)` is a datafit function, :math:`A` is a linear operator, :math:`\lambda>0` is the L0-regularization weight and :math:`h(\cdot)` is a penalty function.
+where :math:`f` is a datafit function, :math:`A` is a linear operator, :math:`\lambda>0` is the L0-regularization weight and :math:`h` is a penalty function.
 ``el0ps`` is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
 You can pick from ``el0ps``'s already-made datafits and penalties or customize your own by building on top of the available template classes.
-
-Quick start
------------
-
-``el0ps`` is available on `pipy <https://pypi.org>`_. 
-Get the latest version of the package by running the following command.
-
-.. code-block:: shell
-
-   $ pip install el0ps
-
-You are now ready to take your first steps with ``el0ps`` in the :ref:`Getting started section <getting_started>`.
-Typical use-cases and workflows are prented in the :ref:`Examples section <examples>`.
-Further details on how the package can be found in the :ref:`User guide section <user_guide>`.
-You can also learn how to customize your own estimators and solvers in the :ref:`Custom estimators and solvers <custom>`.
-
 
 Cite
 ----
@@ -63,10 +47,8 @@ Documentation tree
    :maxdepth: 1
 
    getting_started.rst
-   user_guide.rst
-   custom.rst
-   examples.rst
    api.rst
+   .. custom.rst
 
 
 .. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8%2B-blue

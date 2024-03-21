@@ -10,6 +10,7 @@ from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 
 def f1_score(x_true, x):
+    """Compute the F1 support recovery score of x with respect to x_true."""
     s = x != 0.0
     s_true = x_true != 0.0
     i = np.sum(s & s_true)
@@ -20,24 +21,30 @@ def f1_score(x_true, x):
 
 
 def synthetic_x(k, n):
+    """Generate a k-sparse vector or size n with evenly-spaced non-zero entries
+    of unit amplitude and ramdom sign."""
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.sign(np.random.randn(s.size))
     return x
 
 
-def synthetic_A(model, m, n, rho):
+def synthetic_A(m, n, rho):
+    """Generate a matrix A of size (m, n) where each row is an independent
+    realization of a multivariate normal distribution with zero mean and
+    covariance matrix K with each entry defined as K[i,j]=r^|i-j| for
+    some r in [0, 1)."""
     M = np.zeros(n)
     N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
     N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
     K = np.power(rho, np.abs(N1 - N2))
     A = np.random.multivariate_normal(M, K, size=m)
-    if model == "poisson":
-        A = np.abs(A)
     return A
 
 
 def synthetic_y(model, x, A, m, snr):
+    """Generate an output y ~ model(Ax,e) where A is an (m, n) matrix, x is a
+    k-sparse vector and e is a noise that depends on the model considered."""
     if model == "linear":
         y = A @ x
         e = np.random.randn(m)
@@ -59,8 +66,11 @@ def synthetic_y(model, x, A, m, snr):
 
 
 def get_data_synthetic(model, k, m, n, rho, snr, normalize=False):
+    """Generate synthetic data for sparse problems."""
     x = synthetic_x(k, n)
-    A = synthetic_A(model, m, n, rho)
+    A = synthetic_A(m, n, rho)
+    if model == "poisson":
+        A = np.abs(A)
     if normalize:
         A /= np.linalg.norm(A, axis=0, ord=2)
     y = synthetic_y(model, x, A, m, snr)
@@ -70,6 +80,8 @@ def get_data_synthetic(model, k, m, n, rho, snr, normalize=False):
 
 
 def get_data_libsvm(dataset_name):
+    """Extract a dataset from LIBSVM, see the `libsvm` package for more
+    details."""
     import ssl
 
     ssl._create_default_https_context = ssl._create_unverified_context
@@ -78,6 +90,8 @@ def get_data_libsvm(dataset_name):
 
 
 def get_data_openml(dataset_id, dataset_target):
+    """Extract a dataset from OpenML, see the `openml` package for more
+    details."""
     dataset = oml.datasets.get_dataset(
         dataset_id,
         download_data=False,
@@ -91,6 +105,8 @@ def get_data_openml(dataset_id, dataset_target):
 
 
 def get_data_uciml(dataset_id):
+    """Extract a dataset from the UCI ML repository, see the `ucimlrepo`
+    package for more details."""
     dataset = fetch_ucirepo(id=dataset_id)
     A = dataset.data.features
     y = dataset.data.targets
@@ -100,6 +116,7 @@ def get_data_uciml(dataset_id):
 
 
 def get_data_hardcoded(dataset_name):
+    """Extract a dataset from the folder experiments/datasets/."""
     A_path = (
         pathlib.Path(__file__)
         .parent.joinpath("datasets", dataset_name + "_A")
@@ -125,6 +142,7 @@ def get_data_hardcoded(dataset_name):
 
 
 def process_data(datafit_name, A, y, x_true, center=False, normalize=False):
+    """Process the problem data."""
     if sparse.issparse(A):
         A = A.todense()
     if not A.flags["F_CONTIGUOUS"] or not A.flags["OWNDATA"]:
@@ -159,6 +177,11 @@ def get_data(dataset):
 
 
 def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
+    """Give some data (A,y), datafit and penalty, use `l0learn` to find an
+    appropriate the L0-norm regularization weight and suitable hyperparameters
+    in the penalty function."""
+
+    # Binding for datafit and penalty names between El0ps and L0learn
     bindings = {
         "Leastsquares": "SquaredError",
         "Logistic": "Logistic",
@@ -175,10 +198,10 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
 
     m, n = A.shape
 
-    # Datafit
+    # Datafit instanciation
     datafit = eval(datafit_name)(y)
 
-    # Fit regularization path with L0Learn
+    # Fit an approximate regularization path with L0Learn
     cvfit = l0learn.cvfit(
         A,
         y,
@@ -191,7 +214,9 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         num_folds=5,
     )
 
-    # Penalty and L0-norm parameters calibration from L0learn path
+    # Penalty and L0-norm parameters calibration from L0learn path. Select the
+    # hyperparameters with the best cross-validation score among those with the
+    # best support recovery F1 score.
     best_M = None
     best_lmbda = None
     best_gamma = None
@@ -213,6 +238,7 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
                     best_f1 = f1
                     best_x = np.copy(x)
 
+    # Penalty instanciation
     if penalty_name == "Bigm":
         penalty = Bigm(best_M)
     elif penalty_name == "BigmL1norm":

@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~BnbNode.__init__
+      ~BnbNode.child
       ~BnbNode.fix_to
    
    
@@ -27,6 +28,7 @@
       ~BnbNode.card_S0
       ~BnbNode.card_S1
       ~BnbNode.card_Sb
+      ~BnbNode.depth
       ~BnbNode.rel_gap
    
    

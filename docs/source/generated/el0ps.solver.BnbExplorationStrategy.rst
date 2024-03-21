@@ -9,6 +9,12 @@
    .. automethod:: __init__
 
    
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BnbExplorationStrategy.mix_threshold
+   
    
 
    
@@ -20,6 +26,6 @@
       ~BnbExplorationStrategy.BFS
       ~BnbExplorationStrategy.DFS
       ~BnbExplorationStrategy.BBS
-      ~BnbExplorationStrategy.WBS
+      ~BnbExplorationStrategy.MIX
    
    

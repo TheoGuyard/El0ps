@@ -108,9 +108,11 @@ class Realworld(Experiment):
         self.mean_stats = {
             stat_key: {
                 solver_key: [
-                    np.mean(solver_values[i])
-                    if len(solver_values[i])
-                    else np.nan
+                    (
+                        np.mean(solver_values[i])
+                        if len(solver_values[i])
+                        else np.nan
+                    )
                     for i in range(self.lmbd_ratio_grid.size)
                 ]
                 for solver_key, solver_values in stat_values.items()

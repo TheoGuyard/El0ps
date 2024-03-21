@@ -14,16 +14,16 @@
    .. autosummary::
    
       ~L1norm.__init__
-      ~L1norm.approximate_param_slope
       ~L1norm.conjugate
-      ~L1norm.conjugate_scaling_factor
+      ~L1norm.conjugate_subdiff
       ~L1norm.get_spec
       ~L1norm.param_limit
+      ~L1norm.param_maxdom
       ~L1norm.param_maxval
-      ~L1norm.param_maxzer
       ~L1norm.param_slope
       ~L1norm.params_to_dict
       ~L1norm.prox
+      ~L1norm.subdiff
       ~L1norm.value
    
    

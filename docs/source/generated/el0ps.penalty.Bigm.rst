@@ -14,16 +14,16 @@
    .. autosummary::
    
       ~Bigm.__init__
-      ~Bigm.approximate_param_slope
       ~Bigm.conjugate
-      ~Bigm.conjugate_scaling_factor
+      ~Bigm.conjugate_subdiff
       ~Bigm.get_spec
       ~Bigm.param_limit
+      ~Bigm.param_maxdom
       ~Bigm.param_maxval
-      ~Bigm.param_maxzer
       ~Bigm.param_slope
       ~Bigm.params_to_dict
       ~Bigm.prox
+      ~Bigm.subdiff
       ~Bigm.value
    
    

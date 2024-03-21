@@ -26,7 +26,6 @@
       ~BnbOptions.bounding_solver
       ~BnbOptions.branching_strategy
       ~BnbOptions.dualpruning
-      ~BnbOptions.exploration_depth_switch
       ~BnbOptions.exploration_strategy
       ~BnbOptions.int_tol
       ~BnbOptions.l0screening
@@ -36,5 +35,6 @@
       ~BnbOptions.time_limit
       ~BnbOptions.trace
       ~BnbOptions.verbose
+      ~BnbOptions.workingsets
    
    

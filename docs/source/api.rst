@@ -4,22 +4,6 @@
 API references
 ==============
 
-.. currentmodule:: el0ps
-
-Estimators
-==========
-
-.. currentmodule:: el0ps
-
-.. autosummary::
-    :toctree: generated/
-
-    Problem
-    compute_lmbd_max
-    Path
-    PathOptions
-
-
 Datafits
 ========
 
@@ -29,7 +13,6 @@ Datafits
     :toctree: generated/
 
     BaseDatafit
-    ProximableDatafit
     SmoothDatafit
     Leastsquares
     Logistic
@@ -46,7 +29,6 @@ Penalties
     :toctree: generated/
 
     BasePenalty
-    ProximablePenalty
     Bigm
     BigmL1norm
     BigmL2norm
@@ -64,7 +46,7 @@ Solvers
     :toctree: generated/
 
     BaseSolver
-    Results
+    Result
     Status
     BnbNode
     BnbBranchingStrategy
@@ -82,4 +64,28 @@ Bounding
     :toctree: generated/
 
     BnbBoundingSolver
-    CdBoundingSolver
+
+
+Path
+====
+
+.. currentmodule:: el0ps.path
+
+.. autosummary::
+    :toctree: generated/
+
+    Path
+    PathOptions
+
+
+Utils
+=====
+
+.. currentmodule:: el0ps.utils
+
+.. autosummary::
+    :toctree: generated/
+
+    compute_lmbd_max
+    compute_param_slope
+    compute_param_limit

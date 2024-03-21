@@ -1,7 +1,7 @@
-﻿el0ps.PathOptions
-=================
+﻿el0ps.path.PathOptions
+======================
 
-.. currentmodule:: el0ps
+.. currentmodule:: el0ps.path
 
 .. autoclass:: PathOptions
 
