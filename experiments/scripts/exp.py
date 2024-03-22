@@ -15,12 +15,12 @@ def get_exp_perfprofile():
         "dataset": {
             "dataset_type": "synthetic",
             "dataset_opts": {
+                "matrix": "correlated(0.9)",
                 "model": "linear",
                 "k": 5,
                 "m": 500,
                 "n": 1000,
-                "rho": 0.9,
-                "snr": 10.0,
+                "s": 10.0,
                 "normalize": True,
             },
             "process_opts": {"center": True, "normalize": True},
@@ -30,8 +30,7 @@ def get_exp_perfprofile():
         "solvers": {
             "solvers_name": [
                 "el0ps",
-                # "el0ps[l0screening=False]",
-                "el0ps[l0screening=False,dualpruning=False]",
+                "el0ps[simpruning=False]",
                 # "l0bnb",
                 # "cplex",
                 # "gurobi",
@@ -51,20 +50,87 @@ def get_exp_perfprofile():
         setup["dataset"]["dataset_opts"]["k"] = k
         exp["setups"].append(setup)
 
-    # for n in [100, 316, 1_000, 3_162, 10_000]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["n"] = n
-    #     exp["setups"].append(setup)
-
-    # for rho in [0., 0.6838, 0.9, 0.9684, 0.99]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["rho"] = rho
-    #     exp["setups"].append(setup)
-
-    for snr in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
+    for n in [100, 316, 1_000, 3_162, 10_000]:
         setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["snr"] = snr
+        setup["dataset"]["dataset_opts"]["n"] = n
         exp["setups"].append(setup)
+
+    for r in [0.0, 0.6838, 0.9, 0.9684, 0.99]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["matrix"] = f"correlated({r})"
+        exp["setups"].append(setup)
+
+    for s in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["s"] = s
+        exp["setups"].append(setup)
+
+    return exp
+
+
+def get_exp_perfprofile_suppl():
+    exp = {
+        "name": "perfprofile_suppl",
+        "walltime": "01:15:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [],
+    }
+
+    base_setup = {
+        "expname": "perfprofile",
+        "dataset": {
+            "dataset_type": "synthetic",
+            "dataset_opts": {
+                "matrix": "correlated(0.9)",
+                "model": "linear",
+                "k": 5,
+                "m": 500,
+                "n": 1000,
+                "s": 10.0,
+                "normalize": True,
+            },
+            "process_opts": {"center": True, "normalize": True},
+            "datafit_name": "Leastsquares",
+            "penalty_name": "Bigm",
+        },
+        "solvers": {
+            "solvers_name": [
+                "el0ps",
+                "el0ps[simpruning=False,dualpruning=False]",
+                "l0bnb",
+                "cplex",
+                "gurobi",
+                "mosek",
+            ],
+            "solvers_opts": {
+                "time_limit": 3600.0,
+                "rel_tol": 1.0e-4,
+                "int_tol": 1.0e-8,
+                "verbose": False,
+            },
+        },
+    }
+
+    setup_dct = deepcopy(base_setup)
+    setup_dct["dataset"]["dataset_opts"]["matrix"] = "dct"
+    setup_dct["dataset"]["dataset_opts"]["k"] = 5
+    setup_dct["dataset"]["dataset_opts"]["m"] = 500
+    setup_dct["dataset"]["dataset_opts"]["n"] = 1000
+    setup_dct["dataset"]["dataset_opts"]["normalize"] = True
+    setup_dct["dataset"]["process_opts"]["center"] = False
+    setup_dct["dataset"]["process_opts"]["normalize"] = True
+    exp["setups"].append(setup_dct)
+
+    setup_toeplitz = deepcopy(base_setup)
+    setup_toeplitz["dataset"]["dataset_opts"]["matrix"] = "toeplitz"
+    setup_toeplitz["dataset"]["dataset_opts"]["k"] = 5
+    setup_toeplitz["dataset"]["dataset_opts"]["m"] = 200
+    setup_toeplitz["dataset"]["dataset_opts"]["n"] = 100
+    setup_toeplitz["dataset"]["dataset_opts"]["normalize"] = True
+    setup_toeplitz["dataset"]["process_opts"]["center"] = True
+    setup_toeplitz["dataset"]["process_opts"]["normalize"] = True
+    exp["setups"].append(setup_toeplitz)
 
     return exp
 
@@ -120,8 +186,8 @@ def get_exp_regpath():
     ]:
         for solver_name in [
             "el0ps",
-            "el0ps[l0screening=False]",
-            "el0ps[l0screening=False,dualpruning=False]",
+            "el0ps[simpruning=False]",
+            "el0ps[simpruning=False,dualpruning=False]",
             "l0bnb",
             "cplex",
             "gurobi",

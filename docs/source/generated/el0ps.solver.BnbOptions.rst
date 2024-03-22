@@ -28,7 +28,7 @@
       ~BnbOptions.dualpruning
       ~BnbOptions.exploration_strategy
       ~BnbOptions.int_tol
-      ~BnbOptions.l0screening
+      ~BnbOptions.simpruning
       ~BnbOptions.l1screening
       ~BnbOptions.node_limit
       ~BnbOptions.rel_tol

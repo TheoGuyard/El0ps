@@ -3,12 +3,12 @@ expname: perfprofile
 dataset:
   dataset_type: synthetic
   dataset_opts: 
+    matrix      : correlated(0.9)
     model       : linear
     k           : 5
     m           : 500
     n           : 1000
-    rho         : 0.9
-    snr         : 10.
+    s           : 10.
     normalize   : true
   process_opts: 
     center        : true
@@ -19,7 +19,7 @@ dataset:
 solvers:
   solvers_name:
     - el0ps
-    - el0ps[l0screening=False,dualpruning=False]
+    - el0ps[simpruning=False,dualpruning=False]
     - l0bnb
     - cplex
     - gurobi

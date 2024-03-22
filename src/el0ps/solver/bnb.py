@@ -81,7 +81,7 @@ class BnbOptions:
         Whether to use working sets during the bounding process.
     l1screening: bool
         Whether to use screening acceleration.
-    l0screening: bool
+    simpruning: bool
         Whether to use node-screening acceleration.
     verbose: bool
         Whether to toggle solver verbosity.
@@ -99,7 +99,7 @@ class BnbOptions:
     workingsets: bool = True
     dualpruning: bool = True
     l1screening: bool = True
-    l0screening: bool = True
+    simpruning: bool = True
     verbose: bool = False
     trace: bool = False
 
@@ -282,7 +282,7 @@ class BnbSolver(BaseSolver):
             self.options.workingsets,
             self.options.dualpruning,
             self.options.l1screening,
-            self.options.l0screening,
+            self.options.simpruning,
             upper=False,
         )
 
