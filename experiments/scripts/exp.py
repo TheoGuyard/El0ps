@@ -4,74 +4,7 @@ from copy import deepcopy
 def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
-        "walltime": "02:15:00",
-        "besteffort": True,
-        "production": True,
-        "setups": [],
-    }
-
-    base_setup = {
-        "expname": "perfprofile",
-        "dataset": {
-            "dataset_type": "synthetic",
-            "dataset_opts": {
-                "matrix": "correlated(0.9)",
-                "model": "linear",
-                "k": 5,
-                "m": 500,
-                "n": 1000,
-                "s": 10.0,
-                "normalize": True,
-            },
-            "process_opts": {"center": True, "normalize": True},
-            "datafit_name": "Leastsquares",
-            "penalty_name": "Bigm",
-        },
-        "solvers": {
-            "solvers_name": [
-                "el0ps",
-                "el0ps[simpruning=False]",
-                # "l0bnb",
-                # "cplex",
-                # "gurobi",
-                # "mosek",
-            ],
-            "solvers_opts": {
-                "time_limit": 3600.0,
-                "rel_tol": 1.0e-4,
-                "int_tol": 1.0e-8,
-                "verbose": False,
-            },
-        },
-    }
-
-    for k in [5, 6, 7, 8, 9]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["k"] = k
-        exp["setups"].append(setup)
-
-    for n in [100, 316, 1_000, 3_162, 10_000]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["n"] = n
-        exp["setups"].append(setup)
-
-    for r in [0.0, 0.6838, 0.9, 0.9684, 0.99]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["matrix"] = f"correlated({r})"
-        exp["setups"].append(setup)
-
-    for s in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["s"] = s
-        exp["setups"].append(setup)
-
-    return exp
-
-
-def get_exp_perfprofile_suppl():
-    exp = {
-        "name": "perfprofile_suppl",
-        "walltime": "01:15:00",
+        "walltime": "07:15:00",
         "besteffort": True,
         "production": True,
         "setups": [],
@@ -111,6 +44,26 @@ def get_exp_perfprofile_suppl():
             },
         },
     }
+
+    # for k in [5, 6, 7, 8, 9]:
+    #     setup = deepcopy(base_setup)
+    #     setup["dataset"]["dataset_opts"]["k"] = k
+    #     exp["setups"].append(setup)
+
+    # for n in [100, 316, 1_000, 3_162, 10_000]:
+    #     setup = deepcopy(base_setup)
+    #     setup["dataset"]["dataset_opts"]["n"] = n
+    #     exp["setups"].append(setup)
+
+    # for r in [0.0, 0.6838, 0.9, 0.9684, 0.99]:
+    #     setup = deepcopy(base_setup)
+    #     setup["dataset"]["dataset_opts"]["matrix"] = f"correlated({r})"
+    #     exp["setups"].append(setup)
+
+    # for s in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
+    #     setup = deepcopy(base_setup)
+    #     setup["dataset"]["dataset_opts"]["s"] = s
+    #     exp["setups"].append(setup)
 
     setup_dct = deepcopy(base_setup)
     setup_dct["dataset"]["dataset_opts"]["matrix"] = "dct"
