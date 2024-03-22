@@ -80,7 +80,7 @@ class CplexSolver(BaseSolver):
         z_var: Var,
         g_var: Var,
     ) -> None:
-        n = x_var.size
+        n = len(x_var)
         if str(penalty) == "Bigm":
             model.add_constraints(
                 x_var[i] <= penalty.M * z_var[i] for i in range(n)
