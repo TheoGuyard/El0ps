@@ -4,6 +4,7 @@ import numpy as np
 import openml as oml
 from libsvmdata import fetch_libsvm
 from scipy import sparse
+from scipy.fftpack import dct
 from ucimlrepo import fetch_ucirepo
 from el0ps.datafit import *  # noqa
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
@@ -29,51 +30,66 @@ def synthetic_x(k, n):
     return x
 
 
-def synthetic_A(m, n, rho):
-    """Generate a matrix A of size (m, n) where each row is an independent
-    realization of a multivariate normal distribution with zero mean and
-    covariance matrix K with each entry defined as K[i,j]=r^|i-j| for
-    some r in [0, 1)."""
-    M = np.zeros(n)
-    N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
-    N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
-    K = np.power(rho, np.abs(N1 - N2))
-    A = np.random.multivariate_normal(M, K, size=m)
+def synthetic_A(matrix, m, n, normalize):
+    """Generate a matrix A of size (m, n). If matrix=="correlated(r)", each
+    row is an independent realization of a multivariate normal distribution
+    with zero mean and covariance matrix K with each entry defined as
+    K[i,j]=r^|i-j| for some r in [0, 1). If matrix=="dct", the rows are the DCT
+    basis functions. If matrix=="toeplitz", the rows are shifted gaussian."""
+    if matrix.startswith("correlated"):
+        r = float(matrix.split("(")[1].split(")")[0])
+        M = np.zeros(n)
+        N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
+        N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
+        K = np.power(r, np.abs(N1 - N2))
+        A = np.random.multivariate_normal(M, K, size=m)
+    elif matrix == "dct":
+        A = dct(np.eye(np.maximum(m, n)))
+        A = A[np.random.permutation(m), :]
+    elif matrix == "toeplitz":
+        ranget = np.linspace(-10, 10, m)
+        offset = 3.0
+        rangev = np.linspace(-10 + offset, 10 - offset, n)
+        A = np.zeros((m, n))
+        for j in range(n):
+            A[:, j] = np.exp(-0.5 * ((ranget - rangev[j]) ** 2))
+    else:
+        raise ValueError(f"Unsupported matrix type {matrix}")
+    if normalize:
+        A /= np.linalg.norm(A, axis=0, ord=2)
     return A
 
 
-def synthetic_y(model, x, A, m, snr):
+def synthetic_y(model, x, A, m, s):
     """Generate an output y ~ model(Ax,e) where A is an (m, n) matrix, x is a
     k-sparse vector and e is a noise that depends on the model considered."""
     if model == "linear":
         y = A @ x
         e = np.random.randn(m)
-        e *= np.sqrt((y @ y) / (snr * (e @ e)))
+        e *= np.sqrt((y @ y) / (s * (e @ e)))
         y += e
     elif model == "logistic":
-        p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
+        p = 1.0 / (1.0 + np.exp(-s * (A @ x)))
         y = 2.0 * np.random.binomial(1, p, size=m) - 1.0
     elif model == "svm":
-        p = 1.0 / (1.0 + np.exp(-snr * (A @ x)))
+        p = 1.0 / (1.0 + np.exp(-s * (A @ x)))
         y = 2.0 * (p > 0.5) - 1.0
     elif model == "poisson":
-        y = np.random.poisson(-snr * (A @ x), m)
+        y = np.random.poisson(-s * (A @ x), m)
     elif model == "random":
-        y = np.random.normal(0.0, snr, size=m)
+        y = np.random.normal(0.0, s, size=m)
     else:
         raise ValueError(f"Unsupported model {model}")
     return y
 
 
-def get_data_synthetic(model, k, m, n, rho, snr, normalize=False):
+def get_data_synthetic(matrix, model, k, m, n, s, normalize=False):
     """Generate synthetic data for sparse problems."""
     x = synthetic_x(k, n)
-    A = synthetic_A(m, n, rho)
+    A = synthetic_A(matrix, m, n, normalize)
     if model == "poisson":
         A = np.abs(A)
-    if normalize:
-        A /= np.linalg.norm(A, axis=0, ord=2)
-    y = synthetic_y(model, x, A, m, snr)
+    y = synthetic_y(model, x, A, m, s)
     if model == "random":
         x = None
     return A, y, x
@@ -141,7 +157,9 @@ def get_data_hardcoded(dataset_name):
     return A, y, x
 
 
-def process_data(datafit_name, A, y, x_true, center=False, normalize=False):
+def process_data(
+    datafit_name, penalty_name, A, y, x_true, center=False, normalize=False
+):
     """Process the problem data."""
     if sparse.issparse(A):
         A = A.todense()
@@ -168,10 +186,25 @@ def process_data(datafit_name, A, y, x_true, center=False, normalize=False):
 
 
 def get_data(dataset):
-    get_data_func = "get_data_" + dataset["dataset_type"]
-    A, y, x_true = eval(get_data_func)(**dataset["dataset_opts"])
+    if dataset["dataset_type"] == "synthetic":
+        A, y, x_true = get_data_synthetic(**dataset["dataset_opts"])
+    elif dataset["dataset_type"] == "libsvm":
+        A, y, x_true = get_data_libsvm(**dataset["dataset_opts"])
+    elif dataset["dataset_type"] == "openml":
+        A, y, x_true = get_data_openml(**dataset["dataset_opts"])
+    elif dataset["dataset_type"] == "uciml":
+        A, y, x_true = get_data_uciml(**dataset["dataset_opts"])
+    elif dataset["dataset_type"] == "hardcoded":
+        A, y, x_true = get_data_hardcoded(**dataset["dataset_opts"])
+    else:
+        raise ValueError(f"Unsupported dataset type {dataset['dataset_type']}")
     A, y, x_true = process_data(
-        dataset["datafit_name"], A, y, x_true, **dataset["process_opts"]
+        dataset["datafit_name"],
+        dataset["penalty_name"],
+        A,
+        y,
+        x_true,
+        **dataset["process_opts"],
     )
     return A, y, x_true
 

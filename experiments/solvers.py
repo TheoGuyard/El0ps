@@ -1,6 +1,10 @@
 import re
 import sys
 import numpy as np
+from docplex.mp.model import Model
+from docplex.mp.dvar import Var
+import gurobipy as gp
+import mosek.fusion as msk
 from typing import Union
 from numpy.typing import NDArray
 from l0bnb import BNBTree
@@ -18,9 +22,6 @@ from el0ps.solver import (
 
 class CplexSolver(BaseSolver):
     """Cplex solver for L0-penalized problems."""
-
-    from docplex.mp.model import Model
-    from docplex.mp.dvar import Var
 
     def __init__(
         self,
@@ -79,7 +80,7 @@ class CplexSolver(BaseSolver):
         z_var: Var,
         g_var: Var,
     ) -> None:
-        n = x_var.size
+        n = len(x_var)
         if str(penalty) == "Bigm":
             model.add_constraints(
                 x_var[i] <= penalty.M * z_var[i] for i in range(n)
@@ -153,7 +154,6 @@ class CplexSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
     ) -> None:
-        from docplex.mp.model import Model
 
         _, n = A.shape
         model = Model()
@@ -241,8 +241,6 @@ class CplexSolver(BaseSolver):
 
 class GurobiSolver(BaseSolver):
     """Gurobi solver for L0-penalized problems."""
-
-    import gurobipy as gp
 
     def __init__(
         self,
@@ -389,8 +387,6 @@ class GurobiSolver(BaseSolver):
             Whether to relax integrality constraints on the binary variable
             coding the nullity in x.
         """
-        import gurobipy as gp
-
         _, n = A.shape
         model = gp.Model()
         f_var = model.addVar(vtype="C", name="f", lb=-np.inf)
@@ -420,8 +416,6 @@ class GurobiSolver(BaseSolver):
         self.model.setParam("IntFeasTol", self.options["int_tol"])
 
     def get_status(self) -> Status:
-        import gurobipy as gp
-
         if self.model.Status == gp.GRB.OPTIMAL:
             status = Status.OPTIMAL
         elif self.model.Status == gp.GRB.TIME_LIMIT:
@@ -473,8 +467,6 @@ class GurobiSolver(BaseSolver):
 class MosekSolver(BaseSolver):
     """Mosek solver for L0-penalized problems."""
 
-    import mosek.fusion as msk
-
     def __init__(
         self,
         time_limit: float = float(sys.maxsize),
@@ -500,8 +492,6 @@ class MosekSolver(BaseSolver):
         x_var: msk.Variable,
         f_var: msk.Variable,
     ) -> None:
-        import mosek.fusion as msk
-
         m, _ = A.shape
         if str(datafit) == "Leastsquares":
             f1_var = model.variable("f1", m, msk.Domain.unbounded())
@@ -598,8 +588,6 @@ class MosekSolver(BaseSolver):
         z_var: msk.Variable,
         g_var: msk.Variable,
     ) -> None:
-        import mosek.fusion as msk
-
         n = x_var.getSize()
         if str(penalty) == "Bigm":
             model.constraint(
@@ -783,8 +771,6 @@ class MosekSolver(BaseSolver):
             Whether to relax integrality constraints on the binary variable
             coding the nullity in x.
         """
-        import mosek.fusion as msk
-
         _, n = A.shape
         model = msk.Model()
         f_var = model.variable("f", 1, msk.Domain.unbounded())
@@ -817,8 +803,6 @@ class MosekSolver(BaseSolver):
         self.model.setSolverParam("log", int(self.options["verbose"]))
 
     def get_status(self) -> Status:
-        import mosek.fusion as msk
-
         if self.model.getPrimalSolutionStatus() == msk.SolutionStatus.Optimal:
             status = Status.OPTIMAL
         elif (
@@ -978,7 +962,7 @@ def extract_extra_options(solver_name):
                     if k in [
                         "dualpruning",
                         "l1screening",
-                        "l0screening",
+                        "simpruning",
                         "verbose",
                         "trace",
                     ]:

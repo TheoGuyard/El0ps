@@ -18,7 +18,7 @@
       ~BnbBoundingSolver.cd_loop
       ~BnbBoundingSolver.compute_dv
       ~BnbBoundingSolver.compute_pv
-      ~BnbBoundingSolver.l0screening
+      ~BnbBoundingSolver.simpruning
       ~BnbBoundingSolver.l1screening
       ~BnbBoundingSolver.rel_gap
       ~BnbBoundingSolver.setup

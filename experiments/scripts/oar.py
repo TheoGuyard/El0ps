@@ -9,7 +9,7 @@ import sys
 import yaml
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from exp import get_exp  # noqa E402
+from exp import get_exp  # noqa
 
 src_path = "~/Documents/Github/El0ps"
 dst_path = "tguyard@access.grid5000.fr:rennes/gits"

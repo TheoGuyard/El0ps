@@ -87,7 +87,7 @@ class BnbBoundingSolver:
         workingsets: bool,
         dualpruning: bool,
         l1screening: bool,
-        l0screening: bool,
+        simpruning: bool,
         upper: bool = False,
     ):
         start_time = time.time()
@@ -203,7 +203,7 @@ class BnbBoundingSolver:
 
             # ----- Accelerations ----- #
 
-            if dualpruning or l1screening or l0screening:
+            if dualpruning or l1screening or simpruning:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
@@ -234,8 +234,8 @@ class BnbBoundingSolver:
                         Sb0,
                         Sbi,
                     )  # noqa
-                if l0screening:
-                    self.l0screening(
+                if simpruning:
+                    self.simpruning(
                         self.datafit,
                         self.A,
                         x,
@@ -426,7 +426,7 @@ class BnbBoundingSolver:
 
     @staticmethod
     @njit
-    def l0screening(
+    def simpruning(
         datafit: BaseDatafit,
         A: ArrayLike,
         x: ArrayLike,

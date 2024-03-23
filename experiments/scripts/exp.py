@@ -4,7 +4,7 @@ from copy import deepcopy
 def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
-        "walltime": "02:15:00",
+        "walltime": "07:15:00",
         "besteffort": True,
         "production": True,
         "setups": [],
@@ -15,12 +15,12 @@ def get_exp_perfprofile():
         "dataset": {
             "dataset_type": "synthetic",
             "dataset_opts": {
+                "matrix": "correlated(0.9)",
                 "model": "linear",
                 "k": 5,
                 "m": 500,
                 "n": 1000,
-                "rho": 0.9,
-                "snr": 10.0,
+                "s": 10.0,
                 "normalize": True,
             },
             "process_opts": {"center": True, "normalize": True},
@@ -30,12 +30,11 @@ def get_exp_perfprofile():
         "solvers": {
             "solvers_name": [
                 "el0ps",
-                # "el0ps[l0screening=False]",
-                "el0ps[l0screening=False,dualpruning=False]",
-                # "l0bnb",
-                # "cplex",
-                # "gurobi",
-                # "mosek",
+                "el0ps[simpruning=False,dualpruning=False]",
+                "l0bnb",
+                "cplex",
+                "gurobi",
+                "mosek",
             ],
             "solvers_opts": {
                 "time_limit": 3600.0,
@@ -46,26 +45,8 @@ def get_exp_perfprofile():
         },
     }
 
-    for k in [5, 6, 7, 8, 9]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["k"] = k
-        exp["setups"].append(setup)
-
-    # for n in [100, 316, 1_000, 3_162, 10_000]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["n"] = n
-    #     exp["setups"].append(setup)
-
-    # for rho in [0., 0.6838, 0.9, 0.9684, 0.99]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["rho"] = rho
-    #     exp["setups"].append(setup)
-
-    for snr in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["snr"] = snr
-        exp["setups"].append(setup)
-
+    exp["setups"].append(base_setup)
+    
     return exp
 
 
@@ -120,8 +101,8 @@ def get_exp_regpath():
     ]:
         for solver_name in [
             "el0ps",
-            "el0ps[l0screening=False]",
-            "el0ps[l0screening=False,dualpruning=False]",
+            "el0ps[simpruning=False]",
+            "el0ps[simpruning=False,dualpruning=False]",
             "l0bnb",
             "cplex",
             "gurobi",
