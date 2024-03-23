@@ -45,46 +45,8 @@ def get_exp_perfprofile():
         },
     }
 
-    # for k in [5, 6, 7, 8, 9]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["k"] = k
-    #     exp["setups"].append(setup)
-
-    # for n in [100, 316, 1_000, 3_162, 10_000]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["n"] = n
-    #     exp["setups"].append(setup)
-
-    # for r in [0.0, 0.6838, 0.9, 0.9684, 0.99]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["matrix"] = f"correlated({r})"
-    #     exp["setups"].append(setup)
-
-    # for s in [1.5849, 2.5119, 3.9811, 6.3096, 10.0]:
-    #     setup = deepcopy(base_setup)
-    #     setup["dataset"]["dataset_opts"]["s"] = s
-    #     exp["setups"].append(setup)
-
-    setup_dct = deepcopy(base_setup)
-    setup_dct["dataset"]["dataset_opts"]["matrix"] = "dct"
-    setup_dct["dataset"]["dataset_opts"]["k"] = 5
-    setup_dct["dataset"]["dataset_opts"]["m"] = 500
-    setup_dct["dataset"]["dataset_opts"]["n"] = 1000
-    setup_dct["dataset"]["dataset_opts"]["normalize"] = True
-    setup_dct["dataset"]["process_opts"]["center"] = False
-    setup_dct["dataset"]["process_opts"]["normalize"] = True
-    exp["setups"].append(setup_dct)
-
-    setup_toeplitz = deepcopy(base_setup)
-    setup_toeplitz["dataset"]["dataset_opts"]["matrix"] = "toeplitz"
-    setup_toeplitz["dataset"]["dataset_opts"]["k"] = 5
-    setup_toeplitz["dataset"]["dataset_opts"]["m"] = 200
-    setup_toeplitz["dataset"]["dataset_opts"]["n"] = 100
-    setup_toeplitz["dataset"]["dataset_opts"]["normalize"] = True
-    setup_toeplitz["dataset"]["process_opts"]["center"] = True
-    setup_toeplitz["dataset"]["process_opts"]["normalize"] = True
-    exp["setups"].append(setup_toeplitz)
-
+    exp["setups"].append(base_setup)
+    
     return exp
 
 
