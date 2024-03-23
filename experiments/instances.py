@@ -46,6 +46,7 @@ def synthetic_A(matrix, m, n, normalize):
     elif matrix == "dct":
         A = dct(np.eye(np.maximum(m, n)))
         A = A[np.random.permutation(m), :]
+        A = A[:, :n]
     elif matrix == "toeplitz":
         ranget = np.linspace(-10, 10, m)
         offset = 3.0
