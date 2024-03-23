@@ -30,7 +30,7 @@ It can currently be installed from github as by running the following command.
 $ pip install https://github.com/TheoGuyard/El0ps.git
 ```
 
-Please report any bug on the [issue](https://github.com/TheoGuyard/El0ps/issues) page](https://github.com/TheoGuyard/El0ps/issues).
+Please report any bug on the [issue](https://github.com/TheoGuyard/El0ps/issues) page.
 Feel free to contribute by opening a [pull request](https://github.com/TheoGuyard/El0ps/pulls).
 The documentation can be built locally using the command
 
