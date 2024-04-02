@@ -23,7 +23,9 @@ run_file = "run.sh"
 run_path = script_dir.joinpath(run_file)
 
 
-experiments = [get_exp(exp_name) for exp_name in ["perfprofile", "regpath"]]
+experiments = [
+    get_exp(exp_name) for exp_name in ["perfprofile", "regpath", "statistics"]
+]
 
 
 def oar_send():
