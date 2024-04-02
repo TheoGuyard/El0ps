@@ -4,209 +4,25 @@ import pathlib
 import pandas as pd
 import pickle
 import sys
-import time
 from datetime import datetime
 from el0ps.datafit import *  # noqa
 from el0ps.path import Path
 from el0ps.solver import Status
 from el0ps.utils import compiled_clone
-from sklearn.linear_model import Lasso, ElasticNet
 from sklearn.model_selection import train_test_split
 
 sys.path.append(pathlib.Path(__file__).parent.parent.parent.absolute())
 from experiments.experiment import Experiment  # noqa
 from experiments.solvers import (  # noqa
+    OmpPath,
+    LassoPath,
+    EnetPath,
     can_handle_compilation,
     can_handle_instance,
     get_solver,
+    get_path,
 )
 from experiments.instances import calibrate_parameters, f1_score  # noqa
-
-
-class OmpPath:
-
-    def __init__(self, max_nnz=10) -> None:
-        self.max_nnz = max_nnz
-
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
-
-        fit_data = {
-            "status": [],
-            "solve_time": [],
-            "x": [],
-            "datafit_value": [],
-            "n_nnz": [],
-        }
-
-        start_time = time.time()
-
-        n = A.shape[1]
-        y = datafit.y
-        s = []
-        r = y
-        for _ in range(self.max_nnz):
-            u = np.dot(A.T, r)
-            i = np.argmax(np.abs(u))
-            s.append(i)
-            x = np.zeros(n)
-            x[s] = np.linalg.lstsq(A[:, s], y, rcond=None)[0]
-            w = A[:, s] @ x[s]
-            r = y - w
-
-            fit_data["status"].append(Status.OPTIMAL)
-            fit_data["solve_time"].append(time.time() - start_time)
-            fit_data["x"].append(x)
-            fit_data["datafit_value"].append(datafit.value(w))
-            fit_data["n_nnz"].append(len(s))
-
-        return fit_data
-
-
-class LassoPath:
-
-    def __init__(
-        self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
-        max_nnz=10,
-        stop_if_not_optimal=True,
-    ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
-        self.max_nnz = max_nnz
-        self.stop_if_not_optimal = stop_if_not_optimal
-
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
-
-        fit_data = {
-            "status": [],
-            "solve_time": [],
-            "x": [],
-            "datafit_value": [],
-            "n_nnz": [],
-        }
-
-        m = A.shape[0]
-        y = datafit.y
-
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
-        )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
-
-        start_time = time.time()
-
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
-            lasso = Lasso(alpha=lmbd, max_iter=int(1e5), fit_intercept=False)
-            lasso.fit(A, y)
-            x = lasso.coef_
-            w = A @ x
-            s = np.where(x != 0)[0]
-
-            if len(s) > self.max_nnz:
-                break
-
-            fit_data["status"].append(Status.OPTIMAL)
-            fit_data["solve_time"].append(time.time() - start_time)
-            fit_data["x"].append(np.copy(x))
-            fit_data["datafit_value"].append(datafit.value(w))
-            fit_data["n_nnz"].append(len(s))
-
-        return fit_data
-
-
-class EnetPath:
-
-    def __init__(
-        self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
-        max_nnz=10,
-        stop_if_not_optimal=True,
-    ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
-        self.max_nnz = max_nnz
-        self.stop_if_not_optimal = stop_if_not_optimal
-
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
-
-        fit_data = {
-            "status": [],
-            "solve_time": [],
-            "x": [],
-            "datafit_value": [],
-            "n_nnz": [],
-        }
-
-        m = A.shape[0]
-        y = datafit.y
-
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
-        )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
-
-        start_time = time.time()
-
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
-            lasso = ElasticNet(
-                alpha=lmbd,
-                l1_ratio=0.5,
-                max_iter=int(1e5),
-                fit_intercept=False,
-            )
-            lasso.fit(A, y)
-            x = lasso.coef_
-            w = A @ x
-            s = np.where(x != 0)[0]
-
-            if len(s) > self.max_nnz:
-                break
-
-            fit_data["status"].append(Status.OPTIMAL)
-            fit_data["solve_time"].append(time.time() - start_time)
-            fit_data["x"].append(np.copy(x))
-            fit_data["datafit_value"].append(datafit.value(w))
-            fit_data["n_nnz"].append(len(s))
-
-        return fit_data
-
-
-def get_path(path_name, path_opts):
-    if path_name == "OmpPath":
-        return OmpPath(max_nnz=path_opts["max_nnz"])
-    elif path_name == "LassoPath":
-        return LassoPath(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    elif path_name == "EnetPath":
-        return EnetPath(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    else:
-        raise ValueError("Unknown path name: {}".format(path_name))
 
 
 class Statistics(Experiment):
