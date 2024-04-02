@@ -46,6 +46,7 @@ class Experiment:
         print("  lratio: {}".format(lmbd / lmbd_max))
         for param_name, param_value in penalty.params_to_dict().items():
             print("  {}\t: {}".format(param_name, param_value))
+        self.x_true = x_true
         self.datafit = datafit
         self.penalty = penalty
         self.A = A
