@@ -15,18 +15,14 @@ dataset:
     normalize     : true
   datafit_name: Leastsquares
   penalty_name: BigmL2norm
-  test_size: 0.333
+  test_size: 0.3333
 
 solvers:
   solvers_name:
     - el0ps
-    - el0ps[simpruning=False,dualpruning=False]
     - l0bnb
-    # - cplex
-    # - gurobi
-    # - mosek
   solvers_opts:
-    time_limit: 60.
+    time_limit: 600.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8 
     verbose   : false

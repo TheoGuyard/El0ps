@@ -180,27 +180,32 @@ class Statistics(Experiment):
 
         self.mean_stats = {
             stat_key: {
-                solver_key: [
-                    (
-                        np.mean(solver_values[i])
-                        if len(solver_values[i])
-                        else np.nan
-                    )
-                    for i in range(self.nnz_grid.size)
-                ]
+                solver_key: np.array(
+                    [
+                        (
+                            np.mean(solver_values[i])
+                            if len(solver_values[i])
+                            else np.nan
+                        )
+                        for i in range(self.nnz_grid.size)
+                    ]
+                )
                 for solver_key, solver_values in stat_values.items()
             }
             for stat_key, stat_values in stats.items()
         }
 
+        for stat_key, stat_values in self.mean_stats.items():
+            if stat_key in ["train_error", "test_error"]:
+                for solver_key, solver_values in stat_values.items():
+                    self.mean_stats[stat_key][solver_key] /= np.nanmax(
+                        solver_values
+                    )
+
     def plot(self):
         _, axs = plt.subplots(1, len(self.mean_stats), squeeze=False)
         for i, (stat_name, stat_values) in enumerate(self.mean_stats.items()):
             for solver_name, solver_values in stat_values.items():
-                if stat_name != "solve_time" and (
-                    solver_name not in self.relaxed_solver_names + ["el0ps"]
-                ):
-                    continue
                 axs[0, i].plot(
                     self.nnz_grid,
                     solver_values,
@@ -214,7 +219,7 @@ class Statistics(Experiment):
             axs[0, i].set_ylabel(stat_name)
             if self.stats_specs[stat_name]["log"]:
                 axs[0, i].set_yscale("log")
-        axs[0, 0].legend()
+            axs[0, i].legend()
         plt.show()
 
     def save_plot(self):

@@ -121,7 +121,7 @@ def get_exp_regpath():
 def get_exp_statistics():
     exp = {
         "name": "statistics",
-        "walltime": "08:00:00",
+        "walltime": "05:00:00",
         "besteffort": False,
         "production": True,
         "setups": [],
@@ -150,9 +150,9 @@ def get_exp_statistics():
                 "el0ps",
                 "el0ps[simpruning=False,dualpruning=False]",
                 "l0bnb",
-                "cplex",
-                "gurobi",
-                "mosek",
+                # "cplex",
+                # "gurobi",
+                # "mosek",
             ],
             "solvers_opts": {
                 "time_limit": 600.0,
