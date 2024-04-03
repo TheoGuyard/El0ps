@@ -12,6 +12,8 @@ from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 def f1_score(x_true, x):
     """Compute the F1 support recovery score of x with respect to x_true."""
+    if x_true is None:
+        return 0.
     s = x != 0.0
     s_true = x_true != 0.0
     i = np.sum(s & s_true)
