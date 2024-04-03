@@ -14,7 +14,7 @@ from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 def f1_score(x_true, x):
     """Compute the F1 support recovery score of x with respect to x_true."""
     if x_true is None:
-        return 0.
+        return 0.0
     s = x != 0.0
     s_true = x_true != 0.0
     i = np.sum(s & s_true)
@@ -33,6 +33,19 @@ def synthetic_x(supp_pos, supp_val, k, n):
         s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     elif supp_pos == "kfirst":
         s = np.arange(k)
+    elif supp_pos == "2outof3":
+        assert k <= n / 3
+        if k % 2 == 0:
+            g = np.array(
+                np.floor(np.linspace(0, n - 3, num=int(k / 2))), dtype=int
+            )
+            s = np.concatenate((g, g + 2))
+        else:
+            g = np.array(
+                np.floor(np.linspace(0, n - 4, num=int((k - 1) / 2))),
+                dtype=int,
+            )
+            s = np.concatenate((g, g + 2, [n - 1]))
     else:
         raise ValueError(f"Unsupported supp_pos {supp_pos}")
     if supp_val == "unit":
@@ -154,11 +167,11 @@ def get_data_hardcoded(dataset_name):
     """Extract a dataset from the folder experiments/datasets/."""
     dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
     dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(".pkl")
-    with open(dataset_path, 'rb') as dataset_file:
+    with open(dataset_path, "rb") as dataset_file:
         data = pickle.load(dataset_file)
-        A = data['A']
-        y = data['y']
-        x_true = None if 'x_true' not in data.keys() else data['x_true']
+        A = data["A"]
+        y = data["y"]
+        x_true = None if "x_true" not in data.keys() else data["x_true"]
     return A, y, x_true
 
 

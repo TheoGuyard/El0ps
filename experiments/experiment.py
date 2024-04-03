@@ -14,7 +14,11 @@ from el0ps.utils import compiled_clone, compute_lmbd_max
 from sklearn.model_selection import train_test_split
 
 sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
-from experiments.instances import calibrate_parameters, f1_score, get_data  # noqa
+from experiments.instances import (
+    calibrate_parameters,
+    f1_score,
+    get_data,
+)  # noqa
 from experiments.solvers import (  # noqa
     can_handle_compilation,
     can_handle_instance,
@@ -453,8 +457,8 @@ class Statistics(Experiment):
             stat_key: {
                 solver_name: {i: [] for i in range(self.nnz_grid.size)}
                 for solver_name in (
-                    self.config["solvers"]["solvers_name"] +
-                    self.config["relaxed_solvers"]
+                    self.config["solvers"]["solvers_name"]
+                    + self.config["relaxed_solvers"]
                 )
             }
             for stat_key in self.stats_specs.keys()
@@ -526,9 +530,20 @@ class Statistics(Experiment):
                     )
 
     def plot(self):
-        _, axs = plt.subplots(1, len(self.mean_stats), squeeze=False)
+        _, axs = plt.subplots(
+            1,
+            len(self.mean_stats),
+            squeeze=False,
+            figsize=(3 * len(self.mean_stats), 3),
+        )
         for i, (stat_name, stat_values) in enumerate(self.mean_stats.items()):
             for solver_name, solver_values in stat_values.items():
+                if (
+                    stat_name != "solve_time"
+                    and solver_name != "el0ps"
+                    and solver_name not in self.config["relaxed_solvers"]
+                ):
+                    solver_values = np.full(self.nnz_grid.shape, np.nan)
                 axs[0, i].plot(
                     self.nnz_grid,
                     solver_values,
@@ -541,7 +556,8 @@ class Statistics(Experiment):
             axs[0, i].set_ylabel(stat_name)
             if self.stats_specs[stat_name]["log"]:
                 axs[0, i].set_yscale("log")
-            axs[0, i].legend()
+        axs[0, 0].legend()
+        plt.tight_layout()
         plt.show()
 
     def save_plot(self):

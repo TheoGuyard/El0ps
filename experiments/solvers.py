@@ -7,6 +7,7 @@ from docplex.mp.dvar import Var
 import gurobipy as gp
 import mosek.fusion as msk
 from sklearn.linear_model import Lasso, ElasticNet
+from sklearn.model_selection import GridSearchCV
 from typing import Union
 from numpy.typing import NDArray
 from l0bnb import BNBTree
@@ -1095,13 +1096,24 @@ class EnetPath:
         )
         lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
 
+        # Calibrate L1 ratio
+        param_grid = {
+            "alpha": lmbd_max * np.logspace(-2, 1, 4),
+            "l1_ratio": np.linspace(0.1, 0.9, 9),
+        }
+        grid_search = GridSearchCV(
+            estimator=ElasticNet(), param_grid=param_grid, cv=5
+        )
+        grid_search.fit(A, y)
+        l1_ratio = grid_search.best_estimator_.l1_ratio
+
         start_time = time.time()
 
         for lmbd_ratio in lmbd_ratio_grid:
             lmbd = lmbd_ratio * lmbd_max
             lasso = ElasticNet(
                 alpha=lmbd,
-                l1_ratio=0.5,
+                l1_ratio=l1_ratio,
                 max_iter=int(1e5),
                 fit_intercept=False,
             )
