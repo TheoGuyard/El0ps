@@ -17,6 +17,8 @@ def get_exp_perfprofile():
             "dataset_opts": {
                 "matrix": "correlated(0.9)",
                 "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "unit",
                 "k": 5,
                 "m": 500,
                 "n": 1000,
@@ -134,6 +136,8 @@ def get_exp_statistics():
             "dataset_opts": {
                 "matrix": "correlated(0.9)",
                 "model": "linear",
+                "supp_pos": "kfirst",
+                "supp_val": "unit",
                 "k": 10,
                 "m": 150,
                 "n": 200,

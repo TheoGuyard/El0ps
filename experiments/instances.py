@@ -24,12 +24,25 @@ def f1_score(x_true, x):
     return f
 
 
-def synthetic_x(k, n):
-    """Generate a k-sparse vector or size n with evenly-spaced non-zero entries
-    of unit amplitude and ramdom sign."""
+def synthetic_x(supp_pos, supp_val, k, n):
+    """Generate a k-sparse vector or size n."""
     x = np.zeros(n)
-    s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
-    x[s] = np.sign(np.random.randn(s.size))
+    if supp_pos == "random":
+        s = np.random.choice(n, size=k, replace=False)
+    elif supp_pos == "equispaced":
+        s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
+    elif supp_pos == "kfirst":
+        s = np.arange(k)
+    else:
+        raise ValueError(f"Unsupported supp_pos {supp_pos}")
+    if supp_val == "unit":
+        x[s] = np.sign(np.random.randn(k))
+    elif supp_val == "normal":
+        x[s] = np.random.randn(k)
+    elif supp_val == "expdecr":
+        x[s] = np.exp(-np.arange(k))
+    else:
+        raise ValueError(f"Unsupported idx_val {supp_val}")
     return x
 
 
@@ -87,9 +100,11 @@ def synthetic_y(model, x, A, m, s):
     return y
 
 
-def get_data_synthetic(matrix, model, k, m, n, s, normalize=False):
+def get_data_synthetic(
+    matrix, model, supp_pos, supp_val, k, m, n, s, normalize=False
+):
     """Generate synthetic data for sparse problems."""
-    x = synthetic_x(k, n)
+    x = synthetic_x(supp_pos, supp_val, k, n)
     A = synthetic_A(matrix, m, n, normalize)
     if model == "poisson":
         A = np.abs(A)
