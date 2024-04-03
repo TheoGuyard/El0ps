@@ -8,7 +8,7 @@ An experiment can be run from the root folder of `el0ps` using the command
 $ "python experiments/run.py <experiment_name> onerun <path_to_setup_file>"
 ```
 
-where `<experiment_name>` is the name of the experiment (`perfprofile` or `realworld`) and ``<path_to_setup_file>`` is the path to the setup file.
+where `<experiment_name>` is the name of the experiment (`perfprofile`,`regpath` or `statistics`) and ``<path_to_setup_file>`` is the path to the setup file.
 The option `--save` allows saving the results of the experiment in the `results` folder.
 Graphics can be generated from saved experiments matching a given configuration using the command
 

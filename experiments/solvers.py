@@ -955,6 +955,9 @@ class OmpPath:
     def __init__(self, max_nnz=10) -> None:
         self.max_nnz = max_nnz
 
+    def __str__(self) -> str:
+        return "OmpPath"
+
     def fit(self, datafit, A):
         assert str(datafit) == "Leastsquares"
 
@@ -1005,6 +1008,9 @@ class LassoPath:
         self.lmbd_ratio_num = lmbd_ratio_num
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
+
+    def __str__(self) -> str:
+        return "LassoPath"
 
     def fit(self, datafit, A):
         assert str(datafit) == "Leastsquares"
@@ -1064,6 +1070,9 @@ class EnetPath:
         self.lmbd_ratio_num = lmbd_ratio_num
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
+
+    def __str__(self) -> str:
+        return "EnetPath"
 
     def fit(self, datafit, A):
         assert str(datafit) == "Leastsquares"
@@ -1161,10 +1170,10 @@ def get_solver(solver_name, options={}):
         raise ValueError("Unknown solver name {}".format(solver_name))
 
 
-def get_path(path_name, path_opts):
-    if path_name == "OmpPath":
+def get_relaxed_path(solver_name, path_opts={}):
+    if solver_name == "Omp":
         return OmpPath(max_nnz=path_opts["max_nnz"])
-    elif path_name == "LassoPath":
+    elif solver_name == "Lasso":
         return LassoPath(
             lmbd_ratio_max=path_opts["lmbd_ratio_max"],
             lmbd_ratio_min=path_opts["lmbd_ratio_min"],
@@ -1172,7 +1181,7 @@ def get_path(path_name, path_opts):
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
-    elif path_name == "EnetPath":
+    elif solver_name == "Enet":
         return EnetPath(
             lmbd_ratio_max=path_opts["lmbd_ratio_max"],
             lmbd_ratio_min=path_opts["lmbd_ratio_min"],
@@ -1181,7 +1190,7 @@ def get_path(path_name, path_opts):
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
     else:
-        raise ValueError("Unknown path name: {}".format(path_name))
+        raise ValueError("Unknown solver name: {}".format(solver_name))
 
 
 def can_handle_instance(solver_name, datafit_name, penalty_name):

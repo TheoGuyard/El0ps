@@ -27,6 +27,11 @@ solvers:
     int_tol   : 1.e-8 
     verbose   : false
 
+relaxed_solvers:
+  - Omp
+  - Lasso
+  - Enet
+
 path_opts:
   lmbd_ratio_max: 1.e-0
   lmbd_ratio_min: 1.e-5

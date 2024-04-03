@@ -1,4 +1,4 @@
-expname: realworld
+expname: regpath
 
 dataset:
   dataset_type: libsvm

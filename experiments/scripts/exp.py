@@ -50,9 +50,9 @@ def get_exp_perfprofile():
     return exp
 
 
-def get_exp_realworld():
+def get_exp_regpath():
     exp = {
-        "name": "realworld",
+        "name": "regpath",
         "walltime": "12:00:00",
         "besteffort": False,
         "production": True,
@@ -60,7 +60,7 @@ def get_exp_realworld():
     }
 
     base_setup = {
-        "expname": "realworld",
+        "expname": "regpath",
         "dataset": {
             "dataset_type": "hardcoded",
             "dataset_opts": {"dataset_name": "riboflavin"},
