@@ -1,4 +1,5 @@
 import pathlib
+import pickle
 import l0learn
 import numpy as np
 import openml as oml
@@ -136,28 +137,14 @@ def get_data_uciml(dataset_id):
 
 def get_data_hardcoded(dataset_name):
     """Extract a dataset from the folder experiments/datasets/."""
-    A_path = (
-        pathlib.Path(__file__)
-        .parent.joinpath("datasets", dataset_name + "_A")
-        .with_suffix(".npy")
-    )
-    A = np.load(A_path)
-
-    y_path = (
-        pathlib.Path(__file__)
-        .parent.joinpath("datasets", dataset_name + "_y")
-        .with_suffix(".npy")
-    )
-    y = np.load(y_path)
-
-    x_path = A_path = (
-        pathlib.Path(__file__)
-        .parent.joinpath("datasets", dataset_name + "_x")
-        .with_suffix(".npy")
-    )
-    x = None if not x_path.exists() else np.load(x_path)
-
-    return A, y, x
+    dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
+    dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(".pkl")
+    with open(dataset_path, 'rb') as dataset_file:
+        data = pickle.load(dataset_file)
+        A = data['A']
+        y = data['y']
+        x_true = None if 'x_true' not in data.keys() else data['x_true']
+    return A, y, x_true
 
 
 def process_data(
