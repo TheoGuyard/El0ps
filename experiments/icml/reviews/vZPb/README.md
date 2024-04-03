@@ -9,17 +9,25 @@ In short, it outlines working regimes where both:
 
 ### Data generation
 
-**File `statistics_synthetic.pdf`**: 
-We generate data $(\mathbf{x^{\dagger}},\mathbf{y},\mathbf{A})$ as specified in Section 4.1 with the parameters $k=10$, $m=150$, $n=200$, $\rho=0.9$ and $\tau=10$.
-This data is then randomly split into a training set $(\mathbf{y}_{\mathrm{train}},\mathbf{A}_{\mathrm{train}})$ and a testing set $(\mathbf{y}_{\mathrm{test}},\mathbf{A}_{\mathrm{test}})$.
-The training set contains $m_{\mathrm{train}}=100$ samples and the testing set contains $m_{\mathrm{test}}=50$ samples out of the $m = 150$ ones generated.
-The results presented in our graphics are averaged over $100$ independent realizations of this data generation process.
-
 **File `statistics_riboflavin.pdf`**: 
-The $(\mathbf{y},\mathbf{A})$ corresponds to the dataset *riboflavin* used in the Section 4.2 of our paper.
-This data is then randomly split into a training set $(\mathbf{y}_{\mathrm{train}},\mathbf{A}_{\mathrm{train}})$ and a testing set $(\mathbf{y}_{\mathrm{test}},\mathbf{A}_{\mathrm{test}})$.
-The training set contains $m_{\mathrm{train}}=48$ samples and the testing set contains $m_{\mathrm{test}}=23$ samples out of the $m = 71$ ones generated.
-The results presented in our graphics are averaged over $100$ independent realizations of this data generation process.
+The $(\mathbf{y},\mathbf{A})$ corresponds to the *riboflavin* dataset used in the Section 4.2 of our paper.
+
+**File `statistics_synthetic.pdf`**: 
+
+We generate data $(\mathbf{x^{\dagger}},\mathbf{y},\mathbf{A})$ as specified in Section 4.1 with the parameters $k=10$, $m=150$, $n=200$, $\rho=0.9$ and $\tau=10$ but we vary how the position and the values of the non-zeros in $\mathbf{x^{\dagger}}$ are set to span different working regimes:
+- Non-zero position
+  - **kfirst:** the $k$-first entries are set to non-zeros 
+  - **even:** the position of the $k$ non-zeros entries are evenly separated
+  - **random:** the position of the $k$ non-zeros entries are chosen randomly
+  - **2outof3:** groups of $3$ consecutive entries are selected evenly spaced, the first and last entries in each group are set to non-zero
+- Non-zero amplitudes
+  - **unit:** the non-zero amplitudes are set to $\pm1$
+  - **normal**: the non-zero amplitudes are drawn from a normal distribution $\mathcal{N}(0,1)$
+
+**Train/test split**:
+Each dataset used is randomly split into a training set $(\mathbf{y}_{\mathrm{train}},\mathbf{A}_{\mathrm{train}})$ and a testing set $(\mathbf{y}_{\mathrm{test}},\mathbf{A}_{\mathrm{test}})$.
+The training set contains $m_{\mathrm{train}}=\tfrac{2m}{3}$ samples and the testing set contains $m_{\mathrm{test}}=\tfrac{m}{3}$ samples out of the $m$ ones generated.
+The results presented in our graphics are averaged over $100$ trials.
 
 ### Sparse regression methods
 
@@ -81,6 +89,13 @@ Besides, problem $(\mathcal{P}_{\ell_0\ell_2})$ is addressed using two of the so
 
 ### Observations
 
-We remark that problem $(\mathcal{P}_{\ell_0\ell_2})$ leads to better support recovery and testing performances than the other sparse regression methods.
-With synthetic data where $\mathbf{x^{\dagger}}$ is available, this is especially in working regimes of interest where $\|\mathbf{x}^{(s)}\|_0 \simeq \|\mathbf{x^{\dagger}}\|_0 = k$.
-Although solving $(\mathcal{P}_{\ell_0\ell_2})$ is computationally more expensive than the other sparse regression methods, we note a significant decrease in the solution time using our *simultaneous pruning* strategy compared to other methods addressing $(\mathcal{P}_{\ell_0\ell_2})$ exactly.
+**File `statistics_riboflavin.pdf`**:
+We remark that problem $(\mathcal{P}_{\ell_0\ell_2})$ leads to better generalization performances regading the testing error.
+Although solving $(\mathcal{P}_{\ell_0\ell_2})$ is NP-hard, our solver allows solving it in a reasonable time as compared to that of the other (non NP-hard) sparse regression methods.
+We note a significant decrease in the solution time using our *simultaneous pruning* strategy compared to other methods addressing $(\mathcal{P}_{\ell_0\ell_2})$ exactly.
+
+**File `statistics_synthetic.pdf`**:
+We remark that problem $(\mathcal{P}_{\ell_0\ell_2})$ leads to the overall best support recovery and testing performances than the other sparse regression methods.
+This is especially in working regimes of interest where $\|\mathbf{x}^{(s)}\|_0 \simeq \|\mathbf{x^{\dagger}}\|_0 = k$.
+Setting the position of non-zeros in $\mathbf{x^{\dagger}}$ as "random" and "2outof3" respectively leads to the *best* and *worst* performances of $(\mathcal{P}_{\ell_0\ell_2})$ compared to the other sparse regression methods.
+Although solving $(\mathcal{P}_{\ell_0\ell_2})$ is computationally more expensive than the other sparse regression methods in general, we note a significant decrease in the solution time using our *simultaneous pruning* strategy compared to other methods addressing $(\mathcal{P}_{\ell_0\ell_2})$ exactly.
