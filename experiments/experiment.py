@@ -14,11 +14,11 @@ from el0ps.utils import compiled_clone, compute_lmbd_max
 from sklearn.model_selection import train_test_split
 
 sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
-from experiments.instances import (
+from experiments.instances import (  # noqa
     calibrate_parameters,
     f1_score,
     get_data,
-)  # noqa
+)
 from experiments.solvers import (  # noqa
     can_handle_compilation,
     can_handle_instance,
