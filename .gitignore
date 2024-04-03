@@ -33,6 +33,7 @@ htmlcov
 
 # experiments
 **/datasets/*.npy
+**/datasets/*.pkl
 **/results/*.pickle
 **/saves/*.yaml
 **/saves/*.csv

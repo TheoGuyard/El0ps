@@ -1,4 +1,5 @@
 import pathlib
+import pickle
 import l0learn
 import numpy as np
 import openml as oml
@@ -13,7 +14,7 @@ from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 def f1_score(x_true, x):
     """Compute the F1 support recovery score of x with respect to x_true."""
     if x_true is None:
-        return 0.
+        return 0.0
     s = x != 0.0
     s_true = x_true != 0.0
     i = np.sum(s & s_true)
@@ -23,12 +24,38 @@ def f1_score(x_true, x):
     return f
 
 
-def synthetic_x(k, n):
-    """Generate a k-sparse vector or size n with evenly-spaced non-zero entries
-    of unit amplitude and ramdom sign."""
+def synthetic_x(supp_pos, supp_val, k, n):
+    """Generate a k-sparse vector or size n."""
     x = np.zeros(n)
-    s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
-    x[s] = np.sign(np.random.randn(s.size))
+    if supp_pos == "random":
+        s = np.random.choice(n, size=k, replace=False)
+    elif supp_pos == "equispaced":
+        s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
+    elif supp_pos == "kfirst":
+        s = np.arange(k)
+    elif supp_pos == "2outof3":
+        assert k <= n / 3
+        if k % 2 == 0:
+            g = np.array(
+                np.floor(np.linspace(0, n - 3, num=int(k / 2))), dtype=int
+            )
+            s = np.concatenate((g, g + 2))
+        else:
+            g = np.array(
+                np.floor(np.linspace(0, n - 4, num=int((k - 1) / 2))),
+                dtype=int,
+            )
+            s = np.concatenate((g, g + 2, [n - 1]))
+    else:
+        raise ValueError(f"Unsupported supp_pos {supp_pos}")
+    if supp_val == "unit":
+        x[s] = np.sign(np.random.randn(k))
+    elif supp_val == "normal":
+        x[s] = np.random.randn(k)
+    elif supp_val == "expdecr":
+        x[s] = np.exp(-np.arange(k))
+    else:
+        raise ValueError(f"Unsupported idx_val {supp_val}")
     return x
 
 
@@ -86,9 +113,11 @@ def synthetic_y(model, x, A, m, s):
     return y
 
 
-def get_data_synthetic(matrix, model, k, m, n, s, normalize=False):
+def get_data_synthetic(
+    matrix, model, supp_pos, supp_val, k, m, n, s, normalize=False
+):
     """Generate synthetic data for sparse problems."""
-    x = synthetic_x(k, n)
+    x = synthetic_x(supp_pos, supp_val, k, n)
     A = synthetic_A(matrix, m, n, normalize)
     if model == "poisson":
         A = np.abs(A)
@@ -136,28 +165,14 @@ def get_data_uciml(dataset_id):
 
 def get_data_hardcoded(dataset_name):
     """Extract a dataset from the folder experiments/datasets/."""
-    A_path = (
-        pathlib.Path(__file__)
-        .parent.joinpath("datasets", dataset_name + "_A")
-        .with_suffix(".npy")
-    )
-    A = np.load(A_path)
-
-    y_path = (
-        pathlib.Path(__file__)
-        .parent.joinpath("datasets", dataset_name + "_y")
-        .with_suffix(".npy")
-    )
-    y = np.load(y_path)
-
-    x_path = A_path = (
-        pathlib.Path(__file__)
-        .parent.joinpath("datasets", dataset_name + "_x")
-        .with_suffix(".npy")
-    )
-    x = None if not x_path.exists() else np.load(x_path)
-
-    return A, y, x
+    dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
+    dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(".pkl")
+    with open(dataset_path, "rb") as dataset_file:
+        data = pickle.load(dataset_file)
+        A = data["A"]
+        y = data["y"]
+        x_true = None if "x_true" not in data.keys() else data["x_true"]
+    return A, y, x_true
 
 
 def process_data(

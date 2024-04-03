@@ -17,6 +17,8 @@ def get_exp_perfprofile():
             "dataset_opts": {
                 "matrix": "correlated(0.9)",
                 "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "unit",
                 "k": 5,
                 "m": 500,
                 "n": 1000,
@@ -121,8 +123,8 @@ def get_exp_regpath():
 def get_exp_statistics():
     exp = {
         "name": "statistics",
-        "walltime": "05:00:00",
-        "besteffort": False,
+        "walltime": "01:00:00",
+        "besteffort": True,
         "production": True,
         "setups": [],
     }
@@ -134,6 +136,8 @@ def get_exp_statistics():
             "dataset_opts": {
                 "matrix": "correlated(0.9)",
                 "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "unit",
                 "k": 10,
                 "m": 150,
                 "n": 200,
@@ -148,11 +152,7 @@ def get_exp_statistics():
         "solvers": {
             "solvers_name": [
                 "el0ps",
-                "el0ps[simpruning=False,dualpruning=False]",
                 "l0bnb",
-                # "cplex",
-                # "gurobi",
-                # "mosek",
             ],
             "solvers_opts": {
                 "time_limit": 600.0,
@@ -161,6 +161,7 @@ def get_exp_statistics():
                 "verbose": False,
             },
         },
+        "relaxed_solvers": ["Omp", "Lasso", "Enet"],
         "path_opts": {
             "lmbd_ratio_max": 1.0e-0,
             "lmbd_ratio_min": 1.0e-5,

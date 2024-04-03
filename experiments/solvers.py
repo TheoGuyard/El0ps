@@ -7,6 +7,7 @@ from docplex.mp.dvar import Var
 import gurobipy as gp
 import mosek.fusion as msk
 from sklearn.linear_model import Lasso, ElasticNet
+from sklearn.model_selection import GridSearchCV
 from typing import Union
 from numpy.typing import NDArray
 from l0bnb import BNBTree
@@ -955,6 +956,9 @@ class OmpPath:
     def __init__(self, max_nnz=10) -> None:
         self.max_nnz = max_nnz
 
+    def __str__(self) -> str:
+        return "OmpPath"
+
     def fit(self, datafit, A):
         assert str(datafit) == "Leastsquares"
 
@@ -1005,6 +1009,9 @@ class LassoPath:
         self.lmbd_ratio_num = lmbd_ratio_num
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
+
+    def __str__(self) -> str:
+        return "LassoPath"
 
     def fit(self, datafit, A):
         assert str(datafit) == "Leastsquares"
@@ -1065,6 +1072,9 @@ class EnetPath:
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
 
+    def __str__(self) -> str:
+        return "EnetPath"
+
     def fit(self, datafit, A):
         assert str(datafit) == "Leastsquares"
 
@@ -1086,13 +1096,24 @@ class EnetPath:
         )
         lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
 
+        # Calibrate L1 ratio
+        param_grid = {
+            "alpha": lmbd_max * np.logspace(-2, 1, 4),
+            "l1_ratio": np.linspace(0.1, 0.9, 9),
+        }
+        grid_search = GridSearchCV(
+            estimator=ElasticNet(), param_grid=param_grid, cv=5
+        )
+        grid_search.fit(A, y)
+        l1_ratio = grid_search.best_estimator_.l1_ratio
+
         start_time = time.time()
 
         for lmbd_ratio in lmbd_ratio_grid:
             lmbd = lmbd_ratio * lmbd_max
             lasso = ElasticNet(
                 alpha=lmbd,
-                l1_ratio=0.5,
+                l1_ratio=l1_ratio,
                 max_iter=int(1e5),
                 fit_intercept=False,
             )
@@ -1161,10 +1182,10 @@ def get_solver(solver_name, options={}):
         raise ValueError("Unknown solver name {}".format(solver_name))
 
 
-def get_path(path_name, path_opts):
-    if path_name == "OmpPath":
+def get_relaxed_path(solver_name, path_opts={}):
+    if solver_name == "Omp":
         return OmpPath(max_nnz=path_opts["max_nnz"])
-    elif path_name == "LassoPath":
+    elif solver_name == "Lasso":
         return LassoPath(
             lmbd_ratio_max=path_opts["lmbd_ratio_max"],
             lmbd_ratio_min=path_opts["lmbd_ratio_min"],
@@ -1172,7 +1193,7 @@ def get_path(path_name, path_opts):
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
-    elif path_name == "EnetPath":
+    elif solver_name == "Enet":
         return EnetPath(
             lmbd_ratio_max=path_opts["lmbd_ratio_max"],
             lmbd_ratio_min=path_opts["lmbd_ratio_min"],
@@ -1181,7 +1202,7 @@ def get_path(path_name, path_opts):
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
     else:
-        raise ValueError("Unknown path name: {}".format(path_name))
+        raise ValueError("Unknown solver name: {}".format(solver_name))
 
 
 def can_handle_instance(solver_name, datafit_name, penalty_name):
