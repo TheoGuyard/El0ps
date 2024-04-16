@@ -69,7 +69,7 @@ class Experiment:
         self.lmbd = lmbd
 
     def precompile(self):
-        print("Precompiling...")
+        print("Precompiling datafit and penalty...")
         self.compiled_datafit = compiled_clone(self.datafit)
         self.compiled_penalty = compiled_clone(self.penalty)
         solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
@@ -81,7 +81,19 @@ class Experiment:
             self.A,
             self.lmbd,
         )
-        self.compiled_regfunc = solver.bounding_solver.regfunc
+
+    def precompile_solver(self, solver):
+        print(f"Precompiling solver {solver}...")
+        time_limit = solver.options.time_limit
+        solver.options.time_limit = 5.0
+        solver.solve(
+            self.compiled_datafit,
+            self.compiled_penalty,
+            self.A,
+            self.lmbd,
+        )
+        solver.options.time_limit = time_limit
+        solver.options.bounding_skip_setup = True
 
     @abstractmethod
     def run(self):
@@ -125,12 +137,12 @@ class Perfprofile(Experiment):
                 solver_opts = self.config["solvers"]["solvers_opts"]
                 solver = get_solver(solver_name, solver_opts)
                 if can_handle_compilation(solver_name):
+                    self.precompile_solver(solver)
                     result = solver.solve(
                         self.compiled_datafit,
                         self.compiled_penalty,
                         self.A,
                         self.lmbd,
-                        regfunc=self.compiled_regfunc,
                     )
                 else:
                     result = solver.solve(
@@ -148,6 +160,7 @@ class Perfprofile(Experiment):
         print("Loading results...")
         found, match, notcv = 0, 0, 0
         times = {s: [] for s in self.config["solvers"]["solvers_name"]}
+        nodes = {s: [] for s in self.config["solvers"]["solvers_name"]}
         for result_path in self.results_dir.glob(self.name + "_*.pickle"):
             found += 1
             with open(result_path, "rb") as file:
@@ -157,6 +170,7 @@ class Perfprofile(Experiment):
                     for solver_name, result in file_data["results"].items():
                         if result.status == Status.OPTIMAL:
                             times[solver_name].append(result.solve_time)
+                            nodes[solver_name].append(result.iter_count)
                         else:
                             notcv += 1
         print("  {} files found".format(found))
@@ -169,11 +183,14 @@ class Perfprofile(Experiment):
             return
 
         print("Computing statistics...")
-        for solver_name, solver_times in times.items():
+        for solver_name in self.config["solvers"]["solvers_name"]:
             print("  {}".format(solver_name))
-            print("     num : {}".format(len(solver_times)))
-            print("     mean: {}".format(np.mean(solver_times)))
-            print("     std : {}".format(np.std(solver_times)))
+            print("     times num : {}".format(len(times[solver_name])))
+            print("     times mean: {}".format(np.mean(times[solver_name])))
+            print("     times std : {}".format(np.std(times[solver_name])))
+            print("     nodes num : {}".format(len(nodes[solver_name])))
+            print("     nodes mean: {}".format(np.mean(nodes[solver_name])))
+            print("     nodes std : {}".format(np.std(nodes[solver_name])))
 
         min_times = np.min([np.min(v) for v in times.values()])
         max_times = np.max([np.max(v) for v in times.values()])
@@ -187,35 +204,62 @@ class Perfprofile(Experiment):
             for solver_name, stats in times.items()
         }
 
+        min_nodes = np.min([np.min(v) for v in nodes.values()])
+        max_nodes = np.max([np.max(v) for v in nodes.values()])
+        self.grid_nodes = np.logspace(
+            np.floor(np.log10(min_nodes)),
+            np.ceil(np.log10(max_nodes)),
+            100,
+        )
+        self.curve_nodes = {
+            solver_name: [np.sum(stats <= g) for g in self.grid_nodes]
+            for solver_name, stats in nodes.items()
+        }
+
     def plot(self):
         if self.curve_times is None or self.grid_times is None:
             return
-        _, axs = plt.subplots()
+        _, axs = plt.subplots(1, 2)
         for solver_name in self.config["solvers"]["solvers_name"]:
-            axs.plot(
+            axs[0].plot(
                 self.grid_times,
                 self.curve_times[solver_name],
                 label=solver_name,
             )
-        axs.grid(visible=True, which="major", axis="both")
-        axs.grid(visible=True, which="minor", axis="both", alpha=0.2)
-        axs.minorticks_on()
-        axs.set_xscale("log")
-        axs.set_xlabel("Time budget")
-        axs.set_ylabel("Inst. solved")
+            axs[1].plot(
+                self.grid_nodes,
+                self.curve_nodes[solver_name],
+                label=solver_name,
+            )
+        for ax in axs:
+            ax.grid(visible=True, which="major", axis="both")
+            ax.grid(visible=True, which="minor", axis="both", alpha=0.2)
+            ax.minorticks_on()
+            ax.set_xscale("log")
+            ax.set_ylabel("Inst. solved")
+        axs[0].set_xlabel("Time budget")
+        axs[1].set_xlabel("Node budget")
+        axs[1].legend()
         plt.show()
 
     def save_plot(self):
-        if self.curve_times is None or self.grid_times is None:
-            return
         print("Saving data...")
         save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-        table = pd.DataFrame({"grid_times": self.grid_times})
+        table_times = pd.DataFrame({"grid_times": self.grid_times})
+        table_nodes = pd.DataFrame({"grid_nodes": self.grid_nodes})
         for solver_name in self.config["solvers"]["solvers_name"]:
-            table[solver_name] = self.curve_times[solver_name]
-        file_name = "{}_{}".format(self.name, save_uuid)
-        save_path = self.saves_dir.joinpath("{}.csv".format(file_name))
-        table.to_csv(save_path, index=False)
+            table_times[solver_name] = self.curve_times[solver_name]
+            table_nodes[solver_name] = self.curve_nodes[solver_name]
+        file_times_name = "{}_{}_{}".format(self.name, "times", save_uuid)
+        file_nodes_name = "{}_{}_{}".format(self.name, "nodes", save_uuid)
+        save_times_path = self.saves_dir.joinpath(
+            "{}.csv".format(file_times_name)
+        )
+        save_nodes_path = self.saves_dir.joinpath(
+            "{}.csv".format(file_nodes_name)
+        )
+        table_times.to_csv(save_times_path, index=False)
+        table_nodes.to_csv(save_nodes_path, index=False)
 
 
 class Regpath(Experiment):
@@ -234,6 +278,7 @@ class Regpath(Experiment):
                 print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
                 if can_handle_compilation(solver_name):
+                    self.precompile_solver(solver)
                     result = path.fit(
                         solver,
                         self.compiled_datafit,
@@ -417,6 +462,7 @@ class Statistics(Experiment):
                 print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
                 if can_handle_compilation(solver_name):
+                    self.precompile_solver(solver)
                     result = path.fit(
                         solver,
                         datafit_train_compiled,

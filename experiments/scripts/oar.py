@@ -24,7 +24,13 @@ run_path = script_dir.joinpath(run_file)
 
 
 experiments = [
-    get_exp(exp_name) for exp_name in ["perfprofile", "regpath", "statistics"]
+    get_exp(exp_name)
+    for exp_name in [
+        "perfprofile",
+        "regpath",
+        "statistics",
+        "concave",
+    ]
 ]
 
 
@@ -118,7 +124,7 @@ def oar_make():
                 "module load conda gurobi cplex",
                 "conda activate el0ps",
                 "python {}/run.py {} onerun $* --save".format(
-                    experiments_dir, experiment["name"]
+                    experiments_dir, experiment["command"]
                 ),
             ]
         )

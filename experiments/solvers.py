@@ -210,7 +210,6 @@ class CplexSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
-        regfunc: None = None,
     ) -> Result:
         self.build_model(datafit, penalty, A, lmbd)
         self.set_init(x_init)
@@ -436,7 +435,6 @@ class GurobiSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
-        regfunc: None = None,
     ) -> Result:
         self.build_model(datafit, penalty, A, lmbd)
         self.set_init(x_init)
@@ -827,7 +825,6 @@ class MosekSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
-        regfunc: None = None,
     ) -> Result:
         self.build_model(datafit, penalty, A, lmbd)
         self.set_init(x_init)
@@ -888,7 +885,6 @@ class L0bnbSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
-        regfunc: None = None,
     ) -> Result:
         if str(datafit) != "Leastsquares":
             raise NotImplementedError(
@@ -1256,7 +1252,4 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
 
 
 def can_handle_compilation(solver_name):
-    if solver_name.startswith("el0ps"):
-        return True
-    else:
-        return False
+    return solver_name.startswith("el0ps")

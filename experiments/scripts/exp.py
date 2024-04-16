@@ -4,6 +4,7 @@ from copy import deepcopy
 def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
+        "command": "perfprofile",
         "walltime": "07:15:00",
         "besteffort": True,
         "production": True,
@@ -55,6 +56,7 @@ def get_exp_perfprofile():
 def get_exp_regpath():
     exp = {
         "name": "regpath",
+        "command": "regpath",
         "walltime": "12:00:00",
         "besteffort": False,
         "production": True,
@@ -123,6 +125,7 @@ def get_exp_regpath():
 def get_exp_statistics():
     exp = {
         "name": "statistics",
+        "command": "statistics",
         "walltime": "01:00:00",
         "besteffort": True,
         "production": True,
@@ -172,6 +175,73 @@ def get_exp_statistics():
     }
 
     exp["setups"].append(base_setup)
+
+    return exp
+
+
+def get_exp_concave():
+    exp = {
+        "name": "concave",
+        "command": "perfprofile",
+        "walltime": "00:45:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [],
+    }
+
+    base_setup = {
+        "expname": "perfprofile",
+        "dataset": {
+            "dataset_type": "synthetic",
+            "dataset_opts": {
+                "matrix": "correlated(0.9)",
+                "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "unit",
+                "k": 5,
+                "m": 100,
+                "n": 200,
+                "s": 10.0,
+                "normalize": True,
+            },
+            "process_opts": {"center": True, "normalize": True},
+            "datafit_name": "Leastsquares",
+            "penalty_name": "L2norm",
+        },
+        "solvers": {
+            "solvers_name": [
+                "el0ps[simpruning=False,bounding_regfunc_type=convex]",
+                "el0ps[simpruning=False,bounding_regfunc_type=concave]",
+            ],
+            "solvers_opts": {
+                "time_limit": 600.0,
+                "rel_tol": 1.0e-4,
+                "int_tol": 1.0e-8,
+                "verbose": False,
+            },
+        },
+    }
+
+    for r in ["0.5", "0.9", "0.99"]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["matrix"] = f"correlated({r})"
+        exp["setups"].append(setup)
+    for k in [3, 5, 7]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["k"] = k
+        exp["setups"].append(setup)
+    for n in [50, 100, 200, 500]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["n"] = n
+        exp["setups"].append(setup)
+    for s in [100.0, 10.0, 5.0]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["s"] = s
+        exp["setups"].append(setup)
+    for normalize in [True, False]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["normalize"] = normalize
+        exp["setups"].append(setup)
 
     return exp
 

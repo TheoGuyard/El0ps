@@ -5,6 +5,7 @@ from abc import abstractmethod
 from numba import njit, float64
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
+from el0ps.utils import compiled_clone
 from .node import BnbNode
 
 
@@ -12,23 +13,19 @@ def calibrate_mcptwo(
     datafit: JitClassType,
     penalty: JitClassType,
     A: ArrayLike,
-    pospart: bool = False,
 ):
-    m, n = A.shape
-    mcptwo = cp.Variable(n)
-    sdpmat = (
+    n = A.shape[1]
+    x = cp.Variable(n)
+    M = (
         datafit.lipschitz_constant() * (A.T @ A)
         + 2.0 * penalty.alpha * np.eye(n)
-        - cp.diag(mcptwo)
+        - cp.diag(x)
     )
-    if pospart:
-        obj = cp.Maximize(cp.maximum(mcptwo - 2.0 * penalty.alpha, 0.0))
-    else:
-        obj = cp.Maximize(cp.sum(mcptwo))
-    cst = [sdpmat >> 0.0, mcptwo >= 0.0]
+    obj = cp.Maximize(cp.sum(x))
+    cst = [M >> 0.0, x >= 0.0]
     problem = cp.Problem(obj, cst)
     problem.solve()
-    return np.maximum(np.array(mcptwo.value).flatten(), 0.0)
+    return np.maximum(np.array(x.value).flatten(), 0.0)
 
 
 class BaseRegfunc:
@@ -290,9 +287,11 @@ class BnbBoundingSolver:
 
     def __init__(
         self,
+        regfunc_type: str = "convex",
         maxiter_inner: int = 1_000,
         maxiter_outer: int = 100,
     ):
+        self.regfunc_type = regfunc_type
         self.maxiter_inner = maxiter_inner
         self.maxiter_outer = maxiter_outer
 
@@ -300,30 +299,34 @@ class BnbBoundingSolver:
         self,
         datafit: JitClassType,
         penalty: JitClassType,
-        regfunc: JitClassType,
         A: ArrayLike,
-        lmbd: float,
     ):
 
         # Problem data
         self.m, self.n = A.shape
         self.datafit = datafit
-        self.regfunc = regfunc
         self.penalty = penalty
         self.A = A
-        self.lmbd = lmbd
+
+        # Regularization function
+        if self.regfunc_type == "convex":
+            regfunc = ConvexRegfunc(penalty)
+        elif self.regfunc_type == "concave":
+            mcptwo = calibrate_mcptwo(datafit, penalty, A)
+            regfunc = ConcaveRegfunc(penalty, mcptwo)
+        else:
+            raise ValueError(f"Invalid regfunc_type {self.regfunc_type}.")
+        self.regfunc = compiled_clone(regfunc)
 
         # Constants
         self.lipschitz = self.datafit.lipschitz_constant()
         self.A_colnorm = np.linalg.norm(A, ord=2, axis=0)
         self.stepsize = 1.0 / (self.lipschitz * self.A_colnorm**2)
-        self.threshold = np.array(
-            [self.regfunc.subdiff(i, lmbd, 0.0)[1] for i in range(self.n)]
-        )
 
     def bound(
         self,
         node: BnbNode,
+        lmbd: float,
         ub: float,
         rel_tol: float,
         workingsets: bool,
@@ -348,6 +351,9 @@ class BnbBoundingSolver:
         pv = np.inf
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
+        threshold = np.array(
+            [self.regfunc.subdiff(i, lmbd, 0.0)[1] for i in range(x.size)]
+        )
 
         # ----- Outer loop ----- #
 
@@ -367,7 +373,7 @@ class BnbBoundingSolver:
                     self.penalty,
                     self.regfunc,
                     self.A,
-                    self.lmbd,
+                    lmbd,
                     x,
                     w,
                     u,
@@ -379,7 +385,7 @@ class BnbBoundingSolver:
                     self.datafit,
                     self.penalty,
                     self.regfunc,
-                    self.lmbd,
+                    lmbd,
                     x,
                     w,
                     S1,
@@ -393,7 +399,7 @@ class BnbBoundingSolver:
                         self.penalty,
                         self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         u,
                         v,
                         S1,
@@ -405,7 +411,9 @@ class BnbBoundingSolver:
                     break
 
             # Working-set update
-            flag = self.ws_update(self.A, u, v, Ws, Sbi, self.threshold)
+            flag = self.ws_update(
+                self.regfunc, self.A, lmbd, u, v, Ws, Sbi, threshold
+            )
 
             # Outer stopping criterion
             if upper:
@@ -417,7 +425,7 @@ class BnbBoundingSolver:
                         self.penalty,
                         self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         u,
                         v,
                         S1,
@@ -437,7 +445,7 @@ class BnbBoundingSolver:
                         self.penalty,
                         self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         u,
                         v,
                         S1,
@@ -460,7 +468,7 @@ class BnbBoundingSolver:
                         Sbi,
                         self.lipschitz,
                         self.A_colnorm,
-                        self.threshold,
+                        threshold,
                     )  # noqa
                 if simpruning:
                     self.simpruning(
@@ -468,7 +476,7 @@ class BnbBoundingSolver:
                         self.penalty,
                         self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         x,
                         w,
                         u,
@@ -495,7 +503,7 @@ class BnbBoundingSolver:
                     self.penalty,
                     self.regfunc,
                     self.A,
-                    self.lmbd,
+                    lmbd,
                     u,
                     v,
                     S1,
@@ -534,12 +542,14 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def ws_update(
+        regfunc: JitClassType,
         A: ArrayLike,
+        lmbd: float,
         u: ArrayLike,
         v: ArrayLike,
         Ws: ArrayLike,
         Sbi: ArrayLike,
-        threshold: float,
+        threshold: ArrayLike,
     ) -> bool:
         flag = False
         for i in np.flatnonzero(~Ws & Sbi):
@@ -708,7 +718,7 @@ class BnbBoundingSolver:
         Sbi: ArrayLike,
         lipschitz: float,
         A_colnorm: ArrayLike,
-        threshold: float,
+        threshold: ArrayLike,
     ) -> None:
         flag = False
         r = np.sqrt(2.0 * np.abs(pv - dv) * lipschitz)

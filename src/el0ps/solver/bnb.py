@@ -13,13 +13,7 @@ from el0ps.penalty import BasePenalty
 from el0ps.solver import BaseSolver, Result, Status
 from el0ps.utils import compiled_clone
 from .node import BnbNode
-from .bounding import (
-    BnbBoundingSolver,
-    BaseRegfunc,
-    ConvexRegfunc,
-    ConcaveRegfunc,
-    calibrate_mcptwo,
-)
+from .bounding import BnbBoundingSolver
 
 
 class BnbExplorationStrategy(Enum):
@@ -100,6 +94,7 @@ class BnbOptions:
     bounding_regfunc_type: str = "convex"
     bounding_maxiter_inner: int = 1_000
     bounding_maxiter_outer: int = 100
+    bounding_skip_setup: bool = False
     time_limit: float = float(sys.maxsize)
     node_limit: int = sys.maxsize
     rel_tol: float = 1e-4
@@ -144,6 +139,7 @@ class BnbSolver(BaseSolver):
         self.lower_bound = None
         self.upper_bound = None
         self.trace = None
+        self.bounding_solver = None
 
     def __str__(self):
         return "BnbSolver"
@@ -185,7 +181,6 @@ class BnbSolver(BaseSolver):
         A: ArrayLike,
         lmbd: float,
         x_init: Union[ArrayLike, None],
-        regfunc: Union[BaseRegfunc, JitClassType, None],
     ):
 
         if isinstance(datafit, BaseDatafit):
@@ -212,25 +207,16 @@ class BnbSolver(BaseSolver):
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
-        self.bounding_solver = BnbBoundingSolver(
-            maxiter_inner=self.options.bounding_maxiter_inner,
-            maxiter_outer=self.options.bounding_maxiter_outer,
-        )
-        if regfunc is None:
-            if self.options.bounding_regfunc_type == "convex":
-                regfunc = ConvexRegfunc(penalty)
-            elif self.options.bounding_regfunc_type == "concave":
-                mcptwo = calibrate_mcptwo(datafit, penalty, A)
-                regfunc = ConcaveRegfunc(penalty, mcptwo)
-            elif self.options.bounding_regfunc_type == "concave_pospart":
-                mcptwo = calibrate_mcptwo(datafit, penalty, A, pospart=True)
-                regfunc = ConcaveRegfunc(penalty, mcptwo)
-            else:
-                raise ValueError("Invalid regfunc_type.")
-        if isinstance(regfunc, BaseRegfunc):
-            regfunc = compiled_clone(regfunc)
-        self.regfunc = regfunc
-        self.bounding_solver.setup(datafit, penalty, regfunc, A, lmbd)
+        if (
+            not self.options.bounding_skip_setup
+            or self.bounding_solver is None
+        ):
+            self.bounding_solver = BnbBoundingSolver(
+                regfunc_type=self.options.bounding_regfunc_type,
+                maxiter_inner=self.options.bounding_maxiter_inner,
+                maxiter_outer=self.options.bounding_maxiter_outer,
+            )
+            self.bounding_solver.setup(datafit, penalty, A)
 
         # Root node
         root = BnbNode(
@@ -308,6 +294,7 @@ class BnbSolver(BaseSolver):
     def compute_lower_bound(self, node: BnbNode):
         self.bounding_solver.bound(
             node,
+            self.lmbd,
             self.upper_bound,
             self.options.rel_tol,
             self.options.workingsets,
@@ -322,6 +309,7 @@ class BnbSolver(BaseSolver):
             return
         self.bounding_solver.bound(
             node,
+            self.lmbd,
             self.upper_bound,
             self.options.rel_tol,
             False,
@@ -399,10 +387,9 @@ class BnbSolver(BaseSolver):
         A: ArrayLike,
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
-        regfunc: Union[BaseRegfunc, JitClassType, None] = None,
     ):
 
-        self.setup(datafit, penalty, A, lmbd, x_init, regfunc)
+        self.setup(datafit, penalty, A, lmbd, x_init)
 
         if self.options.verbose:
             self.print_header()

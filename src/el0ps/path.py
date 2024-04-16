@@ -200,10 +200,7 @@ class Path:
             A = np.array(A, order="F")
 
         if isinstance(solver, BnbSolver):
-            solver.setup(datafit, penalty, A, 0.0, None, None)
-            regfunc = solver.bounding_solver.regfunc
-        else:
-            regfunc = None
+            solver.options.bounding_skip_setup = True
 
         if self.options.verbose:
             self.display_path_head()
@@ -218,7 +215,7 @@ class Path:
 
         for lmbd_ratio in lmbd_ratio_grid:
             lmbd = lmbd_ratio * lmbd_max
-            results = solver.solve(datafit, penalty, A, lmbd, x_init, regfunc)
+            results = solver.solve(datafit, penalty, A, lmbd, x_init)
             x_init = np.copy(results.x)
             self.fill_fit_data(lmbd_ratio, datafit, penalty, A, lmbd, results)
             if self.options.verbose:
