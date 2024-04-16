@@ -8,7 +8,7 @@ import gurobipy as gp
 import mosek.fusion as msk
 from sklearn.linear_model import Lasso, ElasticNet
 from sklearn.model_selection import GridSearchCV
-from typing import Union
+from typing import Union, get_type_hints
 from numpy.typing import NDArray
 from l0bnb import BNBTree
 from el0ps.datafit import BaseDatafit
@@ -16,6 +16,7 @@ from el0ps.penalty import BasePenalty
 from el0ps.solver import (
     BaseSolver,
     BnbSolver,
+    BnbOptions,
     Status,
     Result,
     BnbBranchingStrategy,
@@ -209,6 +210,7 @@ class CplexSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
+        regfunc: None = None,
     ) -> Result:
         self.build_model(datafit, penalty, A, lmbd)
         self.set_init(x_init)
@@ -226,7 +228,7 @@ class CplexSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
@@ -434,6 +436,7 @@ class GurobiSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
+        regfunc: None = None,
     ) -> Result:
         self.build_model(datafit, penalty, A, lmbd)
         self.set_init(x_init)
@@ -451,7 +454,7 @@ class GurobiSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
@@ -824,6 +827,7 @@ class MosekSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
+        regfunc: None = None,
     ) -> Result:
         self.build_model(datafit, penalty, A, lmbd)
         self.set_init(x_init)
@@ -841,7 +845,7 @@ class MosekSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
@@ -884,6 +888,7 @@ class L0bnbSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
         x_init: Union[NDArray, None] = None,
+        regfunc: None = None,
     ) -> Result:
         if str(datafit) != "Leastsquares":
             raise NotImplementedError(
@@ -935,14 +940,14 @@ class L0bnbSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
             status,
             result.sol_time,
             solver.number_of_nodes,
-            np.abs(result.gap),
+            np.abs(result.gap) if not np.isnan(result.gap) else 0.0,
             self.x,
             self.z,
             objective_value,
@@ -1136,6 +1141,7 @@ class EnetPath:
 
 def extract_extra_options(solver_name):
     if solver_name.startswith("el0ps"):
+        option_types = get_type_hints(BnbOptions)
         pattern = r"\[([^]]*)\]"
         match = re.search(pattern, solver_name)
         if match:
@@ -1145,24 +1151,14 @@ def extract_extra_options(solver_name):
                 options_dict = {}
                 for pair in option_pairs:
                     k, v = pair.split("=")
-                    if k in [
-                        "dualpruning",
-                        "l1screening",
-                        "simpruning",
-                        "verbose",
-                        "trace",
-                    ]:
-                        options_dict[k] = v in ["true", "True"]
-                    elif k == "exploration_strategy":
-                        options_dict["exploration_strategy"] = (
-                            BnbExplorationStrategy[v]
-                        )
-                    elif k == "exploration_depth_switch":
-                        options_dict["exploration_depth_switch"] = int(v)
+                    if k == "exploration_strategy":
+                        options_dict[k] = BnbExplorationStrategy(v)
                     elif k == "branching_strategy":
-                        options_dict["branching_strategy"] = (
-                            BnbBranchingStrategy[v]
-                        )
+                        options_dict[k] = BnbBranchingStrategy(v)
+                    elif option_types[k] in [str, int, float]:
+                        options_dict[k] = option_types[k](v)
+                    elif option_types[k] == bool:
+                        options_dict[k] = v in ["true", "True"]
                 return options_dict
     return {}
 

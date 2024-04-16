@@ -13,7 +13,13 @@ from el0ps.penalty import BasePenalty
 from el0ps.solver import BaseSolver, Result, Status
 from el0ps.utils import compiled_clone
 from .node import BnbNode
-from .bounding import BnbBoundingSolver
+from .bounding import (
+    BnbBoundingSolver,
+    BaseRegfunc,
+    ConvexRegfunc,
+    ConcaveRegfunc,
+    calibrate_mcptwo,
+)
 
 
 class BnbExplorationStrategy(Enum):
@@ -89,9 +95,11 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    bounding_solver: BnbBoundingSolver = BnbBoundingSolver()
     exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.MIX
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
+    bounding_regfunc_type: str = "convex"
+    bounding_maxiter_inner: int = 1_000
+    bounding_maxiter_outer: int = 100
     time_limit: float = float(sys.maxsize)
     node_limit: int = sys.maxsize
     rel_tol: float = 1e-4
@@ -176,14 +184,18 @@ class BnbSolver(BaseSolver):
         penalty: Union[BasePenalty, JitClassType],
         A: ArrayLike,
         lmbd: float,
-        x_init: ArrayLike,
+        x_init: Union[ArrayLike, None],
+        regfunc: Union[BaseRegfunc, JitClassType, None],
     ):
+
         if isinstance(datafit, BaseDatafit):
             datafit = compiled_clone(datafit)
         if isinstance(penalty, BasePenalty):
             penalty = compiled_clone(penalty)
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")
+        if x_init is None:
+            x_init = np.zeros(A.shape[1])
 
         # Initialize attributes and state
         self.m, self.n = A.shape
@@ -192,7 +204,6 @@ class BnbSolver(BaseSolver):
         self.A = A
         self.lmbd = lmbd
         self.status = Status.RUNNING
-        self.start_time = time.time()
         self.queue = []
         self.iter_count = 0
         self.x = np.copy(x_init)
@@ -201,7 +212,25 @@ class BnbSolver(BaseSolver):
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
-        self.options.bounding_solver.setup(datafit, penalty, A, lmbd)
+        self.bounding_solver = BnbBoundingSolver(
+            maxiter_inner=self.options.bounding_maxiter_inner,
+            maxiter_outer=self.options.bounding_maxiter_outer,
+        )
+        if regfunc is None:
+            if self.options.bounding_regfunc_type == "convex":
+                regfunc = ConvexRegfunc(penalty)
+            elif self.options.bounding_regfunc_type == "concave":
+                mcptwo = calibrate_mcptwo(datafit, penalty, A)
+                regfunc = ConcaveRegfunc(penalty, mcptwo)
+            elif self.options.bounding_regfunc_type == "concave_pospart":
+                mcptwo = calibrate_mcptwo(datafit, penalty, A, pospart=True)
+                regfunc = ConcaveRegfunc(penalty, mcptwo)
+            else:
+                raise ValueError("Invalid regfunc_type.")
+        if isinstance(regfunc, BaseRegfunc):
+            regfunc = compiled_clone(regfunc)
+        self.regfunc = regfunc
+        self.bounding_solver.setup(datafit, penalty, regfunc, A, lmbd)
 
         # Root node
         root = BnbNode(
@@ -219,13 +248,15 @@ class BnbSolver(BaseSolver):
         )
         self.queue.append(root)
 
+        self.start_time = time.time()
+
     def value(self, x: ArrayLike, Ax: Union[ArrayLike, None] = None) -> float:
         if Ax is None:
             Ax = self.A @ x
         return (
             self.datafit.value(Ax)
             + self.lmbd * np.linalg.norm(x, 0)
-            + sum(self.penalty.value(xi) for xi in x)
+            + sum(self.penalty.value(i, xi) for i, xi in enumerate(x))
         )
 
     def print_header(self):
@@ -275,7 +306,7 @@ class BnbSolver(BaseSolver):
         return self.status == Status.RUNNING
 
     def compute_lower_bound(self, node: BnbNode):
-        self.options.bounding_solver.bound(
+        self.bounding_solver.bound(
             node,
             self.upper_bound,
             self.options.rel_tol,
@@ -289,7 +320,7 @@ class BnbSolver(BaseSolver):
     def compute_upper_bound(self, node: BnbNode):
         if node.category == 0.0:
             return
-        self.options.bounding_solver.bound(
+        self.bounding_solver.bound(
             node,
             self.upper_bound,
             self.options.rel_tol,
@@ -327,16 +358,7 @@ class BnbSolver(BaseSolver):
         return self.upper_bound < node.lower_bound
 
     def is_feasible(self, node: BnbNode):
-        if node.rel_gap <= self.options.rel_tol:
-            return True
-        elif np.all(
-            np.logical_or(
-                np.abs(node.x[node.Sb]) <= self.options.int_tol,
-                np.abs(node.x[node.Sb]) >= self.penalty.param_limit(self.lmbd),
-            )
-        ):
-            return True
-        return False
+        return node.rel_gap <= self.options.rel_tol
 
     def update_trace(self, node: BnbNode):
         for key in self._trace_keys:
@@ -377,11 +399,10 @@ class BnbSolver(BaseSolver):
         A: ArrayLike,
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
+        regfunc: Union[BaseRegfunc, JitClassType, None] = None,
     ):
-        if x_init is None:
-            x_init = np.zeros(A.shape[1])
 
-        self.setup(datafit, penalty, A, lmbd, x_init)
+        self.setup(datafit, penalty, A, lmbd, x_init, regfunc)
 
         if self.options.verbose:
             self.print_header()

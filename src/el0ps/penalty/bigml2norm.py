@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from numba import float64
 from .base import BasePenalty
 
@@ -34,46 +35,46 @@ class BigmL2norm(BasePenalty):
     def params_to_dict(self) -> dict:
         return dict(M=self.M, alpha=self.alpha)
 
-    def value(self, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return self.alpha * x**2 if np.abs(x) <= self.M else np.inf
 
-    def conjugate(self, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         r = np.maximum(np.minimum(x / (2.0 * self.alpha), self.M), -self.M)
         return x * r - self.alpha * r**2
 
-    def prox(self, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         v = x / (1.0 + 2.0 * eta * self.alpha)
         return np.maximum(np.minimum(v, self.M), -self.M)
 
-    def subdiff(self, x: float) -> tuple:
+    def subdiff(self, i: int, x: float) -> ArrayLike:
         if np.abs(x) < self.M:
             s = 2.0 * self.alpha * x
-            return (s, s)
+            return [s, s]
         elif x == -self.M:
-            return (-np.inf, 2.0 * self.alpha * x)
+            return [-np.inf, 2.0 * self.alpha * x]
         elif x == self.M:
-            return (2.0 * self.alpha * x, np.inf)
+            return [2.0 * self.alpha * x, np.inf]
         else:
-            return ()
+            return [np.nan, np.nan]
 
-    def conjugate_subdiff(self, x: float) -> tuple:
+    def conjugate_subdiff(self, i: int, x: float) -> ArrayLike:
         s = np.maximum(np.minimum(x / (2.0 * self.alpha), self.M), -self.M)
-        return (s, s)
+        return [s, s]
 
-    def param_slope(self, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         if lmbd < self.alpha * self.M**2:
             return np.sqrt(4.0 * lmbd * self.alpha)
         else:
             return (lmbd / self.M) + self.alpha * self.M
 
-    def param_limit(self, lmbd: float) -> float:
-        if 1.0 < self.alpha * self.M**2:
+    def param_limit(self, i: int, lmbd: float) -> float:
+        if lmbd < self.alpha * self.M**2:
             return np.sqrt(lmbd / self.alpha)
         else:
             return self.M
 
-    def param_maxval(self) -> float:
+    def param_maxval(self, i: int) -> float:
         return np.inf
 
-    def param_maxdom(self) -> float:
+    def param_maxdom(self, i: int) -> float:
         return np.inf

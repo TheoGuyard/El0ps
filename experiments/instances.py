@@ -114,7 +114,15 @@ def synthetic_y(model, x, A, m, s):
 
 
 def get_data_synthetic(
-    matrix, model, supp_pos, supp_val, k, m, n, s, normalize=False
+    matrix="correlated(0.9)",
+    model="linear",
+    supp_pos="equispaced",
+    supp_val="unit",
+    k=5,
+    m=500,
+    n=1_000,
+    s=10.0,
+    normalize=False,
 ):
     """Generate synthetic data for sparse problems."""
     x = synthetic_x(supp_pos, supp_val, k, n)

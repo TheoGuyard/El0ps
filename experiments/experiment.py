@@ -76,8 +76,12 @@ class Experiment:
         solver_opts["time_limit"] = 5.0
         solver = get_solver("el0ps", solver_opts)
         solver.solve(
-            self.compiled_datafit, self.compiled_penalty, self.A, self.lmbd
+            self.compiled_datafit,
+            self.compiled_penalty,
+            self.A,
+            self.lmbd,
         )
+        self.compiled_regfunc = solver.bounding_solver.regfunc
 
     @abstractmethod
     def run(self):
@@ -126,6 +130,7 @@ class Perfprofile(Experiment):
                         self.compiled_penalty,
                         self.A,
                         self.lmbd,
+                        regfunc=self.compiled_regfunc,
                     )
                 else:
                     result = solver.solve(

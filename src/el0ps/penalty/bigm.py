@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from numba import float64
 from .base import BasePenalty
 
@@ -26,40 +27,40 @@ class Bigm(BasePenalty):
     def params_to_dict(self) -> dict:
         return dict(M=self.M)
 
-    def value(self, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return 0.0 if np.abs(x) <= self.M else np.inf
 
-    def conjugate(self, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return self.M * np.abs(x)
 
-    def prox(self, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.M), -self.M)
 
-    def subdiff(self, x: float) -> tuple:
+    def subdiff(self, i: int, x: float) -> ArrayLike:
         if np.abs(x) < self.M:
-            return (0.0, 0.0)
+            return [0.0, 0.0]
         elif x == -self.M:
-            return (-np.inf, 0.0)
+            return [-np.inf, 0.0]
         elif x == self.M:
-            return (0.0, np.inf)
+            return [0.0, np.inf]
         else:
-            return ()
+            return [np.nan, np.nan]
 
-    def conjugate_subdiff(self, x: float) -> tuple:
+    def conjugate_subdiff(self, i: int, x: float) -> ArrayLike:
         if x == 0.0:
-            return (-self.M, self.M)
+            return [-self.M, self.M]
         else:
             s = np.sign(x) * self.M
-            return (s, s)
+            return [s, s]
 
-    def param_slope(self, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         return lmbd / self.M
 
-    def param_limit(self, lmbd: float) -> float:
+    def param_limit(self, i: int, lmbd: float) -> float:
         return self.M
 
-    def param_maxval(self) -> float:
+    def param_maxval(self, i: int) -> float:
         return np.inf
 
-    def param_maxdom(self) -> float:
+    def param_maxdom(self, i: int) -> float:
         return np.inf

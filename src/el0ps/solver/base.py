@@ -3,10 +3,12 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
+from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
 from typing import Union
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
+from el0ps.solver.bounding import BaseRegfunc
 
 
 class Status(Enum):
@@ -90,11 +92,12 @@ class BaseSolver:
     @abstractmethod
     def solve(
         self,
-        datafit: BaseDatafit,
-        penalty: BasePenalty,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
         A: ArrayLike,
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
+        regfunc: Union[BaseRegfunc, JitClassType, None] = None,
     ):
         r"""Solve an L0-penalized problem of the form
 
@@ -106,9 +109,9 @@ class BaseSolver:
 
         Parameters
         ----------
-        datafit: BaseDatafit
+        datafit: Union[BaseDatafit, JitClassType]
             Datafit function.
-        penalty: BasePenalty
+        penalty: Union[BasePenalty, JitClassType]
             Penalty function.
         A: ArrayLike
             Linear operator.
@@ -116,6 +119,8 @@ class BaseSolver:
             L0-norm weight.
         x_init: Union[ArrayLike, None] = None
             Stating value of ``x``.
+        regfunc: Union[BaseRegunc, JitClassType, None] = None
+            Bounding regularization function.
 
         Returns
         -------
