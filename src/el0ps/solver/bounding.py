@@ -21,8 +21,8 @@ def calibrate_mcptwo(
         + 2.0 * penalty.alpha * np.eye(n)
         - cp.diag(x)
     )
-    obj = cp.Maximize(cp.sum(x))
-    cst = [M >> 0.0, x >= 0.0]
+    obj = cp.Maximize(cp.sum(x - 2.0 * penalty.alpha))
+    cst = [M >> 0.0, x >= 2. * penalty.alpha]
     problem = cp.Problem(obj, cst)
     problem.solve()
     return np.maximum(np.array(x.value).flatten(), 0.0)
@@ -433,7 +433,7 @@ class BnbBoundingSolver:
                     )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
-                if rel_tol_inner <= 1e-8:
+                if rel_tol_inner <= rel_tol ** 2:
                     break
                 rel_tol_inner *= 1e-2
 
