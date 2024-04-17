@@ -8,22 +8,26 @@ dataset:
     supp_pos    : equispaced
     supp_val    : unit
     k           : 5
-    m           : 100
-    n           : 200
+    m           : 500
+    n           : 1000
     s           : 10.
     normalize   : true
   process_opts: 
     center        : true
     normalize     : true
   datafit_name: Leastsquares
-  penalty_name: L2norm
+  penalty_name: Bigm
 
 solvers:
   solvers_name:
-    - el0ps[simpruning=False,bounding_regfunc_type=convex]
-    - el0ps[simpruning=False,bounding_regfunc_type=concave]
+    - el0ps
+    - el0ps[simpruning=False,dualpruning=False]
+    - l0bnb
+    - cplex
+    - gurobi
+    - mosek
   solvers_opts:
-    time_limit: 600.
+    time_limit: 3600.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8 
     verbose   : false

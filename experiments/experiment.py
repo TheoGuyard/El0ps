@@ -10,6 +10,7 @@ from copy import deepcopy
 from datetime import datetime
 from el0ps.path import Path
 from el0ps.solver import Status
+from el0ps.solver.bounding import calibrate_mcptwo
 from el0ps.utils import compiled_clone, compute_lmbd_max
 from sklearn.model_selection import train_test_split
 
@@ -48,31 +49,36 @@ class Experiment:
         print("  A shape: {}".format(A.shape))
         print("  y shape: {}".format(y.shape))
         print("  x shape: {}".format(None if x_true is None else x_true.shape))
+        self.A = A
+        self.y = y
+        self.x_true = x_true
 
+    def calibrate_parameters(self):
         print("Calibrating parameters...")
         datafit, penalty, lmbd, x_cal = calibrate_parameters(
             self.config["dataset"]["datafit_name"],
             self.config["dataset"]["penalty_name"],
-            A,
-            y,
-            x_true,
+            self.A,
+            self.y,
+            self.x_true,
         )
-        lmbd_max = compute_lmbd_max(datafit, penalty, A)
+        lmbd_max = compute_lmbd_max(datafit, penalty, self.A)
         print("  num nz: {}".format(sum(x_cal != 0.0)))
         print("  lratio: {}".format(lmbd / lmbd_max))
         for param_name, param_value in penalty.params_to_dict().items():
             print("  {}\t: {}".format(param_name, param_value))
-        self.x_true = x_true
         self.datafit = datafit
         self.penalty = penalty
-        self.A = A
         self.lmbd = lmbd
 
     def precompile(self):
         print("Precompiling datafit and penalty...")
         self.compiled_datafit = compiled_clone(self.datafit)
         self.compiled_penalty = compiled_clone(self.penalty)
-        solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
+        if "solvers" in self.config.keys():
+            solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
+        else:
+            solver_opts = {}
         solver_opts["time_limit"] = 5.0
         solver = get_solver("el0ps", solver_opts)
         solver.solve(
@@ -620,4 +626,101 @@ class Statistics(Experiment):
         for stat_name, stat_values in self.mean_stats.items():
             for solver_name, solver_values in stat_values.items():
                 table[solver_name + "_" + stat_name] = solver_values
+        table.to_csv(save_path, index=False)
+
+
+class McpQuality(Experiment):
+    name = "mcpquality"
+
+    def run(self):
+        assert self.config["dataset"]["penalty_name"] == "L2norm"
+        results = {}
+        for regfunc_type in self.config["regfunc_types"]:
+            try:
+                mcptwo = calibrate_mcptwo(
+                    self.datafit, self.penalty, self.A, regfunc_type
+                )
+                results[regfunc_type] = mcptwo / (2.0 * self.penalty.alpha)
+            except Exception as e:
+                print(e)
+                results[regfunc_type] = None
+        self.results = results
+
+    def load_results(self):
+        print("Loading results...")
+        found, match, notcv = 0, 0, 0
+        ratios = {r: [] for r in self.config["regfunc_types"]}
+        for result_path in self.results_dir.glob(self.name + "_*.pickle"):
+            found += 1
+            with open(result_path, "rb") as file:
+                file_data = pickle.load(file)
+                if file_data["config"] == self.config:
+                    match += 1
+                    for regfunc_type, result in file_data["results"].items():
+                        if result is not None:
+                            ratios[regfunc_type] += list(result)
+                        else:
+                            notcv += 1
+        print("  {} files found".format(found))
+        print("  {} files matched".format(match))
+        print("  {} files not converged".format(notcv))
+
+        if match == 0:
+            self.grid_ratios = None
+            self.curve_ratios = None
+            return
+
+        print("Computing statistics...")
+        for regfunc_type, ratio in ratios.items():
+            print("  {}".format(regfunc_type))
+            print("     ratios num : {}".format(len(ratio)))
+            print("     ratios min : {}".format(np.min(ratio)))
+            print("     ratios max : {}".format(np.max(ratio)))
+            print("     ratios mean: {}".format(np.mean(ratio)))
+            print("     ratios std : {}".format(np.std(ratio)))
+
+        min_ratios = np.min([np.min(v) for v in ratios.values()])
+        max_ratios = np.max([np.max(v) for v in ratios.values()])
+        self.grid_ratios = np.linspace(min_ratios, max_ratios, 100)
+        self.curve_ratios = {
+            regfunc_type: [np.mean(ratio >= g) for g in self.grid_ratios]
+            for regfunc_type, ratio in ratios.items()
+        }
+
+    def plot(self):
+        if self.curve_ratios is None or self.grid_ratios is None:
+            return
+        _, axs = plt.subplots()
+        for regfunc_type, curve_ratio in self.curve_ratios.items():
+            axs.plot(
+                self.grid_ratios,
+                curve_ratio,
+                label=regfunc_type,
+            )
+        axs.grid(visible=True, which="major", axis="both")
+        axs.grid(visible=True, which="minor", axis="both", alpha=0.2)
+        axs.minorticks_on()
+        axs.set_ylabel("Prop.")
+        axs.set_xlabel("mcptwo / 2 alpha")
+        axs.legend()
+        plt.show()
+
+    def save_plot(self):
+        print("Saving data...")
+        # save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
+        table = pd.DataFrame({"grid_ratios": self.grid_ratios})
+        for regfunc_type, curve_ratio in self.curve_ratios.items():
+            table[regfunc_type] = curve_ratio
+        # file_name = "{}_{}".format(self.name, save_uuid)
+        k = str(self.config["dataset"]["dataset_opts"]["k"])
+        m = str(self.config["dataset"]["dataset_opts"]["m"])
+        n = str(self.config["dataset"]["dataset_opts"]["n"])
+        r = (
+            self.config["dataset"]["dataset_opts"]["matrix"]
+            .split("(")[1]
+            .split(")")[0]
+        )
+        s = str(self.config["dataset"]["dataset_opts"]["s"])
+        file_name = "{}_{}_{}_{}_{}_{}".format(self.name, k, m, n, r, s)
+        save_path = self.saves_dir.joinpath("{}.csv".format(file_name))
         table.to_csv(save_path, index=False)

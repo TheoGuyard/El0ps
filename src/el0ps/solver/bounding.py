@@ -13,19 +13,29 @@ def calibrate_mcptwo(
     datafit: JitClassType,
     penalty: JitClassType,
     A: ArrayLike,
+    regfunc_type: str,
 ):
     n = A.shape[1]
-    x = cp.Variable(n)
-    M = (
-        datafit.lipschitz_constant() * (A.T @ A)
-        + 2.0 * penalty.alpha * np.eye(n)
-        - cp.diag(x)
-    )
-    obj = cp.Maximize(cp.sum(x - 2.0 * penalty.alpha))
-    cst = [M >> 0.0, x >= 2. * penalty.alpha]
-    problem = cp.Problem(obj, cst)
-    problem.solve()
-    return np.maximum(np.array(x.value).flatten(), 0.0)
+    if regfunc_type == "convex":
+        mcptwo = 2.0 * penalty.alpha * np.ones(n)
+    elif regfunc_type == "concave_eig":
+        G = datafit.lipschitz_constant() * (A.T @ A)
+        g = np.min(np.real(np.linalg.eigvals(G)))
+        mcptwo = (g + 2.0 * penalty.alpha) * np.ones(n)
+    elif regfunc_type == "concave_etp":
+        G = datafit.lipschitz_constant() * (A.T @ A)
+        var = cp.Variable(n)
+        obj = cp.Maximize(cp.sum(var))
+        cst = [
+            G + 2.0 * penalty.alpha * np.eye(n) - cp.diag(var) >> 0.0,
+            var >= 0.0,
+        ]
+        problem = cp.Problem(obj, cst)
+        problem.solve()
+        mcptwo = np.array(var.value).flatten()
+    else:
+        raise ValueError(f"Invalid regfunc_type {regfunc_type}.")
+    return mcptwo
 
 
 class BaseRegfunc:
@@ -311,8 +321,8 @@ class BnbBoundingSolver:
         # Regularization function
         if self.regfunc_type == "convex":
             regfunc = ConvexRegfunc(penalty)
-        elif self.regfunc_type == "concave":
-            mcptwo = calibrate_mcptwo(datafit, penalty, A)
+        elif self.regfunc_type.startswith("concave"):
+            mcptwo = calibrate_mcptwo(datafit, penalty, A, self.regfunc_type)
             regfunc = ConcaveRegfunc(penalty, mcptwo)
         else:
             raise ValueError(f"Invalid regfunc_type {self.regfunc_type}.")
@@ -433,7 +443,7 @@ class BnbBoundingSolver:
                     )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
-                if rel_tol_inner <= rel_tol ** 2:
+                if rel_tol_inner <= rel_tol**2:
                     break
                 rel_tol_inner *= 1e-2
 

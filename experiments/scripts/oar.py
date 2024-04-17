@@ -29,7 +29,7 @@ experiments = [
         "perfprofile",
         "regpath",
         "statistics",
-        "concave",
+        "mcpquality",
     ]
 ]
 

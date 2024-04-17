@@ -1,0 +1,42 @@
+expname: statistics
+
+dataset:
+  dataset_type: synthetic
+  dataset_opts: 
+    matrix      : correlated(0.9)
+    model       : linear
+    supp_pos    : equispaced
+    supp_val    : unit
+    k           : 10
+    m           : 150
+    n           : 200
+    s           : 10.
+    normalize   : true
+  process_opts: 
+    center        : true
+    normalize     : true
+  datafit_name: Leastsquares
+  penalty_name: BigmL2norm
+  test_size: 0.3333
+
+solvers:
+  solvers_name:
+    - el0ps
+    - l0bnb
+  solvers_opts:
+    time_limit: 600.
+    rel_tol   : 1.e-4
+    int_tol   : 1.e-8 
+    verbose   : false
+
+relaxed_solvers:
+  - Omp
+  - Lasso
+  - Enet
+
+path_opts:
+  lmbd_ratio_max: 1.e-0
+  lmbd_ratio_min: 1.e-5
+  lmbd_ratio_num: 101
+  stop_if_not_optimal: true
+  max_nnz: 20

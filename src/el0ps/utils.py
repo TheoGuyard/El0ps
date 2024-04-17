@@ -31,13 +31,11 @@ def compute_lmbd_max(
     """
 
     w = np.zeros(A.shape[0])
-    v = A.T @ datafit.gradient(w)
-    r = np.array([penalty.conjugate(i, vi) for i, vi in enumerate(v)])
-    i = np.argmax(r)
-    if r[i] == 0.0:
-        lmbd_max = 0.0
-    elif r[i] < np.inf:
-        lmbd_max = penalty.conjugate(i, r[i])
+    v = np.abs(A.T @ datafit.gradient(w))
+    i = np.argmax(v)
+    p = penalty.conjugate(i, v[i])
+    if p < np.inf:
+        lmbd_max = p
     else:
         lmbd_max = penalty.param_maxval()
     return lmbd_max
