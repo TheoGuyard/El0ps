@@ -367,7 +367,7 @@ class BnbBoundingSolver:
 
         # ----- Outer loop ----- #
 
-        rel_tol_inner = 0.5 * rel_tol
+        rel_tol_inner = 0.1 * rel_tol
         for _ in range(self.maxiter_outer):
             v = np.empty(self.n)
             dv = np.nan
@@ -443,7 +443,7 @@ class BnbBoundingSolver:
                     )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
-                if rel_tol_inner <= rel_tol**2:
+                if rel_tol_inner <= 1e-12:
                     break
                 rel_tol_inner *= 1e-2
 

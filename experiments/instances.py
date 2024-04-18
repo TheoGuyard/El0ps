@@ -123,8 +123,11 @@ def get_data_synthetic(
     n=1_000,
     s=10.0,
     normalize=False,
+    seed=None,
 ):
     """Generate synthetic data for sparse problems."""
+    if seed is not None:
+        np.random.seed(seed)
     x = synthetic_x(supp_pos, supp_val, k, n)
     A = synthetic_A(matrix, m, n, normalize)
     if model == "poisson":
