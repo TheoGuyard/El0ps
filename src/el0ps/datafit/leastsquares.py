@@ -1,10 +1,10 @@
 import numpy as np
 from numba import int32, float64
 from numpy.typing import ArrayLike
-from .base import SmoothDatafit
+from .base import SmoothDatafit, StronglyConvexDatafit
 
 
-class Leastsquares(SmoothDatafit):
+class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
     r"""Least-squares datafit function given by
 
     .. math:: f(x) = 1 / 2m ||x - y||_2^2
@@ -21,6 +21,7 @@ class Leastsquares(SmoothDatafit):
         self.y = y
         self.m = y.size
         self.L = 1.0 / y.size
+        self.S = 1.0 / y.size
 
     def __str__(self) -> str:
         return "Leastsquares"
@@ -44,3 +45,6 @@ class Leastsquares(SmoothDatafit):
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return (x - self.y) / self.m
+
+    def strong_convexity_constant(self) -> float:
+        return self.S

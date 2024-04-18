@@ -19,11 +19,11 @@ def calibrate_mcptwo(
     if regfunc_type == "convex":
         mcptwo = 2.0 * penalty.alpha * np.ones(n)
     elif regfunc_type == "concave_eig":
-        G = datafit.lipschitz_constant() * (A.T @ A)
+        G = datafit.strong_convexity_constant() * (A.T @ A)
         g = np.min(np.real(np.linalg.eigvals(G)))
         mcptwo = (g + 2.0 * penalty.alpha) * np.ones(n)
     elif regfunc_type == "concave_etp":
-        G = datafit.lipschitz_constant() * (A.T @ A)
+        G = datafit.strong_convexity_constant() * (A.T @ A)
         var = cp.Variable(n)
         obj = cp.Maximize(cp.sum(var))
         cst = [
