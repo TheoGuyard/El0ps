@@ -27,7 +27,12 @@ class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
         return "Leastsquares"
 
     def get_spec(self) -> tuple:
-        spec = (("y", float64[::1]), ("m", int32), ("L", float64))
+        spec = (
+            ("y", float64[::1]),
+            ("m", int32),
+            ("L", float64),
+            ("S", float64),
+        )
         return spec
 
     def params_to_dict(self) -> dict:
