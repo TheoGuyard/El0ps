@@ -179,10 +179,10 @@ def get_exp_statistics():
     return exp
 
 
-def get_exp_mcpquality():
+def get_exp_relaxquality():
     exp = {
-        "name": "mcpquality",
-        "command": "mcpquality",
+        "name": "relaxquality",
+        "command": "relaxquality",
         "walltime": "00:05:00",
         "besteffort": True,
         "production": True,
@@ -190,7 +190,7 @@ def get_exp_mcpquality():
     }
 
     base_setup = {
-        "expname": "mcpquality",
+        "expname": "relaxquality",
         "dataset": {
             "dataset_type": "synthetic",
             "dataset_opts": {

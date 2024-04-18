@@ -633,8 +633,8 @@ class Statistics(Experiment):
         table.to_csv(save_path, index=False)
 
 
-class McpQuality(Experiment):
-    name = "mcpquality"
+class RelaxQuality(Experiment):
+    name = "relaxquality"
 
     def run(self):
         assert self.config["dataset"]["penalty_name"] == "L2norm"

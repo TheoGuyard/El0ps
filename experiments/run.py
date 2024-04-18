@@ -9,7 +9,7 @@ from experiments.experiment import (  # noqa: E402
     Perfprofile,
     Regpath,
     Statistics,
-    McpQuality,
+    RelaxQuality,
 )
 
 plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.tab10.colors)
@@ -37,15 +37,20 @@ def graphic(exp: Experiment, save=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "name", choices=["mcpquality", "perfprofile", "regpath", "statistics"]
+        "name", choices=[
+            "relaxquality", 
+            "perfprofile", 
+            "regpath", 
+            "statistics",
+        ]
     )
     parser.add_argument("func", choices=["onerun", "graphic"])
     parser.add_argument("config_path")
     parser.add_argument("--save", action="store_true")
     args = parser.parse_args()
 
-    if args.name == "mcpquality":
-        exp = McpQuality(args.config_path)
+    if args.name == "relaxquality":
+        exp = RelaxQuality(args.config_path)
     elif args.name == "perfprofile":
         exp = Perfprofile(args.config_path)
     elif args.name == "regpath":

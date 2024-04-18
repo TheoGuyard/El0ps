@@ -1,4 +1,4 @@
-expname: mcpquality
+expname: relaxquality
 
 dataset:
   dataset_type: synthetic
