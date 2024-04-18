@@ -311,6 +311,7 @@ class Regpath(Experiment):
         )
         self.stats_specs = {
             "solve_time": {"log": True},
+            "iter_count": {"log": False},
             "objective_value": {"log": False},
             "datafit_value": {"log": False},
             "n_nnz": {"log": False},
@@ -354,6 +355,7 @@ class Regpath(Experiment):
         print("  {} not converged".format(notcv))
 
         if (match == 0) or (match == empty):
+            self.mean_stats = None
             return
 
         self.mean_stats = {
@@ -372,6 +374,8 @@ class Regpath(Experiment):
         }
 
     def plot(self):
+        if self.mean_stats is None:
+            return
         _, axs = plt.subplots(1, len(self.mean_stats), squeeze=False)
         for i, (stat_name, stat_values) in enumerate(self.mean_stats.items()):
             for solver_name, solver_values in stat_values.items():
