@@ -16,16 +16,16 @@ dataset:
     center        : true
     normalize     : true
   datafit_name: Leastsquares
-  penalty_name: L2norm
+  penalty_name: Bigm
 
 solvers:
   solvers_name:
-    - el0ps[simpruning=False,dualpruning=False,l1screening=False,bounding_regfunc_type=convex]
-    # - el0ps[simpruning=False,dualpruning=False]
-    # - l0bnb
-    # - cplex
-    # - gurobi
-    # - mosek
+    - el0ps
+    - el0ps[simpruning=False,dualpruning=False]
+    - l0bnb
+    - cplex
+    - gurobi
+    - mosek
   solvers_opts:
     time_limit: 3600.
     rel_tol   : 1.e-4
