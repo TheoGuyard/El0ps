@@ -51,7 +51,8 @@ def synthetic_x(supp_pos, supp_val, k, n):
     if supp_val == "unit":
         x[s] = np.sign(np.random.randn(k))
     elif supp_val == "normal":
-        x[s] = np.random.randn(k)
+        a = np.random.randn(k)
+        x[s] = a + np.sign(a)
     elif supp_val == "expdecr":
         x[s] = np.exp(-np.arange(k))
     else:

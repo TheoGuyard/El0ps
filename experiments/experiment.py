@@ -311,7 +311,7 @@ class Regpath(Experiment):
         )
         self.stats_specs = {
             "solve_time": {"log": True},
-            "iter_count": {"log": False},
+            "iter_count": {"log": True},
             "objective_value": {"log": False},
             "datafit_value": {"log": False},
             "n_nnz": {"log": False},
