@@ -262,7 +262,7 @@ class ConcaveRegfunc(BaseRegfunc):
             s = np.sign(x) * c - self.mcptwo[i] * x
             return [s, s]
         else:
-            return [1.0, 1.0]
+            return [0.0, 0.0]
 
     def value(self, i: int, lmbd: float, x: float) -> float:
         return self.mcp_value(i, lmbd, x) + self.penalty.value(i, x)
@@ -272,9 +272,9 @@ class ConcaveRegfunc(BaseRegfunc):
         z = c * x
         p = self.mcp_prox(i, lmbd, z, c)
         return (
-            0.5 * c * x**2
+            (0.5 * c) * x**2
             - self.mcp_value(i, lmbd, p)
-            - self.penalty.value(i, p - z)
+            - self.penalty.alpha * (p - z)**2
         )
 
     def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
@@ -284,7 +284,7 @@ class ConcaveRegfunc(BaseRegfunc):
     def subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
         s_mcp = self.mcp_subdiff(i, lmbd, x)
         s_pen = self.penalty.subdiff(i, x)
-        return [s_mcp[0] + s_pen[0], s_mcp[-1] + s_pen[-1]]
+        return [s_mcp[0] + s_pen[0], s_mcp[1] + s_pen[1]]
 
 
 class BnbBoundingSolver:
