@@ -7,9 +7,7 @@ from .base import SmoothDatafit, StronglyConvexDatafit
 class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
     r"""Least-squares datafit function given by
 
-    .. math:: f(x) = 1 / 2m ||x - y||_2^2
-
-    where ``m`` is the size of the vector ``y``.
+    .. math:: f(x) = \sum_j (x_j - y_j)^2 / 2
 
     Parameters
     ----------
@@ -19,9 +17,8 @@ class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
 
     def __init__(self, y: ArrayLike) -> None:
         self.y = y
-        self.m = y.size
-        self.L = 1.0 / y.size
-        self.S = 1.0 / y.size
+        self.L = 1.0
+        self.S = 1.0
 
     def __str__(self) -> str:
         return "Leastsquares"
@@ -29,7 +26,6 @@ class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
     def get_spec(self) -> tuple:
         spec = (
             ("y", float64[::1]),
-            ("m", int32),
             ("L", float64),
             ("S", float64),
         )
@@ -40,16 +36,16 @@ class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
 
     def value(self, x: ArrayLike) -> float:
         v = x - self.y
-        return np.dot(v, v) / (2.0 * self.m)
+        return 0.5 * np.dot(v, v)
 
     def conjugate(self, x: ArrayLike) -> float:
-        return (0.5 * self.m) * np.dot(x, x) + np.dot(x, self.y)
+        return 0.5 * np.dot(x, x) + np.dot(x, self.y)
 
     def lipschitz_constant(self) -> float:
         return self.L
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
-        return (x - self.y) / self.m
+        return x - self.y
 
     def strong_convexity_constant(self) -> float:
         return self.S

@@ -272,8 +272,8 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         bindings[penalty_name],
         intercept=False,
         num_gamma=1 if bindings[penalty_name] == "L0" else 40,
-        gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e2,
-        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
+        gamma_max=0.0 if bindings[penalty_name] == "L0" else 1e2,
+        gamma_min=0.0 if bindings[penalty_name] == "L0" else 1e-4,
         num_folds=5,
     )
 
@@ -295,8 +295,8 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
             if (f1 > best_f1) or (x_true is None):
                 if cv < best_cv:
                     best_M = 1.5 * np.max(np.abs(x))
-                    best_lmbda = lmbda / m
-                    best_gamma = gamma / m
+                    best_lmbda = lmbda
+                    best_gamma = gamma
                     best_cv = cv
                     best_f1 = f1
                     best_x = np.copy(x)

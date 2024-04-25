@@ -59,7 +59,7 @@ class CplexSolver(BaseSolver):
                 f1_var[j] == datafit.y[j] - model.dot(x_var, A[j, :])
                 for j in range(m)
             )
-            model.add_constraint(f_var >= model.sumsq(f1_var) / (2.0 * m))
+            model.add_constraint(f_var >= 0.5 * model.sumsq(f1_var))
         elif str(datafit) == "Squaredhinge":
             f1_var = model.continuous_var_list(m, name="f1", lb=-np.inf)
             f2_var = model.continuous_var_list(m, name="f2")
@@ -69,7 +69,7 @@ class CplexSolver(BaseSolver):
             )
             model.add_constraints(f2_var[j] >= f1_var[j] for j in range(m))
             model.add_constraints(f2_var[j] >= 0.0 for j in range(m))
-            model.add_constraint(f_var >= model.sumsq(f2_var) / m)
+            model.add_constraint(f_var >= model.sumsq(f2_var))
         else:
             raise NotImplementedError(
                 "`CplexSolver` does not support `{}` yet.".format(str(datafit))
@@ -275,7 +275,7 @@ class GurobiSolver(BaseSolver):
         if str(datafit) == "Leastsquares":
             f1_var = model.addMVar(m, vtype="C", name="f1", lb=-np.inf)
             model.addConstr(f1_var == datafit.y - A @ x_var)
-            model.addConstr(f_var >= (f1_var @ f1_var) / (2.0 * m))
+            model.addConstr(f_var >= 0.5 * (f1_var @ f1_var))
         elif str(datafit) == "Squaredhinge":
             f1_var = model.addMVar(m, vtype="C", name="f1", lb=-np.inf)
             f2_var = model.addMVar(m, vtype="C", name="f2", lb=-np.inf)
@@ -284,7 +284,7 @@ class GurobiSolver(BaseSolver):
             model.addConstr(f2_var == 1.0 - datafit.y * f1_var)
             model.addConstr(f3_var >= f2_var)
             model.addConstr(f3_var >= 0.0)
-            model.addConstr(f_var >= (f3_var @ f3_var) / m)
+            model.addConstr(f_var >= (f3_var @ f3_var))
         else:
             raise NotImplementedError(
                 "`GurobiSolver` does not support `{}` yet.".format(
@@ -508,9 +508,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
-                msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / m, msk.Expr.sum(f1_var))
-                ),
+                msk.Expr.sub(f_var, msk.Expr.sum(f1_var)),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(datafit) == "Logistic":
@@ -541,9 +539,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
-                msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / m, msk.Expr.sum(f1_var))
-                ),
+                msk.Expr.sub(f_var, msk.Expr.sum(f1_var)),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(datafit) == "Squaredhinge":
@@ -573,9 +569,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
-                msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / m, msk.Expr.sum(f3_var))
-                ),
+                msk.Expr.sub(f_var, msk.Expr.sum(f3_var)),
                 msk.Domain.greaterThan(0.0),
             )
         else:
@@ -893,16 +887,16 @@ class L0bnbSolver(BaseSolver):
 
         m, _ = A.shape
         if str(penalty) == "Bigm":
-            l0 = m * lmbd
+            l0 = lmbd
             l2 = 0.0
             M = penalty.M
         elif str(penalty) == "L2norm":
-            l0 = m * lmbd
-            l2 = m * penalty.alpha
+            l0 = lmbd
+            l2 = penalty.alpha
             M = np.inf
         elif str(penalty) == "BigmL2norm":
-            l0 = m * lmbd
-            l2 = m * penalty.alpha
+            l0 = lmbd
+            l2 = penalty.alpha
             M = penalty.M
         else:
             raise NotImplementedError(
@@ -1033,7 +1027,7 @@ class LassoPath:
             np.log10(self.lmbd_ratio_min),
             self.lmbd_ratio_num,
         )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
 
         start_time = time.time()
 
@@ -1095,7 +1089,7 @@ class EnetPath:
             np.log10(self.lmbd_ratio_min),
             self.lmbd_ratio_num,
         )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
 
         # Calibrate L1 ratio
         param_grid = {
