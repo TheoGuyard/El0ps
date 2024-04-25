@@ -21,7 +21,7 @@ solvers:
   solvers_opts:
     time_limit: 3600.
     rel_tol   : 1.e-4
-    int_tol   : 1.e-8 
+    int_tol   : 1.e-8
     verbose   : false
 
 path_opts:

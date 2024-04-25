@@ -18,10 +18,14 @@ def calibrate_mcptwo(
     n = A.shape[1]
     if regfunc_type == "convex":
         mcptwo = 2.0 * penalty.alpha * np.ones(n)
+        L = np.copy(A)
+        h = np.zeros(n)
     elif regfunc_type == "concave_eig":
         G = datafit.strong_convexity_constant() * (A.T @ A)
         g = np.min(np.real(np.linalg.eigvals(G)))
         mcptwo = (g + 2.0 * penalty.alpha) * np.ones(n)
+        L = np.linalg.cholesky(G + np.diag(2. * penalty.alpha - mcptwo)).T
+        h = (A.T + L.T) @ datafit.y
     elif regfunc_type == "concave_etp":
         G = datafit.strong_convexity_constant() * (A.T @ A)
         var = cp.Variable(n)
@@ -33,9 +37,11 @@ def calibrate_mcptwo(
         problem = cp.Problem(obj, cst)
         problem.solve()
         mcptwo = np.array(var.value).flatten()
+        L = np.linalg.cholesky(G + np.diag(2. * penalty.alpha - mcptwo)).T
+        h = (A.T + L.T) @ datafit.y
     else:
         raise ValueError(f"Invalid regfunc_type {regfunc_type}.")
-    return mcptwo
+    return mcptwo, L, h
 
 
 class BaseRegfunc:
@@ -215,6 +221,8 @@ class ConcaveRegfunc(BaseRegfunc):
         self,
         penalty: JitClassType,
         mcptwo: ArrayLike,
+        L: ArrayLike,
+        h: ArrayLike,
     ) -> None:
 
         if str(penalty) != "L2norm":
@@ -222,11 +230,15 @@ class ConcaveRegfunc(BaseRegfunc):
 
         self.penalty = penalty
         self.mcptwo = mcptwo
+        self.L = L
+        self.h = h
 
     def get_spec(self) -> tuple:
         spec = (
             ("penalty", self.penalty._numba_type_.class_type.instance_type),
             ("mcptwo", float64[:]),
+            ("L", float64[::-1,:]),
+            ("h", float64[:]),
         )
         return spec
 
@@ -272,7 +284,7 @@ class ConcaveRegfunc(BaseRegfunc):
         z = c * x
         p = self.mcp_prox(i, lmbd, z, c)
         return (
-            (0.5 * c) * x**2
+            0.5 * c * x**2
             - self.mcp_value(i, lmbd, p)
             - self.penalty.alpha * (p - z)**2
         )
@@ -321,9 +333,9 @@ class BnbBoundingSolver:
         # Regularization function
         if self.regfunc_type == "convex":
             regfunc = ConvexRegfunc(penalty)
-        elif self.regfunc_type.startswith("concave"):
-            mcptwo = calibrate_mcptwo(datafit, penalty, A, self.regfunc_type)
-            regfunc = ConcaveRegfunc(penalty, mcptwo)
+        # elif self.regfunc_type.startswith("concave"):
+        #     mcptwo, L, h = calibrate_mcptwo(datafit, penalty, A, self.regfunc_type)
+        #     regfunc = ConcaveRegfunc(penalty, mcptwo, L, h)
         else:
             raise ValueError(f"Invalid regfunc_type {self.regfunc_type}.")
         self.regfunc = compiled_clone(regfunc)
@@ -638,7 +650,7 @@ class BnbBoundingSolver:
             Constant offset of the penalty.
         u: ArrayLike
             Value at which the dual is evaluated.
-        w: ArrayLike
+        v: ArrayLike
             Value of ``A.T @ u``.
         S1: ArrayLike
             Set of indices forced to be non-zero.
