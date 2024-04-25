@@ -41,4 +41,4 @@ class Squaredhinge(SmoothDatafit):
         return self.L
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
-        return -2. * self.y * np.maximum(1.0 - self.y * x, 0.0)
+        return -2.0 * self.y * np.maximum(1.0 - self.y * x, 0.0)

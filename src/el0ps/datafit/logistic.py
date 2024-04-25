@@ -37,7 +37,7 @@ class Logistic(SmoothDatafit):
         if not np.all((0.0 < c) & (c < 1.0)):
             return np.inf
         r = 1.0 - c
-        return (np.dot(c, np.log(c)) + np.dot(r, np.log(r)))
+        return np.dot(c, np.log(c)) + np.dot(r, np.log(r))
 
     def lipschitz_constant(self) -> float:
         return self.L

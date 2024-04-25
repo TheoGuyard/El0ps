@@ -20,7 +20,7 @@ dataset:
 
 solvers:
   solvers_name:
-    - el0ps
+    - el0ps[verbose=true]
     - el0ps[simpruning=False,dualpruning=False]
     - l0bnb
     - cplex

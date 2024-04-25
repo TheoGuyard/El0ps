@@ -56,4 +56,4 @@ class Kullbackleibler(SmoothDatafit):
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         z = np.maximum(x, 0.0) + self.e
-        return (1.0 - self.y / z)
+        return 1.0 - self.y / z

@@ -24,7 +24,7 @@ def calibrate_mcptwo(
         G = datafit.strong_convexity_constant() * (A.T @ A)
         g = np.min(np.real(np.linalg.eigvals(G)))
         mcptwo = (g + 2.0 * penalty.alpha) * np.ones(n)
-        L = np.linalg.cholesky(G + np.diag(2. * penalty.alpha - mcptwo)).T
+        L = np.linalg.cholesky(G + np.diag(2.0 * penalty.alpha - mcptwo)).T
         h = (A.T + L.T) @ datafit.y
     elif regfunc_type == "concave_etp":
         G = datafit.strong_convexity_constant() * (A.T @ A)
@@ -37,7 +37,7 @@ def calibrate_mcptwo(
         problem = cp.Problem(obj, cst)
         problem.solve()
         mcptwo = np.array(var.value).flatten()
-        L = np.linalg.cholesky(G + np.diag(2. * penalty.alpha - mcptwo)).T
+        L = np.linalg.cholesky(G + np.diag(2.0 * penalty.alpha - mcptwo)).T
         h = (A.T + L.T) @ datafit.y
     else:
         raise ValueError(f"Invalid regfunc_type {regfunc_type}.")
@@ -237,7 +237,7 @@ class ConcaveRegfunc(BaseRegfunc):
         spec = (
             ("penalty", self.penalty._numba_type_.class_type.instance_type),
             ("mcptwo", float64[:]),
-            ("L", float64[::-1,:]),
+            ("L", float64[::-1, :]),
             ("h", float64[:]),
         )
         return spec
@@ -286,7 +286,7 @@ class ConcaveRegfunc(BaseRegfunc):
         return (
             0.5 * c * x**2
             - self.mcp_value(i, lmbd, p)
-            - self.penalty.alpha * (p - z)**2
+            - self.penalty.alpha * (p - z) ** 2
         )
 
     def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
@@ -331,13 +331,8 @@ class BnbBoundingSolver:
         self.A = A
 
         # Regularization function
-        if self.regfunc_type == "convex":
-            regfunc = ConvexRegfunc(penalty)
-        # elif self.regfunc_type.startswith("concave"):
-        #     mcptwo, L, h = calibrate_mcptwo(datafit, penalty, A, self.regfunc_type)
-        #     regfunc = ConcaveRegfunc(penalty, mcptwo, L, h)
-        else:
-            raise ValueError(f"Invalid regfunc_type {self.regfunc_type}.")
+        assert self.regfunc_type == "convex"
+        regfunc = ConvexRegfunc(self.penalty)
         self.regfunc = compiled_clone(regfunc)
 
         # Constants
@@ -373,8 +368,8 @@ class BnbBoundingSolver:
         pv = np.inf
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
-        threshold = np.array(
-            [self.regfunc.subdiff(i, lmbd, 0.0)[1] for i in range(x.size)]
+        th = np.array(
+            [self.penalty.param_slope(i, lmbd) for i in range(x.size)]
         )
 
         # ----- Outer loop ----- #
@@ -433,9 +428,7 @@ class BnbBoundingSolver:
                     break
 
             # Working-set update
-            flag = self.ws_update(
-                self.regfunc, self.A, lmbd, u, v, Ws, Sbi, threshold
-            )
+            flag = self.ws_update(self.A, u, v, Ws, Sbi, th)
 
             # Outer stopping criterion
             if upper:
@@ -488,9 +481,9 @@ class BnbBoundingSolver:
                         Ws,
                         Sb0,
                         Sbi,
+                        th,
                         self.lipschitz,
                         self.A_colnorm,
-                        threshold,
                     )  # noqa
                 if simpruning:
                     self.simpruning(
@@ -564,19 +557,17 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def ws_update(
-        regfunc: JitClassType,
         A: ArrayLike,
-        lmbd: float,
         u: ArrayLike,
         v: ArrayLike,
         Ws: ArrayLike,
         Sbi: ArrayLike,
-        threshold: ArrayLike,
+        th: ArrayLike,
     ) -> bool:
         flag = False
         for i in np.flatnonzero(~Ws & Sbi):
             v[i] = np.dot(A[:, i], u)
-            if np.abs(v[i]) > threshold[i]:
+            if np.abs(v[i]) > th[i]:
                 flag = True
                 Ws[i] = True
         return flag
@@ -738,15 +729,15 @@ class BnbBoundingSolver:
         Ws: ArrayLike,
         Sb0: ArrayLike,
         Sbi: ArrayLike,
+        th: ArrayLike,
         lipschitz: float,
         A_colnorm: ArrayLike,
-        threshold: ArrayLike,
     ) -> None:
         flag = False
         r = np.sqrt(2.0 * np.abs(pv - dv) * lipschitz)
         for i in np.flatnonzero(Sbi):
             vi = v[i]
-            if np.abs(vi) + r * A_colnorm[i] < threshold[i]:
+            if np.abs(vi) + r * A_colnorm[i] < th[i]:
                 if x[i] != 0.0:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0
