@@ -42,7 +42,11 @@ def compute_lmbd_max(
 
 
 def compute_param_slope(
-    penalty: BasePenalty, lmbd: float, tol: float = 1e-4, maxit: int = 100
+    penalty: BasePenalty,
+    i: int,
+    lmbd: float,
+    tol: float = 1e-4,
+    maxit: int = 100,
 ) -> float:
     """Utility function to compute the value of `param_slope` in a
     ``BasePenalty`` instance when no closed-form is available.
@@ -51,6 +55,8 @@ def compute_param_slope(
     ----------
     penalty: BasePenalty
         The penalty instance.
+    i: int
+        Index of the splitting term.
     lmbd: float
         L0-regularization parameter.
     tol: float = 1e-4
@@ -58,16 +64,16 @@ def compute_param_slope(
     maxit: int = 100
         Maximum number of bisection iterations.
     """
-    if penalty.param_maxval() < lmbd:
-        return penalty.param_maxdom()
+    if penalty.param_maxval(i) < lmbd:
+        return penalty.param_maxdom(i)
     a = 0.0
     b = 1.0
-    while penalty.conjugate(b) < lmbd:
+    while penalty.conjugate(i, b) < lmbd:
         b *= 2.0
     for _ in range(maxit):
         c = (a + b) / 2.0
-        fa = penalty.conjugate(a) - lmbd
-        fc = penalty.conjugate(c) - lmbd
+        fa = penalty.conjugate(i, a) - lmbd
+        fc = penalty.conjugate(i, c) - lmbd
         if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
             return c
         if fc * fa >= 0.0:
@@ -77,7 +83,7 @@ def compute_param_slope(
     return c
 
 
-def compute_param_limit(penalty: BasePenalty, lmbd: float) -> float:
+def compute_param_limit(penalty: BasePenalty, i: int, lmbd: float) -> float:
     """Utility function to compute the value of `param_limit` in a
     ``BasePenalty`` instance when no closed-form is available.
 
@@ -85,10 +91,12 @@ def compute_param_limit(penalty: BasePenalty, lmbd: float) -> float:
     ----------
     penalty: BasePenalty
         The penalty instance.
+    i: int
+        Index of the splitting term.
     lmbd: float
         L0-regularization parameter.
     """
-    return np.max(penalty.conjugate_subdiff(penalty.param_slope(lmbd)))
+    return np.max(penalty.conjugate_subdiff(i, penalty.param_slope(i, lmbd)))
 
 
 @lru_cache()

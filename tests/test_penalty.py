@@ -31,42 +31,42 @@ penalties = [
 @pytest.mark.parametrize("penalty", penalties)
 def test_instances(penalty):
     assert isinstance(penalty.__str__(), str)
-    assert penalty.value(0.0) == 0.0
-    for xi, ui in zip(x, u):
-        assert penalty.value(xi) >= 0.0
-        assert penalty.value(xi) == penalty.value(-xi)
-        assert penalty.conjugate(ui) >= 0.0
-        assert penalty.value(xi) + penalty.conjugate(ui) >= xi * ui - 1e-10
-    slope = penalty.param_slope(lmbd)
-    limit = penalty.param_limit(lmbd)
-    maxval = penalty.param_maxval()
-    maxdom = penalty.param_maxdom()
-    slope_approx = compute_param_slope(penalty, lmbd, tol=1e-8)
-    limit_approx = compute_param_limit(penalty, lmbd)
-    assert slope >= 0.0
-    assert limit >= 0.0
-    assert maxval >= 0.0
-    assert maxdom >= 0.0
-    assert slope == pytest.approx(slope_approx)
-    assert limit == pytest.approx(limit_approx)
-    if limit < np.inf:
-        assert penalty.conjugate(slope) == pytest.approx(lmbd)
+    for i, (xi, ui) in enumerate(zip(x, u)):
+        assert penalty.value(i, 0.0) == 0.0
+        assert penalty.value(i, xi) >= 0.0
+        assert penalty.value(i, xi) == penalty.value(i, -xi)
+        assert penalty.conjugate(i, ui) >= 0.0
         assert (
-            penalty.value(limit) + penalty.conjugate(slope)
-            >= limit * slope - 1e-10
+            penalty.value(i, xi) + penalty.conjugate(i, ui) >= xi * ui - 1e-10
         )
-    else:
-        assert penalty.conjugate(slope) < lmbd
-    if maxval < np.inf:
-        assert penalty.conjugate(maxval) < np.inf
-    else:
-        assert penalty.conjugate(maxval) == np.inf
-    if maxdom < np.inf:
-        assert penalty.conjugate(maxdom) < np.inf
-
-    eta = np.random.rand()
-    for xi in x:
-        pi = penalty.prox(xi, eta)
-        v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(pi)
-        v2 = eta * penalty.value(xi)
+        slope = penalty.param_slope(i, lmbd)
+        limit = penalty.param_limit(i, lmbd)
+        maxval = penalty.param_maxval(i)
+        maxdom = penalty.param_maxdom(i)
+        slope_approx = compute_param_slope(penalty, i, lmbd, tol=1e-8)
+        limit_approx = compute_param_limit(penalty, i, lmbd)
+        assert slope >= 0.0
+        assert limit >= 0.0
+        assert maxval >= 0.0
+        assert maxdom >= 0.0
+        assert slope == pytest.approx(slope_approx)
+        assert limit == pytest.approx(limit_approx)
+        if limit < np.inf:
+            assert penalty.conjugate(i, slope) == pytest.approx(lmbd)
+            assert (
+                penalty.value(i, limit) + penalty.conjugate(i, slope)
+                >= limit * slope - 1e-10
+            )
+        else:
+            assert penalty.conjugate(i, slope) < lmbd
+        if maxval < np.inf:
+            assert penalty.conjugate(i, maxval) < np.inf
+        else:
+            assert penalty.conjugate(i, maxval) == np.inf
+        if maxdom < np.inf:
+            assert penalty.conjugate(i, maxdom) < np.inf
+        eta = np.random.rand()
+        pi = penalty.prox(i, xi, eta)
+        v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value(i, pi)
+        v2 = eta * penalty.value(i, xi)
         assert v1 <= v2
