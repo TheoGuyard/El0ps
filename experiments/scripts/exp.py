@@ -4,6 +4,7 @@ from copy import deepcopy
 def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
+        "command": "perfprofile",
         "walltime": "07:15:00",
         "besteffort": True,
         "production": True,
@@ -55,6 +56,7 @@ def get_exp_perfprofile():
 def get_exp_regpath():
     exp = {
         "name": "regpath",
+        "command": "regpath",
         "walltime": "12:00:00",
         "besteffort": False,
         "production": True,
@@ -123,6 +125,7 @@ def get_exp_regpath():
 def get_exp_statistics():
     exp = {
         "name": "statistics",
+        "command": "statistics",
         "walltime": "01:00:00",
         "besteffort": True,
         "production": True,
@@ -172,6 +175,65 @@ def get_exp_statistics():
     }
 
     exp["setups"].append(base_setup)
+
+    return exp
+
+
+def get_exp_relaxquality():
+    exp = {
+        "name": "relaxquality",
+        "command": "relaxquality",
+        "walltime": "00:05:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [],
+    }
+
+    base_setup = {
+        "expname": "relaxquality",
+        "dataset": {
+            "dataset_type": "synthetic",
+            "dataset_opts": {
+                "matrix": "correlated(0.9)",
+                "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "unit",
+                "k": 5,
+                "m": 100,
+                "n": 50,
+                "s": 10.0,
+                "normalize": True,
+            },
+            "process_opts": {"center": True, "normalize": True},
+            "datafit_name": "Leastsquares",
+            "penalty_name": "L2norm",
+        },
+        "regfunc_types": ["convex", "concave_eig", "concave_etp"],
+    }
+
+    setup = deepcopy(base_setup)
+    exp["setups"].append(setup)
+
+    for k in [10]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["k"] = k
+        exp["setups"].append(setup)
+    for m in [150]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["m"] = m
+        exp["setups"].append(setup)
+    for n in [75]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["n"] = n
+        exp["setups"].append(setup)
+    for r in [0.1]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["matrix"] = f"correlated({r})"
+        exp["setups"].append(setup)
+    for s in [1.0]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["s"] = s
+        exp["setups"].append(setup)
 
     return exp
 

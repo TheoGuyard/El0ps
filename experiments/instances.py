@@ -51,7 +51,8 @@ def synthetic_x(supp_pos, supp_val, k, n):
     if supp_val == "unit":
         x[s] = np.sign(np.random.randn(k))
     elif supp_val == "normal":
-        x[s] = np.random.randn(k)
+        a = np.random.randn(k)
+        x[s] = a + np.sign(a)
     elif supp_val == "expdecr":
         x[s] = np.exp(-np.arange(k))
     else:
@@ -114,9 +115,20 @@ def synthetic_y(model, x, A, m, s):
 
 
 def get_data_synthetic(
-    matrix, model, supp_pos, supp_val, k, m, n, s, normalize=False
+    matrix="correlated(0.9)",
+    model="linear",
+    supp_pos="equispaced",
+    supp_val="unit",
+    k=5,
+    m=500,
+    n=1_000,
+    s=10.0,
+    normalize=False,
+    seed=None,
 ):
     """Generate synthetic data for sparse problems."""
+    if seed is not None:
+        np.random.seed(seed)
     x = synthetic_x(supp_pos, supp_val, k, n)
     A = synthetic_A(matrix, m, n, normalize)
     if model == "poisson":
@@ -260,8 +272,8 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         bindings[penalty_name],
         intercept=False,
         num_gamma=1 if bindings[penalty_name] == "L0" else 40,
-        gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e2,
-        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
+        gamma_max=0.0 if bindings[penalty_name] == "L0" else 1e2,
+        gamma_min=0.0 if bindings[penalty_name] == "L0" else 1e-4,
         num_folds=5,
     )
 
@@ -283,8 +295,8 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
             if (f1 > best_f1) or (x_true is None):
                 if cv < best_cv:
                     best_M = 1.5 * np.max(np.abs(x))
-                    best_lmbda = lmbda / m
-                    best_gamma = gamma / m
+                    best_lmbda = lmbda
+                    best_gamma = gamma
                     best_cv = cv
                     best_f1 = f1
                     best_x = np.copy(x)

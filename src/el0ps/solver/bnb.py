@@ -89,9 +89,12 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    bounding_solver: BnbBoundingSolver = BnbBoundingSolver()
     exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.MIX
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
+    bounding_regfunc_type: str = "convex"
+    bounding_maxiter_inner: int = 1_000
+    bounding_maxiter_outer: int = 100
+    bounding_skip_setup: bool = False
     time_limit: float = float(sys.maxsize)
     node_limit: int = sys.maxsize
     rel_tol: float = 1e-4
@@ -136,6 +139,7 @@ class BnbSolver(BaseSolver):
         self.lower_bound = None
         self.upper_bound = None
         self.trace = None
+        self.bounding_solver = None
 
     def __str__(self):
         return "BnbSolver"
@@ -176,14 +180,17 @@ class BnbSolver(BaseSolver):
         penalty: Union[BasePenalty, JitClassType],
         A: ArrayLike,
         lmbd: float,
-        x_init: ArrayLike,
+        x_init: Union[ArrayLike, None],
     ):
+
         if isinstance(datafit, BaseDatafit):
             datafit = compiled_clone(datafit)
         if isinstance(penalty, BasePenalty):
             penalty = compiled_clone(penalty)
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")
+        if x_init is None:
+            x_init = np.zeros(A.shape[1])
 
         # Initialize attributes and state
         self.m, self.n = A.shape
@@ -192,7 +199,6 @@ class BnbSolver(BaseSolver):
         self.A = A
         self.lmbd = lmbd
         self.status = Status.RUNNING
-        self.start_time = time.time()
         self.queue = []
         self.iter_count = 0
         self.x = np.copy(x_init)
@@ -201,7 +207,16 @@ class BnbSolver(BaseSolver):
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
-        self.options.bounding_solver.setup(datafit, penalty, A, lmbd)
+        if (
+            not self.options.bounding_skip_setup
+            or self.bounding_solver is None
+        ):
+            self.bounding_solver = BnbBoundingSolver(
+                regfunc_type=self.options.bounding_regfunc_type,
+                maxiter_inner=self.options.bounding_maxiter_inner,
+                maxiter_outer=self.options.bounding_maxiter_outer,
+            )
+            self.bounding_solver.setup(datafit, penalty, A)
 
         # Root node
         root = BnbNode(
@@ -219,13 +234,15 @@ class BnbSolver(BaseSolver):
         )
         self.queue.append(root)
 
+        self.start_time = time.time()
+
     def value(self, x: ArrayLike, Ax: Union[ArrayLike, None] = None) -> float:
         if Ax is None:
             Ax = self.A @ x
         return (
             self.datafit.value(Ax)
             + self.lmbd * np.linalg.norm(x, 0)
-            + sum(self.penalty.value(xi) for xi in x)
+            + sum(self.penalty.value(i, xi) for i, xi in enumerate(x))
         )
 
     def print_header(self):
@@ -275,8 +292,9 @@ class BnbSolver(BaseSolver):
         return self.status == Status.RUNNING
 
     def compute_lower_bound(self, node: BnbNode):
-        self.options.bounding_solver.bound(
+        self.bounding_solver.bound(
             node,
+            self.lmbd,
             self.upper_bound,
             self.options.rel_tol,
             self.options.workingsets,
@@ -289,8 +307,9 @@ class BnbSolver(BaseSolver):
     def compute_upper_bound(self, node: BnbNode):
         if node.category == 0.0:
             return
-        self.options.bounding_solver.bound(
+        self.bounding_solver.bound(
             node,
+            self.lmbd,
             self.upper_bound,
             self.options.rel_tol,
             False,
@@ -327,16 +346,7 @@ class BnbSolver(BaseSolver):
         return self.upper_bound < node.lower_bound
 
     def is_feasible(self, node: BnbNode):
-        if node.rel_gap <= self.options.rel_tol:
-            return True
-        elif np.all(
-            np.logical_or(
-                np.abs(node.x[node.Sb]) <= self.options.int_tol,
-                np.abs(node.x[node.Sb]) >= self.penalty.param_limit(self.lmbd),
-            )
-        ):
-            return True
-        return False
+        return node.rel_gap <= self.options.rel_tol
 
     def update_trace(self, node: BnbNode):
         for key in self._trace_keys:
@@ -378,8 +388,6 @@ class BnbSolver(BaseSolver):
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
     ):
-        if x_init is None:
-            x_init = np.zeros(A.shape[1])
 
         self.setup(datafit, penalty, A, lmbd, x_init)
 

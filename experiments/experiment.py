@@ -10,6 +10,7 @@ from copy import deepcopy
 from datetime import datetime
 from el0ps.path import Path
 from el0ps.solver import Status
+from el0ps.solver.bounding import calibrate_mcptwo
 from el0ps.utils import compiled_clone, compute_lmbd_max
 from sklearn.model_selection import train_test_split
 
@@ -48,36 +49,57 @@ class Experiment:
         print("  A shape: {}".format(A.shape))
         print("  y shape: {}".format(y.shape))
         print("  x shape: {}".format(None if x_true is None else x_true.shape))
+        self.A = A
+        self.y = y
+        self.x_true = x_true
 
+    def calibrate_parameters(self):
         print("Calibrating parameters...")
         datafit, penalty, lmbd, x_cal = calibrate_parameters(
             self.config["dataset"]["datafit_name"],
             self.config["dataset"]["penalty_name"],
-            A,
-            y,
-            x_true,
+            self.A,
+            self.y,
+            self.x_true,
         )
-        lmbd_max = compute_lmbd_max(datafit, penalty, A)
+        lmbd_max = compute_lmbd_max(datafit, penalty, self.A)
         print("  num nz: {}".format(sum(x_cal != 0.0)))
         print("  lratio: {}".format(lmbd / lmbd_max))
         for param_name, param_value in penalty.params_to_dict().items():
             print("  {}\t: {}".format(param_name, param_value))
-        self.x_true = x_true
         self.datafit = datafit
         self.penalty = penalty
-        self.A = A
         self.lmbd = lmbd
 
     def precompile(self):
-        print("Precompiling...")
+        print("Precompiling datafit and penalty...")
         self.compiled_datafit = compiled_clone(self.datafit)
         self.compiled_penalty = compiled_clone(self.penalty)
-        solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
+        if "solvers" in self.config.keys():
+            solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
+        else:
+            solver_opts = {}
         solver_opts["time_limit"] = 5.0
         solver = get_solver("el0ps", solver_opts)
         solver.solve(
-            self.compiled_datafit, self.compiled_penalty, self.A, self.lmbd
+            self.compiled_datafit,
+            self.compiled_penalty,
+            self.A,
+            self.lmbd,
         )
+
+    def precompile_solver(self, solver):
+        print(f"Precompiling solver {solver}...")
+        time_limit = solver.options.time_limit
+        solver.options.time_limit = 5.0
+        solver.solve(
+            self.compiled_datafit,
+            self.compiled_penalty,
+            self.A,
+            self.lmbd,
+        )
+        solver.options.time_limit = time_limit
+        solver.options.bounding_skip_setup = True
 
     @abstractmethod
     def run(self):
@@ -121,6 +143,7 @@ class Perfprofile(Experiment):
                 solver_opts = self.config["solvers"]["solvers_opts"]
                 solver = get_solver(solver_name, solver_opts)
                 if can_handle_compilation(solver_name):
+                    self.precompile_solver(solver)
                     result = solver.solve(
                         self.compiled_datafit,
                         self.compiled_penalty,
@@ -143,6 +166,7 @@ class Perfprofile(Experiment):
         print("Loading results...")
         found, match, notcv = 0, 0, 0
         times = {s: [] for s in self.config["solvers"]["solvers_name"]}
+        nodes = {s: [] for s in self.config["solvers"]["solvers_name"]}
         for result_path in self.results_dir.glob(self.name + "_*.pickle"):
             found += 1
             with open(result_path, "rb") as file:
@@ -152,6 +176,7 @@ class Perfprofile(Experiment):
                     for solver_name, result in file_data["results"].items():
                         if result.status == Status.OPTIMAL:
                             times[solver_name].append(result.solve_time)
+                            nodes[solver_name].append(result.iter_count)
                         else:
                             notcv += 1
         print("  {} files found".format(found))
@@ -164,11 +189,14 @@ class Perfprofile(Experiment):
             return
 
         print("Computing statistics...")
-        for solver_name, solver_times in times.items():
+        for solver_name in self.config["solvers"]["solvers_name"]:
             print("  {}".format(solver_name))
-            print("     num : {}".format(len(solver_times)))
-            print("     mean: {}".format(np.mean(solver_times)))
-            print("     std : {}".format(np.std(solver_times)))
+            print("     times num : {}".format(len(times[solver_name])))
+            print("     times mean: {}".format(np.mean(times[solver_name])))
+            print("     times std : {}".format(np.std(times[solver_name])))
+            print("     nodes num : {}".format(len(nodes[solver_name])))
+            print("     nodes mean: {}".format(np.mean(nodes[solver_name])))
+            print("     nodes std : {}".format(np.std(nodes[solver_name])))
 
         min_times = np.min([np.min(v) for v in times.values()])
         max_times = np.max([np.max(v) for v in times.values()])
@@ -182,35 +210,62 @@ class Perfprofile(Experiment):
             for solver_name, stats in times.items()
         }
 
+        min_nodes = np.min([np.min(v) for v in nodes.values()])
+        max_nodes = np.max([np.max(v) for v in nodes.values()])
+        self.grid_nodes = np.logspace(
+            np.floor(np.log10(min_nodes)),
+            np.ceil(np.log10(max_nodes)),
+            100,
+        )
+        self.curve_nodes = {
+            solver_name: [np.sum(stats <= g) for g in self.grid_nodes]
+            for solver_name, stats in nodes.items()
+        }
+
     def plot(self):
         if self.curve_times is None or self.grid_times is None:
             return
-        _, axs = plt.subplots()
+        _, axs = plt.subplots(1, 2)
         for solver_name in self.config["solvers"]["solvers_name"]:
-            axs.plot(
+            axs[0].plot(
                 self.grid_times,
                 self.curve_times[solver_name],
                 label=solver_name,
             )
-        axs.grid(visible=True, which="major", axis="both")
-        axs.grid(visible=True, which="minor", axis="both", alpha=0.2)
-        axs.minorticks_on()
-        axs.set_xscale("log")
-        axs.set_xlabel("Time budget")
-        axs.set_ylabel("Inst. solved")
+            axs[1].plot(
+                self.grid_nodes,
+                self.curve_nodes[solver_name],
+                label=solver_name,
+            )
+        for ax in axs:
+            ax.grid(visible=True, which="major", axis="both")
+            ax.grid(visible=True, which="minor", axis="both", alpha=0.2)
+            ax.minorticks_on()
+            ax.set_xscale("log")
+            ax.set_ylabel("Inst. solved")
+        axs[0].set_xlabel("Time budget")
+        axs[1].set_xlabel("Node budget")
+        axs[1].legend()
         plt.show()
 
     def save_plot(self):
-        if self.curve_times is None or self.grid_times is None:
-            return
         print("Saving data...")
         save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-        table = pd.DataFrame({"grid_times": self.grid_times})
+        table_times = pd.DataFrame({"grid_times": self.grid_times})
+        table_nodes = pd.DataFrame({"grid_nodes": self.grid_nodes})
         for solver_name in self.config["solvers"]["solvers_name"]:
-            table[solver_name] = self.curve_times[solver_name]
-        file_name = "{}_{}".format(self.name, save_uuid)
-        save_path = self.saves_dir.joinpath("{}.csv".format(file_name))
-        table.to_csv(save_path, index=False)
+            table_times[solver_name] = self.curve_times[solver_name]
+            table_nodes[solver_name] = self.curve_nodes[solver_name]
+        file_times_name = "{}_{}_{}".format(self.name, "times", save_uuid)
+        file_nodes_name = "{}_{}_{}".format(self.name, "nodes", save_uuid)
+        save_times_path = self.saves_dir.joinpath(
+            "{}.csv".format(file_times_name)
+        )
+        save_nodes_path = self.saves_dir.joinpath(
+            "{}.csv".format(file_nodes_name)
+        )
+        table_times.to_csv(save_times_path, index=False)
+        table_nodes.to_csv(save_nodes_path, index=False)
 
 
 class Regpath(Experiment):
@@ -229,6 +284,7 @@ class Regpath(Experiment):
                 print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
                 if can_handle_compilation(solver_name):
+                    self.precompile_solver(solver)
                     result = path.fit(
                         solver,
                         self.compiled_datafit,
@@ -255,6 +311,7 @@ class Regpath(Experiment):
         )
         self.stats_specs = {
             "solve_time": {"log": True},
+            "iter_count": {"log": True},
             "objective_value": {"log": False},
             "datafit_value": {"log": False},
             "n_nnz": {"log": False},
@@ -298,6 +355,7 @@ class Regpath(Experiment):
         print("  {} not converged".format(notcv))
 
         if (match == 0) or (match == empty):
+            self.mean_stats = None
             return
 
         self.mean_stats = {
@@ -316,6 +374,8 @@ class Regpath(Experiment):
         }
 
     def plot(self):
+        if self.mean_stats is None:
+            return
         _, axs = plt.subplots(1, len(self.mean_stats), squeeze=False)
         for i, (stat_name, stat_values) in enumerate(self.mean_stats.items()):
             for solver_name, solver_values in stat_values.items():
@@ -412,6 +472,7 @@ class Statistics(Experiment):
                 print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
                 if can_handle_compilation(solver_name):
+                    self.precompile_solver(solver)
                     result = path.fit(
                         solver,
                         datafit_train_compiled,
@@ -569,4 +630,101 @@ class Statistics(Experiment):
         for stat_name, stat_values in self.mean_stats.items():
             for solver_name, solver_values in stat_values.items():
                 table[solver_name + "_" + stat_name] = solver_values
+        table.to_csv(save_path, index=False)
+
+
+class RelaxQuality(Experiment):
+    name = "relaxquality"
+
+    def run(self):
+        assert self.config["dataset"]["penalty_name"] == "L2norm"
+        results = {}
+        for regfunc_type in self.config["regfunc_types"]:
+            try:
+                mcptwo = calibrate_mcptwo(
+                    self.datafit, self.penalty, self.A, regfunc_type
+                )
+                results[regfunc_type] = mcptwo / (2.0 * self.penalty.alpha)
+            except Exception as e:
+                print(e)
+                results[regfunc_type] = None
+        self.results = results
+
+    def load_results(self):
+        print("Loading results...")
+        found, match, notcv = 0, 0, 0
+        ratios = {r: [] for r in self.config["regfunc_types"]}
+        for result_path in self.results_dir.glob(self.name + "_*.pickle"):
+            found += 1
+            with open(result_path, "rb") as file:
+                file_data = pickle.load(file)
+                if file_data["config"] == self.config:
+                    match += 1
+                    for regfunc_type, result in file_data["results"].items():
+                        if result is not None:
+                            ratios[regfunc_type] += list(result)
+                        else:
+                            notcv += 1
+        print("  {} files found".format(found))
+        print("  {} files matched".format(match))
+        print("  {} files not converged".format(notcv))
+
+        if match == 0:
+            self.grid_ratios = None
+            self.curve_ratios = None
+            return
+
+        print("Computing statistics...")
+        for regfunc_type, ratio in ratios.items():
+            print("  {}".format(regfunc_type))
+            print("     ratios num : {}".format(len(ratio)))
+            print("     ratios min : {}".format(np.min(ratio)))
+            print("     ratios max : {}".format(np.max(ratio)))
+            print("     ratios mean: {}".format(np.mean(ratio)))
+            print("     ratios std : {}".format(np.std(ratio)))
+
+        min_ratios = np.min([np.min(v) for v in ratios.values()])
+        max_ratios = np.max([np.max(v) for v in ratios.values()])
+        self.grid_ratios = np.linspace(min_ratios, max_ratios, 100)
+        self.curve_ratios = {
+            regfunc_type: [np.mean(ratio >= g) for g in self.grid_ratios]
+            for regfunc_type, ratio in ratios.items()
+        }
+
+    def plot(self):
+        if self.curve_ratios is None or self.grid_ratios is None:
+            return
+        _, axs = plt.subplots()
+        for regfunc_type, curve_ratio in self.curve_ratios.items():
+            axs.plot(
+                self.grid_ratios,
+                curve_ratio,
+                label=regfunc_type,
+            )
+        axs.grid(visible=True, which="major", axis="both")
+        axs.grid(visible=True, which="minor", axis="both", alpha=0.2)
+        axs.minorticks_on()
+        axs.set_ylabel("Prop.")
+        axs.set_xlabel("mcptwo / 2 alpha")
+        axs.legend()
+        plt.show()
+
+    def save_plot(self):
+        print("Saving data...")
+        # save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
+        table = pd.DataFrame({"grid_ratios": self.grid_ratios})
+        for regfunc_type, curve_ratio in self.curve_ratios.items():
+            table[regfunc_type] = curve_ratio
+        # file_name = "{}_{}".format(self.name, save_uuid)
+        k = str(self.config["dataset"]["dataset_opts"]["k"])
+        m = str(self.config["dataset"]["dataset_opts"]["m"])
+        n = str(self.config["dataset"]["dataset_opts"]["n"])
+        r = (
+            self.config["dataset"]["dataset_opts"]["matrix"]
+            .split("(")[1]
+            .split(")")[0]
+        )
+        s = str(self.config["dataset"]["dataset_opts"]["s"])
+        file_name = "{}_{}_{}_{}_{}_{}".format(self.name, k, m, n, r, s)
+        save_path = self.saves_dir.joinpath("{}.csv".format(file_name))
         table.to_csv(save_path, index=False)

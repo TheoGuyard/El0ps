@@ -2,18 +2,23 @@ import pathlib
 import sys
 
 sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
-from experiments.instances import get_data_synthetic, calibrate_parameters  # noqa
+from experiments.instances import (  # noqa
+    get_data_synthetic,
+    calibrate_parameters,
+)
 from experiments.solvers import get_solver  # noqa
 
 # Generate sparse regression data
 A, y, x_true = get_data_synthetic(
-    matrix      = "correlated(0.9)",    # matrix type
-    model       = "linear",             # model type
-    k           = 5,                    # sparsity level
-    m           = 500,                  # number of rows in A
-    n           = 1000,                 # number of cols in A
-    s           = 10.0,                 # snr level
-    normalize   = True,                 # normalize the columns in A
+    matrix="correlated(0.9)",   # matrix type
+    model="linear",             # model type
+    supp_pos="equispaced",      # support type
+    supp_val="unit",            # support values
+    k=5,                        # sparsity level
+    m=500,                      # number of rows in A
+    n=1000,                     # number of cols in A
+    s=10.0,                     # snr level
+    normalize=True,             # normalize the columns in A
 )
 
 # Calibrate hyperparameters of the L0-problem using L0learn. The datafit and

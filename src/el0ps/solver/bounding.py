@@ -1,13 +1,302 @@
+import cvxpy as cp
 import numpy as np
 import time
-from typing import Union
-from numba import njit
+from abc import abstractmethod
+from numba import njit, float64
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
-from el0ps.datafit import BaseDatafit, SmoothDatafit
-from el0ps.penalty import BasePenalty
 from el0ps.utils import compiled_clone
 from .node import BnbNode
+
+
+def calibrate_mcptwo(
+    datafit: JitClassType,
+    penalty: JitClassType,
+    A: ArrayLike,
+    regfunc_type: str,
+):
+    n = A.shape[1]
+    if regfunc_type == "convex":
+        mcptwo = 2.0 * penalty.alpha * np.ones(n)
+        L = np.copy(A)
+        h = np.zeros(n)
+    elif regfunc_type == "concave_eig":
+        G = datafit.strong_convexity_constant() * (A.T @ A)
+        g = np.min(np.real(np.linalg.eigvals(G)))
+        mcptwo = (g + 2.0 * penalty.alpha) * np.ones(n)
+        L = np.linalg.cholesky(G + np.diag(2.0 * penalty.alpha - mcptwo)).T
+        h = (A.T + L.T) @ datafit.y
+    elif regfunc_type == "concave_etp":
+        G = datafit.strong_convexity_constant() * (A.T @ A)
+        var = cp.Variable(n)
+        obj = cp.Maximize(cp.sum(var))
+        cst = [
+            G + 2.0 * penalty.alpha * np.eye(n) - cp.diag(var) >> 0.0,
+            var >= 0.0,
+        ]
+        problem = cp.Problem(obj, cst)
+        problem.solve()
+        mcptwo = np.array(var.value).flatten()
+        L = np.linalg.cholesky(G + np.diag(2.0 * penalty.alpha - mcptwo)).T
+        h = (A.T + L.T) @ datafit.y
+    else:
+        raise ValueError(f"Invalid regfunc_type {regfunc_type}.")
+    return mcptwo, L, h
+
+
+class BaseRegfunc:
+    """Base class for regularization functions that are lower-bounds on
+
+    ..math: g(x) = h(x) + lmbd * |x|_0
+
+    where `h` corresponds to a `BasePenalty`.
+    """
+
+    @abstractmethod
+    def get_spec(self) -> tuple:
+        """Specify the numba types of the class attributes.
+
+        Returns
+        -------
+        spec: Tuple of (attr_name, dtype)
+            Specs to be passed to Numba jitclass to compile the class.
+        """
+        ...
+
+    @abstractmethod
+    def params_to_dict(self) -> dict:
+        """Get the parameters to initialize an instance of the class.
+
+        Returns
+        -------
+        dict_of_params: dict
+            The parameters to instantiate an object of the class.
+        """
+        ...
+
+    @abstractmethod
+    def value(self, i: int, lmbd: float, x: float) -> float:
+        """Value of the i-th splitting term of the function at ``x``.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
+        lmbd: float
+            L0-norm weight.
+        x: float
+            Value at which the function is evaluated.
+
+        Returns
+        -------
+        value: float
+            The value of the i-th splitting term the function at ``x``.
+        """
+        ...
+
+    @abstractmethod
+    def conjugate(self, i: int, lmbd: float, x: float) -> float:
+        """Value of the i-th splitting term the conjugate of the function at
+        ``x``.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
+        lmbd: float
+            L0-norm weight.
+        x: float
+            Value at which the conjugate is evaluated.
+
+        Returns
+        -------
+        value: float
+            The value of the conjugate of the i-th splitting term the function
+            at ``x``.
+        """
+        ...
+
+    @abstractmethod
+    def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+        """Proximity operator of ``eta`` times the i-th splitting term the
+        function at ``x``.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
+        lmbd: float
+            L0-norm weight.
+        x: float
+            Value at which the prox is evaluated.
+        eta: float, positive
+            Multiplicative factor of the function.
+
+        Returns
+        -------
+        p: float
+            The proximity operator of ``eta`` times the the i-th splitting term
+            function at ``x``.
+        """
+        ...
+
+    @abstractmethod
+    def subdiff(self, i: int, lmbd: float, x: float) -> tuple:
+        """Subdifferential operator of the i-th splitting term the function at
+        ``x``.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
+        lmbd: float
+            L0-norm weight.
+        x: float
+            Value at which the prox is evaluated.
+
+        Returns
+        -------
+        s: float
+            The subdifferential operator of the i-th splitting term of the
+            function at ``x``.
+        """
+        ...
+
+
+class ConvexRegfunc(BaseRegfunc):
+    """Regularization function corresponding to the convex enveloppe of
+
+    ..math: g(x) = h(x) + lmbd * |x|_0
+
+    where `h` corresponds to a `BasePenalty`.
+    """
+
+    def __init__(self, penalty: JitClassType) -> None:
+        self.penalty = penalty
+
+    def get_spec(self) -> tuple:
+        spec = (
+            ("penalty", self.penalty._numba_type_.class_type.instance_type),
+        )
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(penalty=self.penalty)
+
+    def value(self, i: int, lmbd: float, x: float) -> float:
+        z = np.abs(x)
+        if z <= self.penalty.param_limit(i, lmbd):
+            return self.penalty.param_slope(i, lmbd) * z
+        else:
+            return lmbd + self.penalty.value(i, x)
+
+    def conjugate(self, i: int, lmbd: float, x: float) -> float:
+        return np.maximum(self.penalty.conjugate(i, x) - lmbd, 0.0)
+
+    def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+        s = self.penalty.param_slope(i, lmbd)
+        z = np.abs(x)
+        if z <= eta * s:
+            return 0.0
+        elif z <= eta * s + self.penalty.param_limit(i, lmbd):
+            return x - eta * s * np.sign(x)
+        else:
+            return self.penalty.prox(i, x, eta)
+
+    def subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
+        z = np.abs(x)
+        if z == 0.0:
+            s = self.penalty.param_slope(i, lmbd)
+            return [-s, s]
+        elif z < self.penalty.param_limit(i, lmbd):
+            s = self.penalty.param_slope(i, lmbd) * np.sign(x)
+            return [s, s]
+        else:
+            return self.penalty.subdiff(i, x)
+
+
+class ConcaveRegfunc(BaseRegfunc):
+
+    def __init__(
+        self,
+        penalty: JitClassType,
+        mcptwo: ArrayLike,
+        L: ArrayLike,
+        h: ArrayLike,
+    ) -> None:
+
+        if str(penalty) != "L2norm":
+            raise Exception
+
+        self.penalty = penalty
+        self.mcptwo = mcptwo
+        self.L = L
+        self.h = h
+
+    def get_spec(self) -> tuple:
+        spec = (
+            ("penalty", self.penalty._numba_type_.class_type.instance_type),
+            ("mcptwo", float64[:]),
+            ("L", float64[::-1, :]),
+            ("h", float64[:]),
+        )
+        return spec
+
+    def params_to_dict(self) -> dict:
+        return dict(
+            penalty=self.penalty,
+            mcptwo=self.mcptwo,
+        )
+
+    def mcp_value(self, i: int, lmbd: float, x: float) -> float:
+        c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
+        z = np.abs(x)
+        if z <= c / self.mcptwo[i]:
+            return c * z - 0.5 * self.mcptwo[i] * z**2
+        else:
+            return lmbd
+
+    def mcp_prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+        c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
+        z = np.abs(x)
+        if z <= c * eta:
+            return 0.0
+        if z > c / self.mcptwo[i]:
+            return x
+        return np.sign(x) * (z - c * eta) / (1.0 - eta * self.mcptwo[i])
+
+    def mcp_subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
+        c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
+        z = np.abs(x)
+        if z == 0.0:
+            return [-c, c]
+        elif z <= c / self.mcptwo[i]:
+            s = np.sign(x) * c - self.mcptwo[i] * x
+            return [s, s]
+        else:
+            return [0.0, 0.0]
+
+    def value(self, i: int, lmbd: float, x: float) -> float:
+        return self.mcp_value(i, lmbd, x) + self.penalty.value(i, x)
+
+    def conjugate(self, i: int, lmbd: float, x: float) -> float:
+        c = 1.0 / (2.0 * self.penalty.alpha)
+        z = c * x
+        p = self.mcp_prox(i, lmbd, z, c)
+        return (
+            0.5 * c * x**2
+            - self.mcp_value(i, lmbd, p)
+            - self.penalty.alpha * (p - z) ** 2
+        )
+
+    def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+        c = 1.0 / (eta * 2.0 * self.penalty.alpha + 1.0)
+        return self.mcp_prox(i, lmbd, c * x, c * eta)
+
+    def subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
+        s_mcp = self.mcp_subdiff(i, lmbd, x)
+        s_pen = self.penalty.subdiff(i, x)
+        return [s_mcp[0] + s_pen[0], s_mcp[1] + s_pen[1]]
 
 
 class BnbBoundingSolver:
@@ -16,72 +305,45 @@ class BnbBoundingSolver:
     The bounding problem has the form
 
     .. math:: \textstyle\min_{x} f(Ax) + \sum_{i=1}^{n}g_i(x_i)
-
-    with
-
-    .. math::
-
-        \begin{cases}
-            g_i(t) = 0 &\text{if} \ i \in S_0 \\
-            g_i(t) = h(t) + \lambda &\text{if} \ i \in S_1 \\
-            g_i(t) = \c1|t| &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| \leq \c2 \\
-            g_i(t) = h(t) + \lambda &\text{if} \ i \in S_{\bullet} \ \text{and} \ |t| > \c2 \\
-        \end{cases}
-
-    where :math:`f(\cdot)`, :math:`\lambda` and :math:`h(\cdot)` are parts of
-    the problem objective function and where :math:`S_0`, :math:`S_1` and
-    :math:`S_{\bullet}` are sets of indices forced to be zero, non-zero and
-    unfixed, respectively, at the current node of the Branch-and-Bound tree.
-    The quantities :math:`\c1` and :math:`\c2` are the ones returned by the
-    :func:`penalty.BasePenalty.param_pertslope` and
-    :func:`penalty.BasePenalty.param_pertlimit` methods, respectively.
-    """  # noqa: E501
+    """
 
     def __init__(
         self,
-        maxiter_inner=1_000,
-        maxiter_outer=100,
+        regfunc_type: str = "convex",
+        maxiter_inner: int = 1_000,
+        maxiter_outer: int = 100,
     ):
+        self.regfunc_type = regfunc_type
         self.maxiter_inner = maxiter_inner
         self.maxiter_outer = maxiter_outer
 
     def setup(
         self,
-        datafit: Union[BaseDatafit, JitClassType],
-        penalty: Union[BasePenalty, JitClassType],
+        datafit: JitClassType,
+        penalty: JitClassType,
         A: ArrayLike,
-        lmbd: float,
-    ) -> None:
-        if not str(type(datafit)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
-            datafit = compiled_clone(datafit)
-        if not str(type(penalty)).startswith(
-            "<class 'numba.experimental.jitclass"
-        ):
-            penalty = compiled_clone(penalty)
-        if not A.flags.f_contiguous:
-            A = np.array(A, order="F")
+    ):
 
         # Problem data
         self.m, self.n = A.shape
         self.datafit = datafit
         self.penalty = penalty
         self.A = A
-        self.lmbd = lmbd
 
-        # Precomputed constants
-        self.c1 = penalty.param_slope(lmbd)
-        self.c2 = penalty.param_limit(lmbd)
-        self.c3 = np.linalg.norm(A, ord=2, axis=0) ** 2
-        self.c4 = datafit.L * self.c3
-        self.c5 = 1.0 / self.c4
-        self.c6 = self.c1 * self.c5
-        self.c7 = self.c6 + self.c2
+        # Regularization function
+        assert self.regfunc_type == "convex"
+        regfunc = ConvexRegfunc(self.penalty)
+        self.regfunc = compiled_clone(regfunc)
+
+        # Constants
+        self.lipschitz = self.datafit.lipschitz_constant()
+        self.A_colnorm = np.linalg.norm(A, ord=2, axis=0)
+        self.stepsize = 1.0 / (self.lipschitz * self.A_colnorm**2)
 
     def bound(
         self,
         node: BnbNode,
+        lmbd: float,
         ub: float,
         rel_tol: float,
         workingsets: bool,
@@ -103,59 +365,60 @@ class BnbBoundingSolver:
         w = self.A[:, S1] @ x[S1] if upper else node.w
         u = -self.datafit.gradient(w)
         v = np.empty(self.n)
-        p = np.empty(self.n)
         pv = np.inf
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
+        th = np.array(
+            [self.penalty.param_slope(i, lmbd) for i in range(x.size)]
+        )
 
         # ----- Outer loop ----- #
 
-        rel_tol_inner = 0.5 * rel_tol
+        rel_tol_inner = 0.1 * rel_tol
         for _ in range(self.maxiter_outer):
             v = np.empty(self.n)
-            p = np.empty(self.n)
             dv = np.nan
 
             # ----- Inner loop ----- #
 
             for _ in range(self.maxiter_inner):
+
+                # Inner problem solver
                 pv_old = pv
-                self.cd_loop(
+                self.inner_solve(
                     self.datafit,
                     self.penalty,
+                    self.regfunc,
                     self.A,
-                    self.c5,
-                    self.c6,
-                    self.c7,
+                    lmbd,
                     x,
                     w,
                     u,
                     Ws,
                     Sb,
+                    self.stepsize,
                 )
                 pv = self.compute_pv(
                     self.datafit,
                     self.penalty,
-                    self.lmbd,
-                    self.c1,
-                    self.c2,
+                    self.regfunc,
+                    lmbd,
                     x,
                     w,
                     S1,
                     Sb,
                 )
 
-                # ----- Inner solver stopping criterion ----- #
-
+                # Inner stopping criterion
                 if upper:
                     dv = self.compute_dv(
                         self.datafit,
                         self.penalty,
+                        self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         u,
                         v,
-                        p,
                         S1,
                         Sb,
                     )
@@ -164,22 +427,10 @@ class BnbBoundingSolver:
                 elif self.rel_gap(pv, pv_old) <= rel_tol_inner:
                     break
 
-            # ----- Working-set update ----- #
+            # Working-set update
+            flag = self.ws_update(self.A, u, v, Ws, Sbi, th)
 
-            flag = self.ws_update(
-                self.penalty,
-                self.A,
-                self.lmbd,
-                self.c1,
-                u,
-                v,
-                p,
-                Ws,
-                Sbi,
-            )
-
-            # ----- Stopping criterion ----- #
-
+            # Outer stopping criterion
             if upper:
                 break
             if not flag:
@@ -187,32 +438,31 @@ class BnbBoundingSolver:
                     dv = self.compute_dv(
                         self.datafit,
                         self.penalty,
+                        self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         u,
                         v,
-                        p,
                         S1,
                         Sb,
                     )
                 if self.rel_gap(pv, dv) < rel_tol:
                     break
-                if rel_tol_inner <= 1e-8:
+                if rel_tol_inner <= 1e-12:
                     break
                 rel_tol_inner *= 1e-2
 
-            # ----- Accelerations ----- #
-
+            # Accelerations
             if dualpruning or l1screening or simpruning:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
                         self.penalty,
+                        self.regfunc,
                         self.A,
-                        self.lmbd,
+                        lmbd,
                         u,
                         v,
-                        p,
                         S1,
                         Sb,
                     )
@@ -226,22 +476,26 @@ class BnbBoundingSolver:
                         w,
                         u,
                         v,
-                        self.c1,
-                        self.c4,
                         pv,
                         dv,
                         Ws,
                         Sb0,
                         Sbi,
+                        th,
+                        self.lipschitz,
+                        self.A_colnorm,
                     )  # noqa
                 if simpruning:
                     self.simpruning(
                         self.datafit,
+                        self.penalty,
+                        self.regfunc,
                         self.A,
+                        lmbd,
                         x,
                         w,
                         u,
-                        p,
+                        v,
                         ub,
                         dv,
                         S0,
@@ -262,11 +516,11 @@ class BnbBoundingSolver:
                 dv = self.compute_dv(
                     self.datafit,
                     self.penalty,
+                    self.regfunc,
                     self.A,
-                    self.lmbd,
+                    lmbd,
                     u,
                     v,
-                    p,
                     S1,
                     Sb,
                 )
@@ -275,27 +529,27 @@ class BnbBoundingSolver:
 
     @staticmethod
     @njit
-    def cd_loop(
-        datafit: SmoothDatafit,
-        penalty: BasePenalty,
+    def inner_solve(
+        datafit: JitClassType,
+        penalty: JitClassType,
+        regfunc: JitClassType,
         A: ArrayLike,
-        c5: ArrayLike,
-        c6: ArrayLike,
-        c7: ArrayLike,
+        lmbd: float,
         x: ArrayLike,
         w: ArrayLike,
         u: ArrayLike,
         Ws: ArrayLike,
         Sb: ArrayLike,
+        stepsize: ArrayLike,
     ) -> float:
         for i in np.flatnonzero(Ws):
             ai = A[:, i]
             xi = x[i]
-            ci = xi + c5[i] * np.dot(ai, u)
-            if Sb[i] and np.abs(ci) <= c7[i]:
-                x[i] = np.sign(ci) * np.maximum(np.abs(ci) - c6[i], 0.0)
+            ci = xi + stepsize[i] * np.dot(ai, u)
+            if Sb[i]:
+                x[i] = regfunc.prox(i, lmbd, ci, stepsize[i])
             else:
-                x[i] = penalty.prox(ci, c5[i])
+                x[i] = penalty.prox(i, ci, stepsize[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -303,21 +557,17 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def ws_update(
-        penalty: BasePenalty,
         A: ArrayLike,
-        lmbd: float,
-        c1: float,
         u: ArrayLike,
         v: ArrayLike,
-        p: ArrayLike,
         Ws: ArrayLike,
         Sbi: ArrayLike,
+        th: ArrayLike,
     ) -> bool:
         flag = False
         for i in np.flatnonzero(~Ws & Sbi):
             v[i] = np.dot(A[:, i], u)
-            p[i] = penalty.conjugate(v[i]) - lmbd
-            if np.abs(v[i]) > c1:
+            if np.abs(v[i]) > th[i]:
                 flag = True
                 Ws[i] = True
         return flag
@@ -325,11 +575,10 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def compute_pv(
-        datafit: BaseDatafit,
-        penalty: BasePenalty,
+        datafit: JitClassType,
+        penalty: JitClassType,
+        regfunc: JitClassType,
         lmbd: float,
-        c1: float,
-        c2: float,
         x: ArrayLike,
         w: ArrayLike,
         S1: ArrayLike,
@@ -343,12 +592,10 @@ class BnbBoundingSolver:
             Datafit function.
         penalty: BasePenalty
             Penalty function.
+        regfunc: BaseRegfunc
+            Regularization function.
         lmbd: float
             Constant offset of the penalty.
-        c1: float
-            L1-norm weight.
-        c2: float
-            L1-norm threshold.
         x: ArrayLike
             Value at which the primal is evaluated.
         w: ArrayLike
@@ -359,23 +606,22 @@ class BnbBoundingSolver:
             Set of unfixed indices.
         """
         pv = datafit.value(w)
-        for i in np.flatnonzero(S1 | Sb):
-            if Sb[i] and np.abs(x[i]) <= c2:
-                pv += c1 * np.abs(x[i])
-            else:
-                pv += penalty.value(x[i]) + lmbd
+        for i in np.flatnonzero(S1):
+            pv += penalty.value(i, x[i]) + lmbd
+        for i in np.flatnonzero(Sb):
+            pv += regfunc.value(i, lmbd, x[i])
         return pv
 
     @staticmethod
     @njit
     def compute_dv(
-        datafit: BaseDatafit,
-        penalty: BasePenalty,
+        datafit: JitClassType,
+        penalty: JitClassType,
+        regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
         u: ArrayLike,
         v: ArrayLike,
-        p: ArrayLike,
         S1: ArrayLike,
         Sb: ArrayLike,
     ) -> float:
@@ -387,27 +633,28 @@ class BnbBoundingSolver:
             Datafit function.
         penalty: BasePenalty
             Penalty function.
+        regfunc: BaseRegfunc
+            Regularization function.
         A: ArrayLike
             Linear operator.
         lmbd: float
             Constant offset of the penalty.
         u: ArrayLike
             Value at which the dual is evaluated.
-        w: ArrayLike
+        v: ArrayLike
             Value of ``A.T @ u``.
-        p: ArrayLike
-            Empty vector to store the values of ``penalty.conjugate(v) - lmbd``
-            over indices in ``S1`` or ``Sb``.
         S1: ArrayLike
             Set of indices forced to be non-zero.
         Sb: ArrayLike
             Set of unfixed indices.
         """
         dv = -datafit.conjugate(-u)
-        for i in np.flatnonzero(S1 | Sb):
+        for i in np.flatnonzero(S1):
             v[i] = np.dot(A[:, i], u)
-            p[i] = penalty.conjugate(v[i]) - lmbd
-            dv -= np.maximum(p[i], 0.0) if Sb[i] else p[i]
+            dv -= penalty.conjugate(i, v[i]) - lmbd
+        for i in np.flatnonzero(Sb):
+            v[i] = np.dot(A[:, i], u)
+            dv -= regfunc.conjugate(i, lmbd, v[i])
         return dv
 
     @staticmethod
@@ -427,12 +674,15 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def simpruning(
-        datafit: BaseDatafit,
+        datafit: JitClassType,
+        penalty: JitClassType,
+        regfunc: JitClassType,
         A: ArrayLike,
+        lmbd: float,
         x: ArrayLike,
         w: ArrayLike,
         u: ArrayLike,
-        p: ArrayLike,
+        v: ArrayLike,
         ub: float,
         dv: float,
         S0: ArrayLike,
@@ -444,7 +694,9 @@ class BnbBoundingSolver:
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
-            if dv + np.maximum(-p[i], 0.0) > ub:
+            g = regfunc.conjugate(i, lmbd, v[i])
+            p = penalty.conjugate(i, v[i]) - lmbd
+            if dv + g - p > ub:
                 Sb[i] = False
                 S0[i] = True
                 Ws[i] = False
@@ -454,7 +706,7 @@ class BnbBoundingSolver:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0
                     flag = True
-            elif dv + np.maximum(p[i], 0.0) > ub:
+            elif dv + g > ub:
                 Sb[i] = False
                 S1[i] = True
                 Ws[i] = True
@@ -466,25 +718,26 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def l1screening(
-        datafit: BaseDatafit,
+        datafit: JitClassType,
         A: ArrayLike,
         x: ArrayLike,
         w: ArrayLike,
         u: ArrayLike,
         v: ArrayLike,
-        c1: float,
-        c4: float,
         pv: float,
         dv: float,
         Ws: ArrayLike,
         Sb0: ArrayLike,
         Sbi: ArrayLike,
+        th: ArrayLike,
+        lipschitz: float,
+        A_colnorm: ArrayLike,
     ) -> None:
         flag = False
-        r = np.sqrt(2.0 * np.abs(pv - dv) * c4)
+        r = np.sqrt(2.0 * np.abs(pv - dv) * lipschitz)
         for i in np.flatnonzero(Sbi):
             vi = v[i]
-            if np.abs(vi) + r[i] < c1:
+            if np.abs(vi) + r * A_colnorm[i] < th[i]:
                 if x[i] != 0.0:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0

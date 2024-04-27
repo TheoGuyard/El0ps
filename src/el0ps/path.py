@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike
 from el0ps.utils import compiled_clone, compute_lmbd_max
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
-from el0ps.solver import BaseSolver, Result, Status
+from el0ps.solver import BaseSolver, Result, Status, BnbSolver
 
 
 @dataclass
@@ -158,7 +158,12 @@ class Path:
                 self.fit_data[k].append(datafit.value(A @ results.x))
             elif k == "penalty_value":
                 self.fit_data[k].append(
-                    np.sum([penalty.value(xi) for xi in results.x])
+                    np.sum(
+                        [
+                            penalty.value(i, xi)
+                            for i, xi in enumerate(results.x)
+                        ]
+                    )
                 )
             else:
                 self.fit_data[k].append(getattr(results, k))
@@ -194,6 +199,9 @@ class Path:
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")
 
+        if isinstance(solver, BnbSolver):
+            solver.options.bounding_skip_setup = True
+
         if self.options.verbose:
             self.display_path_head()
 
@@ -207,7 +215,7 @@ class Path:
 
         for lmbd_ratio in lmbd_ratio_grid:
             lmbd = lmbd_ratio * lmbd_max
-            results = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
+            results = solver.solve(datafit, penalty, A, lmbd, x_init)
             x_init = np.copy(results.x)
             self.fill_fit_data(lmbd_ratio, datafit, penalty, A, lmbd, results)
             if self.options.verbose:

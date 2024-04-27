@@ -92,3 +92,19 @@ class SmoothDatafit(BaseDatafit):
             The gradient at ``x``.
         """
         ...
+
+
+class StronglyConvexDatafit(BaseDatafit):
+    """Base class for strongly convex :class:`.datafit.BaseDatafit`
+    functions."""
+
+    @abstractmethod
+    def strong_convexity_constant(self) -> float:
+        """Strong convexity constant of the function.
+
+        Returns
+        -------
+        S: float
+            The strong convexity constant of the function.
+        """
+        ...

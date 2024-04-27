@@ -8,7 +8,7 @@ import gurobipy as gp
 import mosek.fusion as msk
 from sklearn.linear_model import Lasso, ElasticNet
 from sklearn.model_selection import GridSearchCV
-from typing import Union
+from typing import Union, get_type_hints
 from numpy.typing import NDArray
 from l0bnb import BNBTree
 from el0ps.datafit import BaseDatafit
@@ -16,6 +16,7 @@ from el0ps.penalty import BasePenalty
 from el0ps.solver import (
     BaseSolver,
     BnbSolver,
+    BnbOptions,
     Status,
     Result,
     BnbBranchingStrategy,
@@ -58,7 +59,7 @@ class CplexSolver(BaseSolver):
                 f1_var[j] == datafit.y[j] - model.dot(x_var, A[j, :])
                 for j in range(m)
             )
-            model.add_constraint(f_var >= model.sumsq(f1_var) / (2.0 * m))
+            model.add_constraint(f_var >= 0.5 * model.sumsq(f1_var))
         elif str(datafit) == "Squaredhinge":
             f1_var = model.continuous_var_list(m, name="f1", lb=-np.inf)
             f2_var = model.continuous_var_list(m, name="f2")
@@ -68,7 +69,7 @@ class CplexSolver(BaseSolver):
             )
             model.add_constraints(f2_var[j] >= f1_var[j] for j in range(m))
             model.add_constraints(f2_var[j] >= 0.0 for j in range(m))
-            model.add_constraint(f_var >= model.sumsq(f2_var) / m)
+            model.add_constraint(f_var >= model.sumsq(f2_var))
         else:
             raise NotImplementedError(
                 "`CplexSolver` does not support `{}` yet.".format(str(datafit))
@@ -226,7 +227,7 @@ class CplexSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
@@ -274,7 +275,7 @@ class GurobiSolver(BaseSolver):
         if str(datafit) == "Leastsquares":
             f1_var = model.addMVar(m, vtype="C", name="f1", lb=-np.inf)
             model.addConstr(f1_var == datafit.y - A @ x_var)
-            model.addConstr(f_var >= (f1_var @ f1_var) / (2.0 * m))
+            model.addConstr(f_var >= 0.5 * (f1_var @ f1_var))
         elif str(datafit) == "Squaredhinge":
             f1_var = model.addMVar(m, vtype="C", name="f1", lb=-np.inf)
             f2_var = model.addMVar(m, vtype="C", name="f2", lb=-np.inf)
@@ -283,7 +284,7 @@ class GurobiSolver(BaseSolver):
             model.addConstr(f2_var == 1.0 - datafit.y * f1_var)
             model.addConstr(f3_var >= f2_var)
             model.addConstr(f3_var >= 0.0)
-            model.addConstr(f_var >= (f3_var @ f3_var) / m)
+            model.addConstr(f_var >= (f3_var @ f3_var))
         else:
             raise NotImplementedError(
                 "`GurobiSolver` does not support `{}` yet.".format(
@@ -451,7 +452,7 @@ class GurobiSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
@@ -507,9 +508,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
-                msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / m, msk.Expr.sum(f1_var))
-                ),
+                msk.Expr.sub(f_var, msk.Expr.sum(f1_var)),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(datafit) == "Logistic":
@@ -540,9 +539,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.inPExpCone(),
             )
             model.constraint(
-                msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / m, msk.Expr.sum(f1_var))
-                ),
+                msk.Expr.sub(f_var, msk.Expr.sum(f1_var)),
                 msk.Domain.greaterThan(0.0),
             )
         elif str(datafit) == "Squaredhinge":
@@ -572,9 +569,7 @@ class MosekSolver(BaseSolver):
                 msk.Domain.inRotatedQCone(),
             )
             model.constraint(
-                msk.Expr.sub(
-                    f_var, msk.Expr.mul(1.0 / m, msk.Expr.sum(f3_var))
-                ),
+                msk.Expr.sub(f_var, msk.Expr.sum(f3_var)),
                 msk.Domain.greaterThan(0.0),
             )
         else:
@@ -841,7 +836,7 @@ class MosekSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
@@ -892,16 +887,16 @@ class L0bnbSolver(BaseSolver):
 
         m, _ = A.shape
         if str(penalty) == "Bigm":
-            l0 = m * lmbd
+            l0 = lmbd
             l2 = 0.0
             M = penalty.M
         elif str(penalty) == "L2norm":
-            l0 = m * lmbd
-            l2 = m * penalty.alpha
+            l0 = lmbd
+            l2 = penalty.alpha
             M = np.inf
         elif str(penalty) == "BigmL2norm":
-            l0 = m * lmbd
-            l2 = m * penalty.alpha
+            l0 = lmbd
+            l2 = penalty.alpha
             M = penalty.M
         else:
             raise NotImplementedError(
@@ -935,14 +930,14 @@ class L0bnbSolver(BaseSolver):
         objective_value = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(self.x, 0)
-            + sum(penalty.value(xi) for xi in self.x)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
 
         return Result(
             status,
             result.sol_time,
             solver.number_of_nodes,
-            np.abs(result.gap),
+            np.abs(result.gap) if not np.isnan(result.gap) else 0.0,
             self.x,
             self.z,
             objective_value,
@@ -1024,7 +1019,6 @@ class LassoPath:
             "n_nnz": [],
         }
 
-        m = A.shape[0]
         y = datafit.y
 
         lmbd_ratio_grid = np.logspace(
@@ -1032,7 +1026,7 @@ class LassoPath:
             np.log10(self.lmbd_ratio_min),
             self.lmbd_ratio_num,
         )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
 
         start_time = time.time()
 
@@ -1086,7 +1080,6 @@ class EnetPath:
             "n_nnz": [],
         }
 
-        m = A.shape[0]
         y = datafit.y
 
         lmbd_ratio_grid = np.logspace(
@@ -1094,7 +1087,7 @@ class EnetPath:
             np.log10(self.lmbd_ratio_min),
             self.lmbd_ratio_num,
         )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf) / m
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
 
         # Calibrate L1 ratio
         param_grid = {
@@ -1136,6 +1129,7 @@ class EnetPath:
 
 def extract_extra_options(solver_name):
     if solver_name.startswith("el0ps"):
+        option_types = get_type_hints(BnbOptions)
         pattern = r"\[([^]]*)\]"
         match = re.search(pattern, solver_name)
         if match:
@@ -1145,24 +1139,14 @@ def extract_extra_options(solver_name):
                 options_dict = {}
                 for pair in option_pairs:
                     k, v = pair.split("=")
-                    if k in [
-                        "dualpruning",
-                        "l1screening",
-                        "simpruning",
-                        "verbose",
-                        "trace",
-                    ]:
-                        options_dict[k] = v in ["true", "True"]
-                    elif k == "exploration_strategy":
-                        options_dict["exploration_strategy"] = (
-                            BnbExplorationStrategy[v]
-                        )
-                    elif k == "exploration_depth_switch":
-                        options_dict["exploration_depth_switch"] = int(v)
+                    if k == "exploration_strategy":
+                        options_dict[k] = BnbExplorationStrategy(v)
                     elif k == "branching_strategy":
-                        options_dict["branching_strategy"] = (
-                            BnbBranchingStrategy[v]
-                        )
+                        options_dict[k] = BnbBranchingStrategy(v)
+                    elif option_types[k] in [str, int, float]:
+                        options_dict[k] = option_types[k](v)
+                    elif option_types[k] == bool:
+                        options_dict[k] = v in ["true", "True"]
                 return options_dict
     return {}
 
@@ -1260,7 +1244,4 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
 
 
 def can_handle_compilation(solver_name):
-    if solver_name.startswith("el0ps"):
-        return True
-    else:
-        return False
+    return solver_name.startswith("el0ps")

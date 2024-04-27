@@ -1,6 +1,7 @@
 """Base classes for penalty functions and related utilities."""
 
 from abc import abstractmethod
+from numpy.typing import ArrayLike
 
 
 class BasePenalty:
@@ -29,11 +30,13 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def value(self, x: float) -> float:
-        """Value of the function at ``x``.
+    def value(self, i: int, x: float) -> float:
+        """Value of the i-th splitting term of the function at ``x``.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         x: float
             Value at which the function is evaluated.
 
@@ -45,11 +48,14 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def conjugate(self, x: float) -> float:
-        """Value of the conjugate of the function at ``x``.
+    def conjugate(self, i: int, x: float) -> float:
+        """Value of the conjugate of the i-th splitting term of the function
+        at ``x``.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         x: float
             Value at which the conjugate is evaluated.
 
@@ -61,11 +67,14 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def prox(self, x: float, eta: float) -> float:
-        """Proximity operator of ``eta`` times the function at ``x``.
+    def prox(self, i: int, x: float, eta: float) -> float:
+        """Proximity operator of ``eta`` times the i-th splitting term of the
+        function at ``x``.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         x: float
             Value at which the prox is evaluated.
         eta: float, positive
@@ -79,43 +88,52 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def subdiff(self, x: float) -> tuple:
-        """Subdifferential operator of the function at ``x``.
+    def subdiff(self, i: int, x: float) -> ArrayLike:
+        """Subdifferential operator of the i-th splitting term of the function
+        at ``x``.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         x: float
             Value at which the prox is evaluated.
 
         Returns
         -------
-        s: float
-            The subdifferential operator of the function at ``x``.
+        s: ArrayLike
+            The subdifferential (interval) of the function at ``x``.
         """
         ...
 
     @abstractmethod
-    def conjugate_subdiff(self, x: float) -> tuple:
-        """Subdifferential operator of the function conjugate at ``x``.
+    def conjugate_subdiff(self, i: int, x: float) -> ArrayLike:
+        """Subdifferential operator of the i-th splitting term of the function
+        conjugate at ``x``.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         x: float
             Value at which the prox is evaluated.
 
         Returns
         -------
-        s: float
-            The subdifferential operator of the function conjugate at ``x``.
+        s: ArrayLike
+            The subdifferential (interval) of the function conjugate at ``x``.
         """
         ...
 
     @abstractmethod
-    def param_slope(self, lmbd: float) -> float:
-        """Maximum value of ``x`` such that the function is below ``lmbd``.
+    def param_slope(self, i: int, lmbd: float) -> float:
+        """Maximum value of ``x`` such that the i-th splitting term of the
+        function is below ``lmbd``.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         lmbd: float
             Threshold value.
 
@@ -128,12 +146,15 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_limit(self, lmbd: float) -> float:
-        """Minimum value of `x` such that `x` is in the subdifferential of the
+    def param_limit(self, i: int, lmbd: float) -> float:
+        """Minimum value of `x` such that `x` is in the i-th splitting term of
+        the subdifferential of the
         conjugate of the function at `self.param_slope(lmbd)`.
 
         Parameters
         ----------
+        i: int
+            Index of the splitting term.
         lmbd: float
             Argument of the function `self.param_slope`.
 
@@ -146,8 +167,14 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_maxval(self) -> float:
-        """Maximum value of the conjugate of the function over its domain.
+    def param_maxval(self, i: int) -> float:
+        """Maximum value of the i-th splitting term of the conjugate of the
+        function over its domain.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
 
         Returns
         -------
@@ -157,8 +184,13 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_maxdom(self) -> float:
-        """Right boundary of the conjugate domain.
+    def param_maxdom(self, i: int) -> float:
+        """Right boundary of the i-th splitting term of the conjugate domain.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
 
         Returns
         -------
