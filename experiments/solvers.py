@@ -1019,7 +1019,6 @@ class LassoPath:
             "n_nnz": [],
         }
 
-        m = A.shape[0]
         y = datafit.y
 
         lmbd_ratio_grid = np.logspace(
@@ -1081,7 +1080,6 @@ class EnetPath:
             "n_nnz": [],
         }
 
-        m = A.shape[0]
         y = datafit.y
 
         lmbd_ratio_grid = np.logspace(

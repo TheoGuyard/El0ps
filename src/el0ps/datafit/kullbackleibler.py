@@ -1,5 +1,5 @@
 import numpy as np
-from numba import int32, float64
+from numba import float64
 from numpy.typing import ArrayLike
 from .base import SmoothDatafit
 
