@@ -11,6 +11,30 @@ from el0ps.datafit import *  # noqa
 from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 
+def acc_score(x_true, x):
+    """Compute the accuracy support recovery score of x with respect to
+    x_true."""
+    if x_true is None:
+        return 0.0
+    s = x != 0.0
+    s_true = x_true != 0.0
+    i = np.sum(s & s_true)
+    a = 1.0 if np.sum(s_true) == 0.0 else i / np.sum(s_true)
+    return a
+
+
+def fdr_score(x_true, x):
+    """Compute the false detection rate support recovery score of x with
+    respect to x_true."""
+    if x_true is None:
+        return 0.0
+    s = x != 0.0
+    s_true = x_true != 0.0
+    i = np.sum(s & ~s_true)
+    a = 1.0 if np.sum(~s_true) == 0.0 else i / np.sum(~s_true)
+    return a
+
+
 def f1_score(x_true, x):
     """Compute the F1 support recovery score of x with respect to x_true."""
     if x_true is None:

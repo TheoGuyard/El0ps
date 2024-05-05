@@ -11,7 +11,7 @@ dependencies = ["numba", "numpy", "scipy", "cvxpy"]
 
 [project.optional-dependencies]
 dev = ["black", "coverage", "flake8", "furo", "numpydoc", "pydoctest", "pytest", "sphinx"]
-exp = ["libsvmdata", "l0bnb", "l0learn", "matplotlib", "openml", "pandas", "pyyaml", "scikit-learn", "scipy", "ucimlrepo"]
+exp = ["libsvmdata", "l0bnb", "l0learn", "matplotlib", "openml", "pandas", "pyyaml", "scikit-learn", "scipy", "skglm", "ucimlrepo"]
 mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 
 [project.urls]

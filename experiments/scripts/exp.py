@@ -155,7 +155,6 @@ def get_exp_statistics():
         "solvers": {
             "solvers_name": [
                 "el0ps",
-                "l0bnb",
             ],
             "solvers_opts": {
                 "time_limit": 600.0,
@@ -164,13 +163,14 @@ def get_exp_statistics():
                 "verbose": False,
             },
         },
-        "relaxed_solvers": ["Omp", "Lasso", "Enet"],
+        "relaxed_solvers": ["Omp", "Lasso", "Enet", "L05", "Mcp", "Scad"],
         "path_opts": {
             "lmbd_ratio_max": 1.0e-0,
             "lmbd_ratio_min": 1.0e-5,
             "lmbd_ratio_num": 101,
             "stop_if_not_optimal": True,
             "max_nnz": 20,
+            "verbose": False,
         },
     }
 

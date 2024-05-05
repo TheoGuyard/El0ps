@@ -6,8 +6,14 @@ from docplex.mp.model import Model
 from docplex.mp.dvar import Var
 import gurobipy as gp
 import mosek.fusion as msk
-from sklearn.linear_model import Lasso, ElasticNet
 from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model._base import LinearModel, RegressorMixin
+from skglm import Lasso, ElasticNet, MCPRegression
+from skglm.datafits import Quadratic
+from skglm.estimators import _glm_fit
+from skglm.penalties import L0_5, SCAD
+from skglm.utils.jit_compilation import compiled_clone
+from skglm.solvers import AndersonCD
 from typing import Union, get_type_hints
 from numpy.typing import NDArray
 from l0bnb import BNBTree
@@ -1032,9 +1038,9 @@ class LassoPath:
 
         for lmbd_ratio in lmbd_ratio_grid:
             lmbd = lmbd_ratio * lmbd_max
-            lasso = Lasso(alpha=lmbd, max_iter=int(1e5), fit_intercept=False)
-            lasso.fit(A, y)
-            x = lasso.coef_
+            est = Lasso(alpha=lmbd, max_iter=int(1e5), fit_intercept=False)
+            est.fit(A, y)
+            x = est.coef_
             w = A @ x
             s = np.where(x != 0)[0]
 
@@ -1104,14 +1110,358 @@ class EnetPath:
 
         for lmbd_ratio in lmbd_ratio_grid:
             lmbd = lmbd_ratio * lmbd_max
-            lasso = ElasticNet(
+            est = ElasticNet(
                 alpha=lmbd,
                 l1_ratio=l1_ratio,
                 max_iter=int(1e5),
                 fit_intercept=False,
             )
-            lasso.fit(A, y)
-            x = lasso.coef_
+            est.fit(A, y)
+            x = est.coef_
+            w = A @ x
+            s = np.where(x != 0)[0]
+
+            if len(s) > self.max_nnz:
+                break
+
+            fit_data["status"].append(Status.OPTIMAL)
+            fit_data["solve_time"].append(time.time() - start_time)
+            fit_data["x"].append(np.copy(x))
+            fit_data["datafit_value"].append(datafit.value(w))
+            fit_data["n_nnz"].append(len(s))
+
+        return fit_data
+
+
+class L05Regression(LinearModel, RegressorMixin):
+
+    def __init__(
+        self,
+        alpha=1.0,
+        gamma=3,
+        weights=None,
+        max_iter=50,
+        max_epochs=50_000,
+        p0=10,
+        verbose=0,
+        tol=1e-4,
+        positive=False,
+        fit_intercept=True,
+        warm_start=False,
+        ws_strategy="subdiff",
+    ):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.weights = weights
+        self.max_iter = max_iter
+        self.max_epochs = max_epochs
+        self.p0 = p0
+        self.verbose = verbose
+        self.tol = tol
+        self.positive = positive
+        self.fit_intercept = fit_intercept
+        self.warm_start = warm_start
+        self.ws_strategy = ws_strategy
+
+    def path(self, X, y, alphas, coef_init=None, return_n_iter=True, **params):
+        penalty = compiled_clone(L0_5(self.alpha))
+        datafit = compiled_clone(Quadratic(), to_float32=X.dtype == np.float32)
+        solver = AndersonCD(
+            self.max_iter,
+            self.max_epochs,
+            self.p0,
+            tol=self.tol,
+            ws_strategy=self.ws_strategy,
+            fit_intercept=self.fit_intercept,
+            warm_start=self.warm_start,
+            verbose=self.verbose,
+        )
+        return solver.path(
+            X, y, datafit, penalty, alphas, coef_init, return_n_iter
+        )
+
+    def fit(self, X, y):
+        penalty = L0_5(self.alpha)
+        solver = AndersonCD(
+            self.max_iter,
+            self.max_epochs,
+            self.p0,
+            tol=self.tol,
+            ws_strategy=self.ws_strategy,
+            fit_intercept=self.fit_intercept,
+            warm_start=self.warm_start,
+            verbose=self.verbose,
+        )
+        return _glm_fit(X, y, self, Quadratic(), penalty, solver)
+
+
+class L05Path:
+
+    def __init__(
+        self,
+        lmbd_ratio_max=1.0,
+        lmbd_ratio_min=1e-3,
+        lmbd_ratio_num=31,
+        max_nnz=10,
+        stop_if_not_optimal=True,
+    ) -> None:
+        self.lmbd_ratio_max = lmbd_ratio_max
+        self.lmbd_ratio_min = lmbd_ratio_min
+        self.lmbd_ratio_num = lmbd_ratio_num
+        self.max_nnz = max_nnz
+        self.stop_if_not_optimal = stop_if_not_optimal
+
+    def __str__(self) -> str:
+        return "L05Path"
+
+    def fit(self, datafit, A):
+        assert str(datafit) == "Leastsquares"
+
+        fit_data = {
+            "status": [],
+            "solve_time": [],
+            "x": [],
+            "datafit_value": [],
+            "n_nnz": [],
+        }
+
+        y = datafit.y
+
+        lmbd_ratio_grid = np.logspace(
+            np.log10(self.lmbd_ratio_max),
+            np.log10(self.lmbd_ratio_min),
+            self.lmbd_ratio_num,
+        )
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+
+        start_time = time.time()
+
+        for lmbd_ratio in lmbd_ratio_grid:
+            lmbd = lmbd_ratio * lmbd_max
+            est = L05Regression(
+                alpha=lmbd,
+                max_iter=int(1e5),
+                fit_intercept=False,
+            )
+            est.fit(A, y)
+            x = est.coef_
+            w = A @ x
+            s = np.where(x != 0)[0]
+
+            if len(s) > self.max_nnz:
+                break
+
+            fit_data["status"].append(Status.OPTIMAL)
+            fit_data["solve_time"].append(time.time() - start_time)
+            fit_data["x"].append(np.copy(x))
+            fit_data["datafit_value"].append(datafit.value(w))
+            fit_data["n_nnz"].append(len(s))
+
+        return fit_data
+
+
+class McpPath:
+
+    def __init__(
+        self,
+        lmbd_ratio_max=1.0,
+        lmbd_ratio_min=1e-3,
+        lmbd_ratio_num=31,
+        max_nnz=10,
+        stop_if_not_optimal=True,
+    ) -> None:
+        self.lmbd_ratio_max = lmbd_ratio_max
+        self.lmbd_ratio_min = lmbd_ratio_min
+        self.lmbd_ratio_num = lmbd_ratio_num
+        self.max_nnz = max_nnz
+        self.stop_if_not_optimal = stop_if_not_optimal
+
+    def __str__(self) -> str:
+        return "McpPath"
+
+    def fit(self, datafit, A):
+        assert str(datafit) == "Leastsquares"
+
+        fit_data = {
+            "status": [],
+            "solve_time": [],
+            "x": [],
+            "datafit_value": [],
+            "n_nnz": [],
+        }
+
+        y = datafit.y
+
+        lmbd_ratio_grid = np.logspace(
+            np.log10(self.lmbd_ratio_max),
+            np.log10(self.lmbd_ratio_min),
+            self.lmbd_ratio_num,
+        )
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+
+        # Calibrate MCP ratio
+        param_grid = {
+            "alpha": lmbd_max * np.logspace(-2, 1, 4),
+            "gamma": np.logspace(-2, 1, 4),
+        }
+        grid_search = GridSearchCV(
+            estimator=MCPRegression(), param_grid=param_grid, cv=5
+        )
+        grid_search.fit(A, y)
+        gamma = grid_search.best_estimator_.gamma
+
+        start_time = time.time()
+
+        for lmbd_ratio in lmbd_ratio_grid:
+            lmbd = lmbd_ratio * lmbd_max
+            est = MCPRegression(
+                alpha=lmbd,
+                gamma=gamma,
+                max_iter=int(1e5),
+                fit_intercept=False,
+            )
+            est.fit(A, y)
+            x = est.coef_
+            w = A @ x
+            s = np.where(x != 0)[0]
+
+            if len(s) > self.max_nnz:
+                break
+
+            fit_data["status"].append(Status.OPTIMAL)
+            fit_data["solve_time"].append(time.time() - start_time)
+            fit_data["x"].append(np.copy(x))
+            fit_data["datafit_value"].append(datafit.value(w))
+            fit_data["n_nnz"].append(len(s))
+
+        return fit_data
+
+
+class SCADRegression(LinearModel, RegressorMixin):
+
+    def __init__(
+        self,
+        alpha=1.0,
+        gamma=3,
+        weights=None,
+        max_iter=50,
+        max_epochs=50_000,
+        p0=10,
+        verbose=0,
+        tol=1e-4,
+        positive=False,
+        fit_intercept=True,
+        warm_start=False,
+        ws_strategy="subdiff",
+    ):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.weights = weights
+        self.max_iter = max_iter
+        self.max_epochs = max_epochs
+        self.p0 = p0
+        self.verbose = verbose
+        self.tol = tol
+        self.positive = positive
+        self.fit_intercept = fit_intercept
+        self.warm_start = warm_start
+        self.ws_strategy = ws_strategy
+
+    def path(self, X, y, alphas, coef_init=None, return_n_iter=True, **params):
+        penalty = compiled_clone(SCAD(self.alpha, self.gamma, self.positive))
+        datafit = compiled_clone(Quadratic(), to_float32=X.dtype == np.float32)
+        solver = AndersonCD(
+            self.max_iter,
+            self.max_epochs,
+            self.p0,
+            tol=self.tol,
+            ws_strategy=self.ws_strategy,
+            fit_intercept=self.fit_intercept,
+            warm_start=self.warm_start,
+            verbose=self.verbose,
+        )
+        return solver.path(
+            X, y, datafit, penalty, alphas, coef_init, return_n_iter
+        )
+
+    def fit(self, X, y):
+        penalty = SCAD(self.alpha, self.gamma)
+        solver = AndersonCD(
+            self.max_iter,
+            self.max_epochs,
+            self.p0,
+            tol=self.tol,
+            ws_strategy=self.ws_strategy,
+            fit_intercept=self.fit_intercept,
+            warm_start=self.warm_start,
+            verbose=self.verbose,
+        )
+        return _glm_fit(X, y, self, Quadratic(), penalty, solver)
+
+
+class ScadPath:
+
+    def __init__(
+        self,
+        lmbd_ratio_max=1.0,
+        lmbd_ratio_min=1e-3,
+        lmbd_ratio_num=31,
+        max_nnz=10,
+        stop_if_not_optimal=True,
+    ) -> None:
+        self.lmbd_ratio_max = lmbd_ratio_max
+        self.lmbd_ratio_min = lmbd_ratio_min
+        self.lmbd_ratio_num = lmbd_ratio_num
+        self.max_nnz = max_nnz
+        self.stop_if_not_optimal = stop_if_not_optimal
+
+    def __str__(self) -> str:
+        return "ScadPath"
+
+    def fit(self, datafit, A):
+        assert str(datafit) == "Leastsquares"
+
+        fit_data = {
+            "status": [],
+            "solve_time": [],
+            "x": [],
+            "datafit_value": [],
+            "n_nnz": [],
+        }
+
+        y = datafit.y
+
+        lmbd_ratio_grid = np.logspace(
+            np.log10(self.lmbd_ratio_max),
+            np.log10(self.lmbd_ratio_min),
+            self.lmbd_ratio_num,
+        )
+        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+
+        param_grid = {
+            "alpha": lmbd_max * np.logspace(-2, 1, 4),
+            "gamma": np.logspace(-2, 1, 4),
+        }
+        grid_search = GridSearchCV(
+            estimator=SCADRegression(), param_grid=param_grid, cv=5
+        )
+        grid_search.fit(A, y)
+        gamma = grid_search.best_estimator_.gamma
+
+        start_time = time.time()
+
+        for lmbd_ratio in lmbd_ratio_grid:
+            lmbd = lmbd_ratio * lmbd_max
+            est = SCADRegression(
+                alpha=lmbd,
+                gamma=gamma,
+                max_iter=int(1e5),
+                fit_intercept=False,
+            )
+            est.fit(A, y)
+            x = est.coef_
             w = A @ x
             s = np.where(x != 0)[0]
 
@@ -1179,6 +1529,30 @@ def get_relaxed_path(solver_name, path_opts={}):
         )
     elif solver_name == "Enet":
         return EnetPath(
+            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
+            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
+            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif solver_name == "L05":
+        return L05Path(
+            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
+            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
+            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif solver_name == "Mcp":
+        return McpPath(
+            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
+            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
+            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif solver_name == "Scad":
+        return ScadPath(
             lmbd_ratio_max=path_opts["lmbd_ratio_max"],
             lmbd_ratio_min=path_opts["lmbd_ratio_min"],
             lmbd_ratio_num=path_opts["lmbd_ratio_num"],
