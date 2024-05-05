@@ -17,8 +17,8 @@ class Status(Enum):
     ----------
     UNKNOWN: str
         Unknown solver status.
-    NODE_LIMIT: str
-        The solver reached the node limit.
+    ITER_LIMIT: str
+        The solver reached the iteration limit.
     TIME_LIMIT: str
         The solver reached the time limit.
     RUNNING: str
@@ -27,12 +27,9 @@ class Status(Enum):
         The solver found an optimal solution.
     """
 
-    def __str__(self):
-        return str(self.value)
-
     UNKNOWN = "unknown"
-    NODE_LIMIT = "nodelim"
-    TIME_LIMIT = "timelim"
+    ITER_LIMIT = "iter_limit"
+    TIME_LIMIT = "time_limit"
     RUNNING = "running"
     OPTIMAL = "optimal"
 
@@ -46,21 +43,19 @@ class Result:
     status: Status
         Solver status.
     solve_time: float
-        Solver solve time in seconds.
+        Solve time in seconds.
     iter_count: int
-        Solver iter count.
+        Iteration count.
     rel_gap: float
-        Solver relative gap.
+        Relative gap.
     x: ArrayLike
         Problem solution.
-    z: ArrayLike
-        Binary vector coding where non-zeros are located in ``x``.
     objective_value: float
-        Problem objective value.
+        Objective value.
     n_nnz: int
-        Number of non-zeros in ``x``.
-    trace: dict
-        Solver trace.
+        Number of non-zeros in the solution.
+    trace: Union[dict, None]
+        Solver trace if available, otherwise `None`.
     """
 
     status: Status
@@ -68,10 +63,9 @@ class Result:
     iter_count: int
     rel_gap: float
     x: ArrayLike
-    z: ArrayLike
     objective_value: float
     n_nnz: int
-    trace: dict
+    trace: Union[dict, None]
 
     def __str__(self) -> str:
         s = ""
@@ -86,7 +80,7 @@ class Result:
 
 
 class BaseSolver:
-    """Base class for L0-penalized problem solvers."""
+    """Base class for L0-regularized problem solvers."""
 
     @abstractmethod
     def solve(
@@ -97,26 +91,26 @@ class BaseSolver:
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
     ):
-        r"""Solve an L0-penalized problem of the form
+        r"""Solve an L0-regularized problem of the form
 
         .. math:: \textstyle\min_{x} f(Ax) + \lambda \|x\|_0 + h(x)
 
-        where :math:`f(\cdot)` is a datafit function, :math:`A` is a matrix,
-        :math:`\lambda>0` is the L0-regularization weight and :math:`h(\cdot)`
-        is a penalty function.
+        where :math:`f(\cdot)` is a data-fitting function, :math:`A` is a 
+        matrix, :math:`\lambda>0` is the L0-regularization weight and 
+        :math:`h(\cdot)` is a penalty function.
 
         Parameters
         ----------
         datafit: Union[BaseDatafit, JitClassType]
-            Datafit function.
+            Data-fitting function, can be compiled as a jitclass.
         penalty: Union[BasePenalty, JitClassType]
-            Penalty function.
+            Penalty function, can be compiled as a jitclass.
         A: ArrayLike
             Linear operator.
         lmbd: float, positive
             L0-norm weight.
         x_init: Union[ArrayLike, None] = None
-            Stating value of ``x``.
+            Stating point.
 
         Returns
         -------

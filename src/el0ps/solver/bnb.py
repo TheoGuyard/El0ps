@@ -69,8 +69,8 @@ class BnbOptions:
         Branch-and-Bound branching strategy.
     time_limit: float
         Branch-and-Bound time limit in seconds.
-    node_limit: int
-        Branch-and-Bound node limit.
+    iter_limit: int
+        Branch-and-Bound iteration limit (number of nodes explored).
     rel_tol: float
         Relative MIP tolerance.
     int_tol: float
@@ -96,7 +96,7 @@ class BnbOptions:
     bounding_maxiter_outer: int = 100
     bounding_skip_setup: bool = False
     time_limit: float = float(sys.maxsize)
-    node_limit: int = sys.maxsize
+    iter_limit: int = sys.maxsize
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
     workingsets: bool = True
@@ -282,8 +282,8 @@ class BnbSolver(BaseSolver):
     def can_continue(self):
         if self.solve_time >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
-        elif self.iter_count >= self.options.node_limit:
-            self.status = Status.NODE_LIMIT
+        elif self.iter_count >= self.options.iter_limit:
+            self.status = Status.ITER_LIMIT
         elif len(self.queue) == 0:
             self.status = Status.OPTIMAL
         elif self.rel_gap < self.options.rel_tol:
