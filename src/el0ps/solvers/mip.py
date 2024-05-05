@@ -5,7 +5,7 @@ import pyomo.environ as pyo
 import pyomo.kernel as pmo
 import sys
 from dataclasses import dataclass
-from typing import Literal, Union
+from typing import Union
 from numpy.typing import ArrayLike
 from pyomo.opt.results import SolverResults
 from el0ps.datafits import MipDatafit
