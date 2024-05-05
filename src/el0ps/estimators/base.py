@@ -17,11 +17,11 @@ class TargetClass(Enum):
 
 
 def _fit(
-    estimator, 
-    datafit: BaseDatafit, 
-    penalty: BasePenalty, 
-    X: ArrayLike, 
-    lmbd: float, 
+    estimator,
+    datafit: BaseDatafit,
+    penalty: BasePenalty,
+    X: ArrayLike,
+    lmbd: float,
     solver: BaseSolver,
 ):
 
@@ -30,13 +30,15 @@ def _fit(
         check_classification_targets(datafit.y)
         enc = LabelEncoder()
         datafit.y = enc.fit_transform(datafit.y)
-        datafit.y = 2. * datafit.y - 1.
+        datafit.y = 2.0 * datafit.y - 1.0
         if enc.classes_ > 2:
             raise ValueError("Only binary classification is supported")
 
     # Validate X and y data types and shapes
-    X = check_array(X, dtype=np.float64, order='F')
-    datafit.y = check_array(datafit.y, dtype=np.float64, order='F', ensure_2d=False)
+    X = check_array(X, dtype=np.float64, order="F")
+    datafit.y = check_array(
+        datafit.y, dtype=np.float64, order="F", ensure_2d=False
+    )
     check_consistent_length(X, datafit.y)
     assert datafit.y.ndim == 1
 
@@ -50,11 +52,11 @@ def _fit(
     if not hasattr(estimator, "intercept_"):
         estimator.intercept_ = None
     if estimator.intercept_ is None:
-        estimator.intercept_ = 0.
+        estimator.intercept_ = 0.0
 
     # Solve the estimator optimization problem
     result = solver.solve(datafit, penalty, X, lmbd, x_init=estimator.coef_)
-    
+
     # Recover the results
     estimator.is_fitted_ = True
     estimator.fit_result_ = result
@@ -67,10 +69,10 @@ def _fit(
 
 class BaseL0Estimator(LinearModel):
     """Base class for L0-norm estimators.
-    
+
     The optimization problem solved is
 
-    .. math:: 
+    .. math::
         min     f(X @ w) + lmbd ||w||_0 + g(w)
 
     where :math:`f` is a datafit term, :math:`g` is a penalty term and
@@ -79,15 +81,15 @@ class BaseL0Estimator(LinearModel):
     """
 
     def __init__(
-        self, 
-        lmbd: float = 1.,
-        fit_intercept: bool = False, 
+        self,
+        lmbd: float = 1.0,
+        fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ) -> None:
-        
+
         if fit_intercept:
             raise NotImplementedError("Fit intercept not implemented yet")
-        if lmbd <= 0.:
+        if lmbd <= 0.0:
             raise ValueError("Parameter `lmbd` must be non-negative")
 
         self.lmbd = lmbd

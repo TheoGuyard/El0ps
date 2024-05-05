@@ -9,10 +9,10 @@ from .classification import (
     L0L1L2Classification,
 )
 from .regression import (
-    BaseL0Regression, 
-    L0Regression, 
-    L0L1Regression, 
-    L0L2Regression, 
+    BaseL0Regression,
+    L0Regression,
+    L0L1Regression,
+    L0L2Regression,
     L0L1L2Regression,
 )
 from .svc import (
@@ -31,9 +31,9 @@ __all__ = [
     "L0L2Classification",
     "L0L1L2Classification",
     "BaseL0Regression",
-    "L0Regression", 
-    "L0L1Regression", 
-    "L0L2Regression", 
+    "L0Regression",
+    "L0L1Regression",
+    "L0L2Regression",
     "L0L1L2Regression",
     "BaseL0SVC",
     "L0SVC",

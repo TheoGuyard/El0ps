@@ -5,13 +5,20 @@ from numpy.typing import ArrayLike
 from sklearn.base import ClassifierMixin
 from el0ps.solvers import BaseSolver, BnbSolver
 from el0ps.datafits import Squaredhinge
-from el0ps.penalties import Bigm, BigmL1norm, BigmL2norm, L1L2norm, L1norm, L2norm
+from el0ps.penalties import (
+    Bigm,
+    BigmL1norm,
+    BigmL2norm,
+    L1L2norm,
+    L1norm,
+    L2norm,
+)
 from .base import BaseL0Estimator, TargetClass, _fit
 
 
 class BaseL0SVC(BaseL0Estimator, ClassifierMixin):
     """Base class for L0-norm Support Vector Classifier estimators."""
-    
+
     def target_class(self):
         return TargetClass.BINARY
 
@@ -22,7 +29,7 @@ class L0SVC(BaseL0SVC):
 
     The optimization problem solved is
 
-    .. math:: 
+    .. math::
         min     sum(max(1 - y * (X @ w), 0)^2) + lmbd ||w||_0
         s.t.    ||w||_inf <= M
 
@@ -38,10 +45,11 @@ class L0SVC(BaseL0SVC):
         Solver for the estimator associated problem.
     """
 
-    def __init__(self, 
+    def __init__(
+        self,
         lmbd: float,
         M: float,
-        fit_intercept: bool = False, 
+        fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
         super().__init__(lmbd, fit_intercept, solver)
@@ -62,7 +70,7 @@ class L0L1SVC(BaseL0SVC):
     .. math::
         min     sum(max(1 - y * (X @ w), 0)^2) + lmbd ||w||_0 + alpha ||w||_1
         s.t.    ||w||_inf <= M
-    
+
 
     Parameters
     ----------
@@ -78,11 +86,12 @@ class L0L1SVC(BaseL0SVC):
         Solver for the estimator associated problem.
     """
 
-    def __init__(self, 
+    def __init__(
+        self,
         lmbd: float,
         alpha: float,
         M: float = np.inf,
-        fit_intercept: bool = False, 
+        fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
         super().__init__(lmbd, fit_intercept, solver)
@@ -99,7 +108,7 @@ class L0L1SVC(BaseL0SVC):
 
 
 class L0L2SVC(BaseL0SVC):
-    r"""Sparse SVC with L0L2-norm regularization. The formulation can include a 
+    r"""Sparse SVC with L0L2-norm regularization. The formulation can include a
     Big-M constraint to strengthen mixed-integer programming solution methods.
 
     The optimization problem solved is
@@ -107,7 +116,7 @@ class L0L2SVC(BaseL0SVC):
     .. math::
         min     sum(max(1 - y * (X @ w), 0)^2) + lmbd ||w||_0 + alpha ||w||_2^2
         s.t.    ||w||_inf <= M
-    
+
 
     Parameters
     ----------
@@ -123,11 +132,12 @@ class L0L2SVC(BaseL0SVC):
         Solver for the estimator associated problem.
     """
 
-    def __init__(self, 
+    def __init__(
+        self,
         lmbd: float,
         alpha: float,
         M: float = np.inf,
-        fit_intercept: bool = False, 
+        fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
         super().__init__(lmbd, fit_intercept, solver)
@@ -150,7 +160,7 @@ class L0L1L2SVC(BaseL0SVC):
 
     .. math::
         min sum(max(1 - y * (X @ w), 0)^2) + lmbd ||w||_0 + alpha ||w||_1 + beta ||w||_2^2
-    
+
 
     Parameters
     ----------
@@ -164,13 +174,14 @@ class L0L1L2SVC(BaseL0SVC):
         Whether to fit an intercept term.
     solver: BaseSolver, default=BnbSolver()
         Solver for the estimator associated problem.
-    """
+    """  # noqa: E501
 
-    def __init__(self, 
+    def __init__(
+        self,
         lmbd: float,
         alpha: float,
         beta: float,
-        fit_intercept: bool = False, 
+        fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
         super().__init__(lmbd, fit_intercept, solver)
@@ -181,4 +192,3 @@ class L0L1L2SVC(BaseL0SVC):
         datafit = Squaredhinge(y)
         penalty = L1L2norm(self.alpha, self.beta)
         return _fit(self, datafit, penalty, X, self.lmbd, self.solver)
-

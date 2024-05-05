@@ -2,7 +2,8 @@
 
 import numpy as np
 
-def make_classification(k, m, n, snr=10.):
+
+def make_classification(k, m, n, snr=10.0):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.sign(np.random.randn(k))
@@ -11,7 +12,8 @@ def make_classification(k, m, n, snr=10.):
     y = 2.0 * np.random.binomial(1, p, size=m) - 1.0
     return A, y, x
 
-def make_regression(k, m, n, snr=10.):
+
+def make_regression(k, m, n, snr=10.0):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.sign(np.random.randn(k))
@@ -22,7 +24,8 @@ def make_regression(k, m, n, snr=10.):
     y += e
     return A, y, x
 
-def make_svc(k, m, n, snr=10.):
+
+def make_svc(k, m, n, snr=10.0):
     x = np.zeros(n)
     s = np.array(np.floor(np.linspace(0, n - 1, num=k)), dtype=int)
     x[s] = np.sign(np.random.randn(k))
