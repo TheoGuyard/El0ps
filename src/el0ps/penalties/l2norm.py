@@ -1,10 +1,11 @@
 import numpy as np
+import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty
+from .base import MipPenalty
 
 
-class L2norm(BasePenalty):
+class L2norm(MipPenalty):
     r"""L2-norm penalty function given by :math:`h(x) = \alpha x^2`, with
     :math:`\alpha>0`.
 
@@ -55,3 +56,21 @@ class L2norm(BasePenalty):
 
     def param_maxdom(self, i: int) -> float:
         return np.inf
+
+    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+        model.g1_var = pmo.variable_dict()
+        for i in model.N:
+            model.g1_var[i] = pmo.variable(domain=pmo.Reals)
+
+        model.g1_con = pmo.constraint_dict()
+        for i in model.N:
+            model.g1_con[i] = pmo.constraint(
+                model.x[i] ** 2 <= model.g1_var[i] * model.z[i]
+            )
+        model.g_con = pmo.constraint(
+            model.g
+            >= (
+                lmbd * sum(model.z[i] for i in model.N)
+                + self.alpha * sum(model.g1_var[i] for i in model.N)
+            )
+        )

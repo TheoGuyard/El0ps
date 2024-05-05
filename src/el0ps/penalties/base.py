@@ -1,5 +1,6 @@
 """Base classes for penalty functions and related utilities."""
 
+import pyomo.kernel as pmo
 from abc import abstractmethod
 from numpy.typing import ArrayLike
 
@@ -196,5 +197,31 @@ class BasePenalty:
         -------
         value: float
             The right boundary of the conjugate domain.
+        """
+        ...
+
+
+class MipPenalty(BasePenalty):
+    """Base class for :class:`.penalties.BasePenalty` that can be modeled into
+    a Mixed-Integer Program."""
+
+    @abstractmethod
+    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+        """Bind the L0-regularization together with the penalty function into a
+        pyomo `kernel` model. The model should contain a scalar and
+        unconstrained variable `model.g`, a variable `model.x` with size
+        `model.N` and a variable `model.z` with size `model.N`. The
+        `bind_model` function binds the following epigraph formulation:
+
+        .. math:: model.g >= lmbd * sum(model.z) + self.value(model.x)
+
+        and must ensures that `model.z[i] = 0` implies `model.x[i] = 0`.
+
+        Arguments
+        ---------
+        model: pmo.block
+            The pyomo mixed-integer programming model (kernel model).
+        lmbd: float
+            The L0-regularization weight.
         """
         ...

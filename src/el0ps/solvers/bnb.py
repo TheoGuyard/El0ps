@@ -1,4 +1,4 @@
-"""Branch-and-Bound solver for L0-penalized problems."""
+"""Branch-and-Bound solver for L0-regularized problems."""
 
 import numpy as np
 import time
@@ -8,12 +8,12 @@ from enum import Enum
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
-from el0ps.datafit import BaseDatafit
-from el0ps.penalty import BasePenalty
-from el0ps.solver import BaseSolver, Result, Status
+from el0ps.datafits import BaseDatafit
+from el0ps.penalties import BasePenalty
+from el0ps.solvers import BaseSolver, Result, Status
 from el0ps.utils import compiled_clone
-from .node import BnbNode
-from .bounding import BnbBoundingSolver
+from .bnb_node import BnbNode
+from .bnb_bound import BnbBoundingSolver
 
 
 class BnbExplorationStrategy(Enum):
@@ -29,7 +29,7 @@ class BnbExplorationStrategy(Enum):
         Best-bound search.
     MIX: str
         Starts with a DFS strategy and switches to a BBS strategy when the
-        relative mip gap is within a factor `mix_threshold` from the target
+        relative mip gap is domain a factor `mix_threshold` from the target
         one.
     """
 
@@ -69,8 +69,8 @@ class BnbOptions:
         Branch-and-Bound branching strategy.
     time_limit: float
         Branch-and-Bound time limit in seconds.
-    node_limit: int
-        Branch-and-Bound node limit.
+    iter_limit: int
+        Branch-and-Bound iteration limit (number of nodes explored).
     rel_tol: float
         Relative MIP tolerance.
     int_tol: float
@@ -96,7 +96,7 @@ class BnbOptions:
     bounding_maxiter_outer: int = 100
     bounding_skip_setup: bool = False
     time_limit: float = float(sys.maxsize)
-    node_limit: int = sys.maxsize
+    iter_limit: int = sys.maxsize
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
     workingsets: bool = True
@@ -203,7 +203,11 @@ class BnbSolver(BaseSolver):
         self.iter_count = 0
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
-        self.upper_bound = self.value(x_init)
+        self.upper_bound = (
+            datafit.value(A @ self.x)
+            + lmbd * np.linalg.norm(x_init, 0)
+            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
+        )
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
@@ -235,15 +239,6 @@ class BnbSolver(BaseSolver):
         self.queue.append(root)
 
         self.start_time = time.time()
-
-    def value(self, x: ArrayLike, Ax: Union[ArrayLike, None] = None) -> float:
-        if Ax is None:
-            Ax = self.A @ x
-        return (
-            self.datafit.value(Ax)
-            + self.lmbd * np.linalg.norm(x, 0)
-            + sum(self.penalty.value(i, xi) for i, xi in enumerate(x))
-        )
 
     def print_header(self):
         s = "-" * 68 + "\n"
@@ -282,8 +277,8 @@ class BnbSolver(BaseSolver):
     def can_continue(self):
         if self.solve_time >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
-        elif self.iter_count >= self.options.node_limit:
-            self.status = Status.NODE_LIMIT
+        elif self.iter_count >= self.options.iter_limit:
+            self.status = Status.ITER_LIMIT
         elif len(self.queue) == 0:
             self.status = Status.OPTIMAL
         elif self.rel_gap < self.options.rel_tol:
@@ -417,8 +412,7 @@ class BnbSolver(BaseSolver):
             self.iter_count,
             self.rel_gap,
             self.x,
-            np.array(self.x != 0.0, dtype=float),
-            self.value(self.x),
+            self.upper_bound,
             np.sum(np.abs(self.x) > self.options.int_tol),
             self.trace,
         )

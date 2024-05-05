@@ -6,7 +6,7 @@ from numba import njit, float64
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
 from el0ps.utils import compiled_clone
-from .node import BnbNode
+from .bnb_node import BnbNode
 
 
 def calibrate_mcptwo(

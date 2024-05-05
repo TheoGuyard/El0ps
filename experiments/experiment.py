@@ -9,8 +9,8 @@ from abc import abstractmethod
 from copy import deepcopy
 from datetime import datetime
 from el0ps.path import Path
-from el0ps.solver import Status
-from el0ps.solver.bounding import calibrate_mcptwo
+from el0ps.solvers import Status
+from el0ps.solvers.bnb_bound import calibrate_mcptwo
 from el0ps.utils import compiled_clone, compute_lmbd_max
 from sklearn.model_selection import train_test_split
 

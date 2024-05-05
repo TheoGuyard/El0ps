@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from el0ps.datafit import (
+from el0ps.datafits import (
     BaseDatafit,
     SmoothDatafit,
     Kullbackleibler,

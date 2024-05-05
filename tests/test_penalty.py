@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from el0ps.penalty import (
+from el0ps.penalties import (
     Bigm,
     BigmL1norm,
     BigmL2norm,

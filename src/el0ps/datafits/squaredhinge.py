@@ -1,13 +1,14 @@
 import numpy as np
+import pyomo.kernel as pmo
 from numba import float64
 from numpy.typing import ArrayLike
-from .base import SmoothDatafit
+from .base import MipDatafit, SmoothDatafit
 
 
-class Squaredhinge(SmoothDatafit):
+class Squaredhinge(SmoothDatafit, MipDatafit):
     r"""Squared-Hinge datafit function given by
 
-    .. math:: f(x) = \sum_j \max(1 - y_j * x_j, 0)^2
+    .. math:: f(x) = sum(max(1 - y * x, 0)^2)
 
     Parameters
     ----------
@@ -42,3 +43,16 @@ class Squaredhinge(SmoothDatafit):
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return -2.0 * self.y * np.maximum(1.0 - self.y * x, 0.0)
+
+    def bind_model(self, model: pmo.block) -> None:
+        model.f1_var = pmo.variable_dict()
+        for j in model.M:
+            model.f1_var[j] = pmo.variable(domain=pmo.NonNegativeReals)
+        model.f1_con = pmo.constraint_dict()
+        for j in model.M:
+            model.f1_con[j] = pmo.constraint(
+                model.f1_var[j] >= 1.0 - self.y[j] * model.w[j]
+            )
+        model.f_con = pmo.constraint(
+            model.f >= sum(model.f1_var[j] ** 2 for j in model.M)
+        )

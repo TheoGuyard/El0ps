@@ -1,13 +1,14 @@
 import numpy as np
+import pyomo.kernel as pmo
 from numba import float64
 from numpy.typing import ArrayLike
-from .base import SmoothDatafit, StronglyConvexDatafit
+from .base import MipDatafit, SmoothDatafit, StronglyConvexDatafit
 
 
-class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
+class Leastsquares(SmoothDatafit, StronglyConvexDatafit, MipDatafit):
     r"""Least-squares datafit function given by
 
-    .. math:: f(x) = \sum_j (x_j - y_j)^2 / 2
+    .. math:: f(x) = sum_j (x_j - y_j)^2 / 2
 
     Parameters
     ----------
@@ -49,3 +50,9 @@ class Leastsquares(SmoothDatafit, StronglyConvexDatafit):
 
     def strong_convexity_constant(self) -> float:
         return self.S
+
+    def bind_model(self, model: pmo.block) -> None:
+        model.f_con = pmo.constraint(
+            model.f
+            >= sum((model.w[j] - self.y[j]) ** 2 for j in model.M) / 2.0
+        )

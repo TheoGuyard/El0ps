@@ -1,10 +1,11 @@
 import numpy as np
+import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty
+from .base import MipPenalty
 
 
-class BigmL1norm(BasePenalty):
+class BigmL1norm(MipPenalty):
     r"""Big-M constraint plus L1-norm penalty function given by
     :math:`h(x) = \alpha |x|` when :math:`|x| <= M` and
     :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and
@@ -80,3 +81,30 @@ class BigmL1norm(BasePenalty):
 
     def param_maxdom(self, i: int) -> float:
         return np.inf
+
+    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+
+        model.g1_var = pmo.variable_dict()
+        for i in model.N:
+            model.g1_var[i] = pmo.variable(domain=pmo.Reals)
+
+        model.gpos_con = pmo.constraint_dict()
+        model.gneg_con = pmo.constraint_dict()
+        model.g1pos_con = pmo.constraint_dict()
+        model.g1neg_con = pmo.constraint_dict()
+        for i in model.N:
+            model.gpos_con[i] = pmo.constraint(
+                model.x[i] <= self.M * model.z[i]
+            )
+            model.gneg_con[i] = pmo.constraint(
+                model.x[i] >= -self.M * model.z[i]
+            )
+            model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
+            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= -model.x[i])
+        model.g_con = pmo.constraint(
+            model.g
+            >= (
+                lmbd * sum(model.z[i] for i in model.N)
+                + self.alpha * sum(model.g1_var[i] for i in model.N)
+            )
+        )
