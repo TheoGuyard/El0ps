@@ -149,10 +149,10 @@ class MipSolver(BaseSolver):
         optim = self.initialize_optimizer()
         model = self.build_model(datafit, penalty, A, lmbd)
 
-        if x_init is None:
-            model = model.create()
+        if x_init is not None:
+            assert len(x_init) == A.shape[1]
             for i, xi in enumerate(x_init):
-                model.x[i] = xi
+                model.x[i].set_value(xi)
 
         result = optim.solve(model, warmstart=True)
 

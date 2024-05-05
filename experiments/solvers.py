@@ -17,9 +17,9 @@ from skglm.solvers import AndersonCD
 from typing import Union, get_type_hints
 from numpy.typing import NDArray
 from l0bnb import BNBTree
-from el0ps.datafit import BaseDatafit
-from el0ps.penalty import BasePenalty
-from el0ps.solver import (
+from el0ps.datafits import BaseDatafit
+from el0ps.penalties import BasePenalty
+from el0ps.solvers import (
     BaseSolver,
     BnbSolver,
     BnbOptions,

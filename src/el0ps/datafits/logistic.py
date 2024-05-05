@@ -8,7 +8,7 @@ from .base import MipDatafit, SmoothDatafit
 class Logistic(SmoothDatafit, MipDatafit):
     r"""Logistic datafit function given by
 
-    .. math:: f(x) = \sum_j \log(1 + \exp(-y_j * x_j))
+    .. math:: f(x) = sum(log(1 + exp(-y * x)))
 
     Parameters
     ----------

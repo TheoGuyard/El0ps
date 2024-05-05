@@ -8,7 +8,7 @@ from .base import MipDatafit, SmoothDatafit, StronglyConvexDatafit
 class Leastsquares(SmoothDatafit, StronglyConvexDatafit, MipDatafit):
     r"""Least-squares datafit function given by
 
-    .. math:: f(x) = \sum_j (x_j - y_j)^2 / 2
+    .. math:: f(x) = sum_j (x_j - y_j)^2 / 2
 
     Parameters
     ----------

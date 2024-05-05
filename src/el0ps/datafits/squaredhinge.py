@@ -8,7 +8,7 @@ from .base import MipDatafit, SmoothDatafit
 class Squaredhinge(SmoothDatafit, MipDatafit):
     r"""Squared-Hinge datafit function given by
 
-    .. math:: f(x) = \sum_j \max(1 - y_j * x_j, 0)^2
+    .. math:: f(x) = sum(max(1 - y * x, 0)^2)
 
     Parameters
     ----------

@@ -203,7 +203,11 @@ class BnbSolver(BaseSolver):
         self.iter_count = 0
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
-        self.upper_bound = np.inf
+        self.upper_bound = (
+            datafit.value(A @ self.x) + 
+            lmbd * np.linalg.norm(x_init, 0) +
+            sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
+        )
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver

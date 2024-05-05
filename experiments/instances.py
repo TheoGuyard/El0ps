@@ -7,8 +7,8 @@ from libsvmdata import fetch_libsvm
 from scipy import sparse
 from scipy.fftpack import dct
 from ucimlrepo import fetch_ucirepo
-from el0ps.datafit import *  # noqa
-from el0ps.penalty import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
+from el0ps.datafits import *  # noqa
+from el0ps.penalties import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
 
 
 def acc_score(x_true, x):
