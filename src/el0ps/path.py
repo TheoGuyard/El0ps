@@ -5,9 +5,9 @@ from typing import Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
 from el0ps.utils import compiled_clone, compute_lmbd_max
-from el0ps.datafit import BaseDatafit
-from el0ps.penalty import BasePenalty
-from el0ps.solver import BaseSolver, Result, Status, BnbSolver
+from el0ps.datafits import BaseDatafit
+from el0ps.penalties import BasePenalty
+from el0ps.solvers import BaseSolver, Result, Status, BnbSolver
 
 
 @dataclass

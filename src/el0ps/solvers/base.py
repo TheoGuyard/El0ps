@@ -6,8 +6,8 @@ from enum import Enum
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
 from typing import Union
-from el0ps.datafit import BaseDatafit
-from el0ps.penalty import BasePenalty
+from el0ps.datafits import BaseDatafit
+from el0ps.penalties import BasePenalty
 
 
 class Status(Enum):
@@ -95,8 +95,8 @@ class BaseSolver:
 
         .. math:: \textstyle\min_{x} f(Ax) + \lambda \|x\|_0 + h(x)
 
-        where :math:`f(\cdot)` is a data-fitting function, :math:`A` is a 
-        matrix, :math:`\lambda>0` is the L0-regularization weight and 
+        where :math:`f(\cdot)` is a data-fitting function, :math:`A` is a
+        matrix, :math:`\lambda>0` is the L0-regularization weight and
         :math:`h(\cdot)` is a penalty function.
 
         Parameters

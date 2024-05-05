@@ -7,8 +7,8 @@ from .bnb import (
     BnbOptions,
     BnbSolver,
 )
-from .bounding import BnbBoundingSolver
-from .node import BnbNode
+from .bnb_bound import BnbBoundingSolver
+from .bnb_node import BnbNode
 
 __all__ = [
     "BaseSolver",

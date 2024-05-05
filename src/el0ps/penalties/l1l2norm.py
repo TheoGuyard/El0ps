@@ -1,10 +1,11 @@
 import numpy as np
+import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty
+from .base import BasePenalty, MipPenalty
 
 
-class L1L2norm(BasePenalty):
+class L1L2norm(BasePenalty, MipPenalty):
     r"""L1L2-norm penalty function given by
     :math:`h(x) = \alpha |x| + \beta x^2`, with :math:`\alpha>0` and
     :math:`\beta>0`.
@@ -73,3 +74,29 @@ class L1L2norm(BasePenalty):
 
     def param_maxdom(self, i: int) -> float:
         return np.inf
+
+    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+
+        model.g1_var = pmo.variable_dict()
+        model.g2_var = pmo.variable_dict()
+        for i in model.N:
+            model.g1_var[i] = pmo.variable(domain=pmo.Reals)
+            model.g2_var[i] = pmo.variable(domain=pmo.Reals)
+
+        model.g1pos_con = pmo.constraint_dict()
+        model.g1neg_con = pmo.constraint_dict()
+        model.g2_con = pmo.constraint_dict()
+        for i in model.N:
+            model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
+            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= -model.x[i])
+            model.g2_con[i] = pmo.constraint(
+                model.x[i] ** 2 <= model.g2_var[i] * model.z[i]
+            )
+        model.g_con = pmo.constraint(
+            model.g
+            >= (
+                lmbd * sum(model.z[i] for i in model.N)
+                + self.alpha * sum(model.g1_var[i] for i in model.N)
+                + self.beta * sum(model.g2_var[i] for i in model.N)
+            )
+        )

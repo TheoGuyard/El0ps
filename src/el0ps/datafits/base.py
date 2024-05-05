@@ -1,5 +1,6 @@
 """Base classes for datafit functions and related utilities."""
 
+import pyomo.kernel as pmo
 from abc import abstractmethod
 from numpy.typing import ArrayLike
 
@@ -58,6 +59,27 @@ class BaseDatafit:
         -------
         value: float
             The conjugate value at ``x``.
+        """
+        ...
+
+
+class MipDatafit(BaseDatafit):
+    """Base class for :class:`.datafit.BaseDatafit` that can be modeled into
+    a Mixed-Integer Program."""
+
+    @abstractmethod
+    def bind_model(self, model: pmo.block) -> None:
+        """Bind the datafit function into a pyomo `kernel` model. The model
+        should contain a scalar and unconstrained variable `model.f` as well as
+        a variable `model.w` with size `model.M`. The `bind_model` function
+        binds the following epigraph formulation:
+
+        .. math:: model.f >= self.value(model.w)
+
+        Arguments
+        ---------
+        model: pmo.block
+            The pyomo mixed-integer programming model (kernel model).
         """
         ...
 

@@ -4,8 +4,8 @@ import numpy as np
 from functools import lru_cache
 from numba.experimental import jitclass
 from numpy.typing import ArrayLike
-from el0ps.datafit import SmoothDatafit
-from el0ps.penalty import BasePenalty
+from el0ps.datafits import SmoothDatafit
+from el0ps.penalties import BasePenalty
 
 
 def compute_lmbd_max(

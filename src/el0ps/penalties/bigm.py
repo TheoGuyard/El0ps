@@ -1,10 +1,11 @@
 import numpy as np
+import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty
+from .base import BasePenalty, MipPenalty
 
 
-class Bigm(BasePenalty):
+class Bigm(BasePenalty, MipPenalty):
     r"""Big-M penalty function given by :math:`h(x) = 0` when :math:`|x| <= M`
     and :math:`h(x) = +\infty` otherwise, with :math:`M > 0`.
 
@@ -64,3 +65,17 @@ class Bigm(BasePenalty):
 
     def param_maxdom(self, i: int) -> float:
         return np.inf
+
+    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+        model.gpos_con = pmo.constraint_dict()
+        model.gneg_con = pmo.constraint_dict()
+        for i in model.N:
+            model.gpos_con[i] = pmo.constraint(
+                model.x[i] <= self.M * model.z[i]
+            )
+            model.gneg_con[i] = pmo.constraint(
+                model.x[i] >= -self.M * model.z[i]
+            )
+        model.g_con = pmo.constraint(
+            model.g >= lmbd * sum(model.z[i] for i in model.N)
+        )

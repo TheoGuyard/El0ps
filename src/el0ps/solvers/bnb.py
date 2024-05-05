@@ -1,4 +1,4 @@
-"""Branch-and-Bound solver for L0-penalized problems."""
+"""Branch-and-Bound solver for L0-regularized problems."""
 
 import numpy as np
 import time
@@ -8,12 +8,12 @@ from enum import Enum
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
-from el0ps.datafit import BaseDatafit
-from el0ps.penalty import BasePenalty
-from el0ps.solver import BaseSolver, Result, Status
+from el0ps.datafits import BaseDatafit
+from el0ps.penalties import BasePenalty
+from el0ps.solvers import BaseSolver, Result, Status
 from el0ps.utils import compiled_clone
-from .node import BnbNode
-from .bounding import BnbBoundingSolver
+from .bnb_node import BnbNode
+from .bnb_bound import BnbBoundingSolver
 
 
 class BnbExplorationStrategy(Enum):
