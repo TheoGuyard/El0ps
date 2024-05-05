@@ -2,22 +2,21 @@
 
 from .base import BaseSolver, Result, Status
 from .bnb import (
+    BnbBoundingSolver,
     BnbBranchingStrategy,
     BnbExplorationStrategy,
     BnbOptions,
     BnbSolver,
 )
-from .bnb_bound import BnbBoundingSolver
-from .bnb_node import BnbNode
+from .mip import MipOptions, MipSolver
 
 __all__ = [
     "BaseSolver",
     "Result",
     "Status",
-    "BnbBranchingStrategy",
     "BnbBoundingSolver",
+    "BnbBranchingStrategy",
     "BnbExplorationStrategy",
-    "BnbNode",
     "BnbOptions",
     "BnbSolver",
     "MipOptions",

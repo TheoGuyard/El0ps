@@ -29,7 +29,7 @@ class BnbExplorationStrategy(Enum):
         Best-bound search.
     MIX: str
         Starts with a DFS strategy and switches to a BBS strategy when the
-        relative mip gap is within a factor `mix_threshold` from the target
+        relative mip gap is domain a factor `mix_threshold` from the target
         one.
     """
 
@@ -203,7 +203,7 @@ class BnbSolver(BaseSolver):
         self.iter_count = 0
         self.x = np.copy(x_init)
         self.lower_bound = -np.inf
-        self.upper_bound = self.value(x_init)
+        self.upper_bound = np.inf
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
@@ -235,15 +235,6 @@ class BnbSolver(BaseSolver):
         self.queue.append(root)
 
         self.start_time = time.time()
-
-    def value(self, x: ArrayLike, Ax: Union[ArrayLike, None] = None) -> float:
-        if Ax is None:
-            Ax = self.A @ x
-        return (
-            self.datafit.value(Ax)
-            + self.lmbd * np.linalg.norm(x, 0)
-            + sum(self.penalty.value(i, xi) for i, xi in enumerate(x))
-        )
 
     def print_header(self):
         s = "-" * 68 + "\n"
@@ -417,8 +408,7 @@ class BnbSolver(BaseSolver):
             self.iter_count,
             self.rel_gap,
             self.x,
-            np.array(self.x != 0.0, dtype=float),
-            self.value(self.x),
+            self.upper_bound,
             np.sum(np.abs(self.x) > self.options.int_tol),
             self.trace,
         )

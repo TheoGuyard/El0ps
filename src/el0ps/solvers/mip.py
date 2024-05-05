@@ -81,19 +81,19 @@ class MipSolver(BaseSolver):
         A: ArrayLike,
         lmbd: float,
     ):
-        model = pmo.Block()
-        model.M = range(A.shape[0] - 1)
-        model.N = range(A.shape[1] - 1)
+        model = pmo.block()
+        model.M = range(A.shape[0])
+        model.N = range(A.shape[1])
         model.x = pmo.variable_dict()
         model.z = pmo.variable_dict()
         for i in model.N:
-            model.x[i] = pmo.variable(within=pmo.Reals)
-            model.z[i] = pmo.variable(within=pmo.Binary)
+            model.x[i] = pmo.variable(domain=pmo.Reals)
+            model.z[i] = pmo.variable(domain=pmo.Binary)
         model.w = pmo.variable_dict()
         for j in model.M:
-            model.w[j] = pmo.variable(within=pmo.Reals)
-        model.f = pmo.variable(within=pmo.Reals)
-        model.g = pmo.variable(within=pmo.Reals)
+            model.w[j] = pmo.variable(domain=pmo.Reals)
+        model.f = pmo.variable(domain=pmo.Reals)
+        model.g = pmo.variable(domain=pmo.Reals)
 
         model.w_con = pmo.constraint_dict()
         for j in model.M:
@@ -145,14 +145,14 @@ class MipSolver(BaseSolver):
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
     ):
-        if x_init is None:
-            x_init = np.zeros(A.shape[1])
 
         optim = self.initialize_optimizer()
         model = self.build_model(datafit, penalty, A, lmbd)
 
-        for i, xi in enumerate(x_init):
-            model.x[i] = xi
+        if x_init is None:
+            model = model.create()
+            for i, xi in enumerate(x_init):
+                model.x[i] = xi
 
         result = optim.solve(model, warmstart=True)
 

@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty, MipPenalty
+from .base import MipPenalty
 
 
-class BigmL1norm(BasePenalty, MipPenalty):
+class BigmL1norm(MipPenalty):
     r"""Big-M constraint plus L1-norm penalty function given by
     :math:`h(x) = \alpha |x|` when :math:`|x| <= M` and
     :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and

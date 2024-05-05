@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty, MipPenalty
+from .base import MipPenalty
 
 
-class Bigm(BasePenalty, MipPenalty):
+class Bigm(MipPenalty):
     r"""Big-M penalty function given by :math:`h(x) = 0` when :math:`|x| <= M`
     and :math:`h(x) = +\infty` otherwise, with :math:`M > 0`.
 
