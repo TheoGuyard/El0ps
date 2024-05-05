@@ -37,12 +37,13 @@ def graphic(exp: Experiment, save=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "name", choices=[
+        "name",
+        choices=[
             "relaxquality",
             "perfprofile",
             "regpath",
             "statistics",
-        ]
+        ],
     )
     parser.add_argument("func", choices=["onerun", "graphic"])
     parser.add_argument("config_path")

@@ -17,6 +17,8 @@ from sklearn.model_selection import train_test_split
 sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
 from experiments.instances import (  # noqa
     calibrate_parameters,
+    acc_score,
+    fdr_score,
     f1_score,
     get_data,
 )
@@ -429,15 +431,13 @@ class Statistics(Experiment):
             y_train,
             self.x_true,
         )
-        datafit_test, penalty_test, _, _ = calibrate_parameters(
+        datafit_test, _, _, _ = calibrate_parameters(
             self.config["dataset"]["datafit_name"],
             self.config["dataset"]["penalty_name"],
             A_test,
             y_test,
             self.x_true,
         )
-        datafit_train_compiled = compiled_clone(datafit_train)
-        penalty_train_compiled = compiled_clone(penalty_train)
 
         results = {}
 
@@ -447,6 +447,8 @@ class Statistics(Experiment):
             path = get_relaxed_path(solver_name, self.config["path_opts"])
             result = path.fit(datafit_train, A_train)
             result["f1_score"] = []
+            result["acc_score"] = []
+            result["fdr_score"] = []
             result["train_error"] = []
             result["test_error"] = []
             for x_res in result["x"]:
@@ -456,6 +458,8 @@ class Statistics(Experiment):
                 w_train = A_train @ x
                 w_test = A_test @ x
                 result["f1_score"].append(f1_score(self.x_true, x))
+                result["acc_score"].append(acc_score(self.x_true, x))
+                result["fdr_score"].append(fdr_score(self.x_true, x))
                 result["train_error"].append(datafit_train.value(w_train))
                 result["test_error"].append(datafit_test.value(w_test))
             results[solver_name] = result
@@ -471,19 +475,15 @@ class Statistics(Experiment):
                 solver = get_solver(solver_name, solver_opts)
                 print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
-                if can_handle_compilation(solver_name):
-                    self.precompile_solver(solver)
-                    result = path.fit(
-                        solver,
-                        datafit_train_compiled,
-                        penalty_train_compiled,
-                        A_train,
-                    )
-                else:
-                    result = path.fit(
-                        solver, datafit_train, penalty_train, A_train
-                    )
+                result = path.fit(
+                    solver,
+                    datafit_train,
+                    penalty_train,
+                    A_train,
+                )
                 result["f1_score"] = []
+                result["acc_score"] = []
+                result["fdr_score"] = []
                 result["train_error"] = []
                 result["test_error"] = []
                 for x_res in result["x"]:
@@ -495,6 +495,8 @@ class Statistics(Experiment):
                     w_train = A_train @ x
                     w_test = A_test @ x
                     result["f1_score"].append(f1_score(self.x_true, x))
+                    result["acc_score"].append(acc_score(self.x_true, x))
+                    result["fdr_score"].append(fdr_score(self.x_true, x))
                     result["train_error"].append(datafit_train.value(w_train))
                     result["test_error"].append(datafit_test.value(w_test))
             else:
@@ -509,9 +511,11 @@ class Statistics(Experiment):
         self.nnz_grid = np.array(range(self.config["path_opts"]["max_nnz"]))
         self.stats_specs = {
             "solve_time": {"log": True},
-            "f1_score": {"log": False},
-            "train_error": {"log": True},
-            "test_error": {"log": True},
+            "acc_score": {"log": False},
+            "fdr_score": {"log": False},
+            # "f1_score": {"log": False},
+            "train_error": {"log": False},
+            # "test_error": {"log": True},
         }
 
         stats = {

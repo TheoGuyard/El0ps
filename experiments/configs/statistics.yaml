@@ -22,7 +22,6 @@ dataset:
 solvers:
   solvers_name:
     - el0ps
-    - l0bnb
   solvers_opts:
     time_limit: 600.
     rel_tol   : 1.e-4
@@ -33,6 +32,9 @@ relaxed_solvers:
   - Omp
   - Lasso
   - Enet
+  - L05
+  - Mcp
+  - Scad
 
 path_opts:
   lmbd_ratio_max: 1.e-0
@@ -40,3 +42,4 @@ path_opts:
   lmbd_ratio_num: 101
   stop_if_not_optimal: true
   max_nnz: 20
+  verbose: false
