@@ -192,14 +192,13 @@ class Path:
             The path fitting data stored in ``self.fit_data``.
         """
 
-        if isinstance(datafit, BaseDatafit):
-            datafit = compiled_clone(datafit)
-        if isinstance(penalty, BasePenalty):
-            penalty = compiled_clone(penalty)
-        if not A.flags.f_contiguous:
-            A = np.array(A, order="F")
-
         if isinstance(solver, BnbSolver):
+            if isinstance(datafit, BaseDatafit):
+                datafit = compiled_clone(datafit)
+            if isinstance(penalty, BasePenalty):
+                penalty = compiled_clone(penalty)
+            if not A.flags.f_contiguous:
+                A = np.array(A, order="F")
             solver.options.bounding_skip_setup = True
 
         if self.options.verbose:

@@ -13,11 +13,10 @@ dataset:
 solvers:
   solvers_name:
     - el0ps
-    - el0ps[simpruning=False,dualpruning=False]
+    - mip[optimizer_name=cplex]
+    - mip[optimizer_name=gurobi]
+    - mip[optimizer_name=mosek]
     - l0bnb
-    - cplex
-    - gurobi
-    - mosek
   solvers_opts:
     time_limit: 3600.
     rel_tol   : 1.e-4
