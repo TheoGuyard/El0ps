@@ -7,7 +7,7 @@ requires-python = ">=3.8"
 license = {file = "LICENSE.txt"}
 # keywords = ["sample", "setuptools", "development"]
 authors = [{name = "Theo Guyard", email = "guyard.theo@gmail.com"}]
-dependencies = ["numba", "numpy", "scipy", "cvxpy"]
+dependencies = ["numba", "numpy", "pyomo", "scipy", "cvxpy"]
 
 [project.optional-dependencies]
 dev = ["black", "coverage", "flake8", "furo", "numpydoc", "pydoctest", "pytest", "sphinx"]
