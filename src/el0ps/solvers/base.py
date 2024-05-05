@@ -27,6 +27,9 @@ class Status(Enum):
         The solver found an optimal solution.
     """
 
+    def __str__(self):
+        return str(self.value)
+
     UNKNOWN = "unknown"
     ITER_LIMIT = "iter_limit"
     TIME_LIMIT = "time_limit"

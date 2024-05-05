@@ -5,7 +5,7 @@ import pyomo.environ as pyo
 import pyomo.kernel as pmo
 import sys
 from dataclasses import dataclass
-from typing import Literal, Union
+from typing import Union
 from numpy.typing import ArrayLike
 from pyomo.opt.results import SolverResults
 from el0ps.datafits import MipDatafit
@@ -19,6 +19,9 @@ class MipOptions:
 
     Parameters
     ----------
+    optimizer_name: str = "gurobi"
+        Mixed-Integer Programming optimizer to use. Available options are
+        "cplex", "gurobi", and "mosek".
     time_limit: float
         Mixed-Integer Programming solver time limit in seconds.
     rel_tol: float
@@ -29,7 +32,7 @@ class MipOptions:
         Whether to toggle solver verbosity.
     """
 
-    optimizer_name: Literal["cplex", "gurobi", "mosek"] = "gurobi"
+    optimizer_name: str = "gurobi"
     time_limit: float = float(sys.maxsize)
     rel_tol: float = 1e-4
     int_tol: float = 1e-8
@@ -119,7 +122,7 @@ class MipSolver(BaseSolver):
 
         upper_bound = result.problem.upper_bound
         lower_bound = result.problem.lower_bound
-        iter_count = -1  # TODO: recover number of iterations
+        iter_count = np.nan  # TODO: how to recover this with pyomo?
         solve_time = result.solver.wallclock_time
         abs_gap = np.abs(upper_bound - lower_bound)
         rel_gap = abs_gap / (np.abs(upper_bound) + 1e-10)
