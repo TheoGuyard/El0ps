@@ -1,19 +1,13 @@
 import numpy as np
 from abc import abstractmethod
-from enum import Enum
 from numpy.typing import ArrayLike
+from sklearn.base import ClassifierMixin, _fit_context
 from sklearn.multiclass import check_classification_targets
 from sklearn.linear_model._base import LinearModel
 from sklearn.preprocessing import LabelEncoder
-from sklearn.utils.validation import check_array, check_consistent_length
 from el0ps.solvers import BaseSolver, BnbSolver
 from el0ps.datafits import BaseDatafit
 from el0ps.penalties import BasePenalty
-
-
-class TargetClass(Enum):
-    BINARY = "binary"
-    REGRESSION = "regression"
 
 
 def _fit(
@@ -23,32 +17,33 @@ def _fit(
     X: ArrayLike,
     lmbd: float,
     solver: BaseSolver,
+    skip_validate_data: bool = False,
 ):
+    if not skip_validate_data:
+        if isinstance(estimator, ClassifierMixin):
+            check_classification_targets(datafit.y)
+            enc = LabelEncoder()
+            datafit.y = enc.fit_transform(datafit.y)
+            datafit.y = 2.0 * datafit.y - 1.0
+            if len(enc.classes_) > 2:
+                raise ValueError("Only binary classification is supported")
+            estimator.classes_ = np.unique(datafit.y)
+        else:
+            estimator.classes_ = None
+        check_X_params = dict(dtype=np.float64, order="F")
+        check_y_params = dict(dtype=np.float64, order="F", ensure_2d=False)
+        X, datafit.y = estimator._validate_data(
+            X, datafit.y, validate_separately=(check_X_params, check_y_params)
+        )
+        assert datafit.y.ndim == 1
 
-    # Encode classification targets
-    if estimator.target_class == TargetClass.BINARY:
-        check_classification_targets(datafit.y)
-        enc = LabelEncoder()
-        datafit.y = enc.fit_transform(datafit.y)
-        datafit.y = 2.0 * datafit.y - 1.0
-        if enc.classes_ > 2:
-            raise ValueError("Only binary classification is supported")
-
-    # Validate X and y data types and shapes
-    X = check_array(X, dtype=np.float64, order="F")
-    datafit.y = check_array(
-        datafit.y, dtype=np.float64, order="F", ensure_2d=False
-    )
-    check_consistent_length(X, datafit.y)
-    assert datafit.y.ndim == 1
-
-    # Initialize estimator.coef_ attribute
+    # Initialize estimator.coef_
     if not hasattr(estimator, "coef_"):
         estimator.coef_ = None
     if estimator.coef_ is None:
         estimator.coef_ = np.zeros(X.shape[1])
 
-    # Initialize estimator.intercept_ attribute
+    # Initialize estimator.intercept_
     if not hasattr(estimator, "intercept_"):
         estimator.intercept_ = None
     if estimator.intercept_ is None:
@@ -101,6 +96,7 @@ class BaseL0Estimator(LinearModel):
         self.intercept_ = None
         self.n_iter_ = None
 
+    @_fit_context(prefer_skip_nested_validation=True)
     @abstractmethod
     def fit(self, X: ArrayLike, y: ArrayLike):
         """Fit the estimator.
@@ -113,10 +109,4 @@ class BaseL0Estimator(LinearModel):
         y : ArrayLike, shape (n_samples,)
             Target vector.
         """
-        ...
-
-    @property
-    @abstractmethod
-    def target_class(self) -> TargetClass:
-        """Return the target class of the estimator."""
         ...

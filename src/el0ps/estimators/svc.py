@@ -13,14 +13,13 @@ from el0ps.penalties import (
     L1norm,
     L2norm,
 )
-from .base import BaseL0Estimator, TargetClass, _fit
+from .base import BaseL0Estimator, _fit
 
 
 class BaseL0SVC(BaseL0Estimator, ClassifierMixin):
     """Base class for L0-norm Support Vector Classifier estimators."""
 
-    def target_class(self):
-        return TargetClass.BINARY
+    pass
 
 
 class L0SVC(BaseL0SVC):

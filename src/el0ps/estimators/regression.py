@@ -13,14 +13,13 @@ from el0ps.penalties import (
     L1norm,
     L2norm,
 )
-from .base import BaseL0Estimator, TargetClass, _fit
+from .base import BaseL0Estimator, _fit
 
 
 class BaseL0Regression(BaseL0Estimator, RegressorMixin):
     """Base class for L0-norm regression estimators."""
 
-    def target_class(self):
-        return TargetClass.REGRESSION
+    pass
 
 
 class L0Regression(BaseL0Regression):
