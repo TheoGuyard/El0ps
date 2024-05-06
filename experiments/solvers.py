@@ -791,6 +791,12 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "L1L2norm",
                 "NeglogTriangular",
             ]
+        else:
+            raise ValueError(
+                "Unknown mip optimizer {}".format(
+                    solver_opts["optimizer_name"]
+                )
+            )
     elif solver_name == "l0bnb":
         handle_datafit = datafit_name in ["Leastsquares"]
         handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "L2norm"]
