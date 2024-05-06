@@ -12,6 +12,30 @@ from el0ps.datafits import MipDatafit
 from el0ps.penalties import MipPenalty
 from el0ps.solvers import BaseSolver, Result, Status
 
+_optim_bindings = {
+    "cplex": {
+        "optimizer_name": "cplex_direct",
+        "time_limit": "timelimit",
+        "rel_tol": "mip.tolerances.mipgap",
+        "int_tol": "mip.tolerances.integrality",
+        "verbose": "mip.display",
+    },
+    "gurobi": {
+        "optimizer_name": "gurobi_direct",
+        "time_limit": "TimeLimit",
+        "rel_tol": "MIPGap",
+        "int_tol": "IntFeasTol",
+        "verbose": "OutputFlag",
+    },
+    "mosek": {
+        "optimizer_name": "mosek_direct",
+        "time_limit": "dparam.mio_max_time",
+        "rel_tol": "dparam.mio_tol_rel_gap",
+        "int_tol": "dparam.mio_tol_abs_relax_int",
+        "verbose": "iparam.log",
+    },
+}
+
 
 @dataclass
 class MipOptions:
@@ -49,30 +73,18 @@ class MipSolver(BaseSolver):
         return "MipSolver"
 
     def initialize_optimizer(self):
-        if self.options.optimizer_name == "cplex":
-            optim = pyo.SolverFactory("cplex_direct")
-            optim.options["timelimit"] = self.options.time_limit
-            optim.options["mip.tolerances.mipgap"] = self.options.rel_tol
-            optim.options["mip.tolerances.integrality"] = self.options.int_tol
-            optim.options["mip.display"] = int(self.options.verbose)
-        elif self.options.optimizer_name == "gurobi":
-            optim = pyo.SolverFactory("gurobi_direct")
-            optim.options["TimeLimit"] = self.options.time_limit
-            optim.options["MIPGap"] = self.options.rel_tol
-            optim.options["IntFeasTol"] = self.options.int_tol
-            optim.options["OutputFlag"] = self.options.verbose
-        elif self.options.optimizer_name == "mosek":
-            optim = pyo.SolverFactory("mosek_direct")
-            optim.options["dparam.mio_max_time"] = self.options.time_limit
-            optim.options["dparam.mio_tol_rel_gap"] = self.options.rel_tol
-            optim.options["dparam.mio_tol_abs_relax_int"] = (
-                self.options.int_tol
-            )
-            optim.options["iparam.log"] = int(self.options.verbose)
+        if self.options.optimizer_name in _optim_bindings:
+            bindings = _optim_bindings[self.options.optimizer_name]
+            optim = pyo.SolverFactory(bindings["optimizer_name"])
+            optim.options[bindings["time_limit"]] = self.options.time_limit
+            optim.options[bindings["rel_tol"]] = self.options.rel_tol
+            optim.options[bindings["int_tol"]] = self.options.int_tol
+            optim.options[bindings["verbose"]] = int(self.options.verbose)
         else:
             raise ValueError(
-                "Unsupported optimizer '{}'.".format(
-                    self.options.optimizer_name
+                "Solver {} not supported. Available ones are: {}".format(
+                    self.options.optimizer_name,
+                    _optim_bindings.keys(),
                 )
             )
         return optim
@@ -126,7 +138,12 @@ class MipSolver(BaseSolver):
         solve_time = result.solver.wallclock_time
         abs_gap = np.abs(upper_bound - lower_bound)
         rel_gap = abs_gap / (np.abs(upper_bound) + 1e-10)
-        x = np.array([model.x[i].value for i in model.N])
+        x = np.array(
+            [
+                model.x[i].value if model.x[i].value is not None else 0.0
+                for i in model.N
+            ]
+        )
         n_nnz = np.sum(np.abs(x) > self.options.int_tol)
 
         return Result(
