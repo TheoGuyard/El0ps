@@ -41,4 +41,4 @@ to build the documentation locally.
 [AGPL v3 license](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE).
 Please cite the package as follows:
 
-> A New Branch-and-Bound Pruning Framework for L0-Regularized Problems. Théo Guyard, Cédric Herzet, Clément Elvira,and Ayse-Nur Arslan. In International Conference on Machine Learning. PMLR, 2024.
+> A New Branch-and-Bound Pruning Framework for L0-Regularized Problems. Théo Guyard, Cédric Herzet, Clément Elvira and Ayse-Nur Arslan. In International Conference on Machine Learning. PMLR, 2024.
