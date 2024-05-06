@@ -11,20 +11,15 @@ El0ps
 <!-- [![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://el0ps.github.io) -->
 <!-- [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml) -->
 
-
-`el0ps` is a Python package to solve L0-penalized optimization problems of the form
-
-$$\textstyle\min_x f(Ax) + \lambda\|\|x\|\|_0 + h(x)$$
-
-where $f$ is a datafit function, $A$ is a linear operator, $\lambda>0$ is the L0-regularization weight and $h$ is a penalty function.
-`el0ps` is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
-You can pick from `el0ps`'s already-made datafits and penalties or customize your own by building on top of the available template classes.
+``el0ps`` a Python package providing **generic** and **efficient** solvers for **L0-norm** problems.
+It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving the L0-norm.
+You can use some already-made problem instances of **customize your own** based on several templates and utilities.
 
 
 ## Installation
 
-`el0ps` will be soon available on [pipy](https://pypi.org). 
-It can currently be installed from github as by running the following command.
+`el0ps` will be available on [pypi](https://pypi.org>) soon. The latest version of the package can currently be installed as
+
 
 ```shell
 $ pip install https://github.com/TheoGuyard/El0ps.git
@@ -32,45 +27,13 @@ $ pip install https://github.com/TheoGuyard/El0ps.git
 
 Please report any bug on the [issue](https://github.com/TheoGuyard/El0ps/issues) page.
 Feel free to contribute by opening a [pull request](https://github.com/TheoGuyard/El0ps/pulls).
-The documentation can be built locally using the command
+Use the command
 
 ```shell
 $ sphinx-build -M html docs/source/ docs/build/
 ```
 
-## Getting started
-
-Here is a simple example showing how to solve an instance of L0-penalized problem with a Least-squares datafit and a Big-M constraint penalty for a fixed $\lambda$.
-
-```python
-import numpy as np
-from sklearn.datasets import make_regression
-from el0ps.datafit import Leastsquares
-from el0ps.penalty import Bigm
-from el0ps.solver import BnbSolver
-
-# Generate sparse regression data using scikit-learn
-A, y, x = make_regression(n_samples=50, n_features=100, coef=True)
-M = 10. * np.linalg.norm(x, np.inf)
-
-# Instantiate the problem and solve it using el0ps's BnB solver
-datafit = Leastsquares(y)
-penalty = Bigm(M)
-solver = BnbSolver()
-result = solver.solve(datafit, penalty, A, lmbd=10.)
-```
-
-You can also fit a regularization path, i.e., solve the problem over a range of $\lambda$, as simply as follows.
-
-```python
-from el0ps import Path
-path = Path()
-data = path.fit(solver, datafit, penalty, A)
-```
-
-The documentation references `el0ps`'s already-made datafits and penalties other than the `Leastsquares` and `Bigm` ones.
-It also explains how to create custom datafits and penalties by building on top of the available template classes.
-
+to build the documentation locally.
 
 ## Cite
 
@@ -78,4 +41,4 @@ It also explains how to create custom datafits and penalties by building on top 
 [AGPL v3 license](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE).
 Please cite the package as follows:
 
-> Todo: Add citation
+> A New Branch-and-Bound Pruning Framework for L0-Regularized Problems. Théo Guyard, Cédric Herzet, Clément Elvira,and Ayse-Nur Arslan. In International Conference on Machine Learning. PMLR, 2024.
