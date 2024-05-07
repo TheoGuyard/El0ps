@@ -1,7 +1,7 @@
-﻿el0ps.datafit.Squaredhinge
-==========================
+﻿el0ps.datafits.Squaredhinge
+===========================
 
-.. currentmodule:: el0ps.datafit
+.. currentmodule:: el0ps.datafits
 
 .. autoclass:: Squaredhinge
 
@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~Squaredhinge.__init__
+      ~Squaredhinge.bind_model
       ~Squaredhinge.conjugate
       ~Squaredhinge.get_spec
       ~Squaredhinge.gradient

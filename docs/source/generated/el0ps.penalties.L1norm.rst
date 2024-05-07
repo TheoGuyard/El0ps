@@ -1,7 +1,7 @@
-﻿el0ps.penalty.L1norm
-====================
+﻿el0ps.penalties.L1norm
+======================
 
-.. currentmodule:: el0ps.penalty
+.. currentmodule:: el0ps.penalties
 
 .. autoclass:: L1norm
 

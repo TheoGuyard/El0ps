@@ -10,7 +10,7 @@ from el0ps import __authors__ as authors
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'El0ps'
-copyright = '2023, Theo Guyard'
+copyright = '2024, Theo Guyard'
 author = authors
 release = version
 
@@ -37,4 +37,3 @@ numpydoc_show_class_members = False
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
-html_static_path = ['_static']

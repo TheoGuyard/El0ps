@@ -1,7 +1,7 @@
-﻿el0ps.datafit.Leastsquares
-==========================
+﻿el0ps.datafits.Leastsquares
+===========================
 
-.. currentmodule:: el0ps.datafit
+.. currentmodule:: el0ps.datafits
 
 .. autoclass:: Leastsquares
 
@@ -14,11 +14,13 @@
    .. autosummary::
    
       ~Leastsquares.__init__
+      ~Leastsquares.bind_model
       ~Leastsquares.conjugate
       ~Leastsquares.get_spec
       ~Leastsquares.gradient
       ~Leastsquares.lipschitz_constant
       ~Leastsquares.params_to_dict
+      ~Leastsquares.strong_convexity_constant
       ~Leastsquares.value
    
    

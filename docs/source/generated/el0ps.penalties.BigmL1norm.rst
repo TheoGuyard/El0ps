@@ -1,7 +1,7 @@
-﻿el0ps.penalty.BigmL1norm
-========================
+﻿el0ps.penalties.BigmL1norm
+==========================
 
-.. currentmodule:: el0ps.penalty
+.. currentmodule:: el0ps.penalties
 
 .. autoclass:: BigmL1norm
 
@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~BigmL1norm.__init__
+      ~BigmL1norm.bind_model
       ~BigmL1norm.conjugate
       ~BigmL1norm.conjugate_subdiff
       ~BigmL1norm.get_spec

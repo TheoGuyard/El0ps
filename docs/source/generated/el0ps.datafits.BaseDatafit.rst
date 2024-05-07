@@ -1,7 +1,7 @@
-﻿el0ps.datafit.BaseDatafit
-=========================
+﻿el0ps.datafits.BaseDatafit
+==========================
 
-.. currentmodule:: el0ps.datafit
+.. currentmodule:: el0ps.datafits
 
 .. autoclass:: BaseDatafit
 

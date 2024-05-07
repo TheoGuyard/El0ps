@@ -1,7 +1,7 @@
-﻿el0ps.datafit.Logistic
-======================
+﻿el0ps.datafits.Logistic
+=======================
 
-.. currentmodule:: el0ps.datafit
+.. currentmodule:: el0ps.datafits
 
 .. autoclass:: Logistic
 
@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~Logistic.__init__
+      ~Logistic.bind_model
       ~Logistic.conjugate
       ~Logistic.get_spec
       ~Logistic.gradient

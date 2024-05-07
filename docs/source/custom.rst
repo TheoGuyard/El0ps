@@ -1,7 +1,7 @@
 .. _custom:
 
-=============================
-Custom estimators and solvers
-=============================
+=========================
+Customize you own problem
+=========================
 
 .. todo:: Todo

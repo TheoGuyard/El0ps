@@ -1,7 +1,7 @@
-﻿el0ps.datafit.SmoothDatafit
-===========================
+﻿el0ps.datafits.SmoothDatafit
+============================
 
-.. currentmodule:: el0ps.datafit
+.. currentmodule:: el0ps.datafits
 
 .. autoclass:: SmoothDatafit
 

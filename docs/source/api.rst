@@ -7,7 +7,7 @@ API references
 Datafits
 ========
 
-.. currentmodule:: el0ps.datafit
+.. currentmodule:: el0ps.datafits
 
 .. autosummary::
     :toctree: generated/
@@ -23,7 +23,7 @@ Penalties
 =========
 
 
-.. currentmodule:: el0ps.penalty
+.. currentmodule:: el0ps.penalties
 
 .. autosummary::
     :toctree: generated/
@@ -37,55 +37,55 @@ Penalties
     L1L2norm
 
 
-Solvers
-=======
+.. Solvers
+.. =======
 
-.. currentmodule:: el0ps.solver
+.. .. currentmodule:: el0ps.solvers
 
-.. autosummary::
-    :toctree: generated/
+.. .. autosummary::
+..     :toctree: generated/
 
-    BaseSolver
-    Result
-    Status
-    BnbNode
-    BnbBranchingStrategy
-    BnbExplorationStrategy
-    BnbOptions
-    BnbSolver
-
-
-Bounding
-========
-
-.. currentmodule:: el0ps.solver.bounding
-
-.. autosummary::
-    :toctree: generated/
-
-    BnbBoundingSolver
+..     BaseSolver
+..     Result
+..     Status
+..     BnbNode
+..     BnbBranchingStrategy
+..     BnbExplorationStrategy
+..     BnbOptions
+..     BnbSolver
 
 
-Path
-====
+.. Bounding
+.. ========
 
-.. currentmodule:: el0ps.path
+.. .. currentmodule:: el0ps.solvers.bounding
 
-.. autosummary::
-    :toctree: generated/
+.. .. autosummary::
+..     :toctree: generated/
 
-    Path
-    PathOptions
+..     BnbBoundingSolver
 
 
-Utils
-=====
+.. Path
+.. ====
 
-.. currentmodule:: el0ps.utils
+.. .. currentmodule:: el0ps.path
 
-.. autosummary::
-    :toctree: generated/
+.. .. autosummary::
+..     :toctree: generated/
 
-    compute_lmbd_max
-    compute_param_slope
-    compute_param_limit
+..     Path
+..     PathOptions
+
+
+.. Utils
+.. =====
+
+.. .. currentmodule:: el0ps.utils
+
+.. .. autosummary::
+..     :toctree: generated/
+
+..     compute_lmbd_max
+..     compute_param_slope
+..     compute_param_limit

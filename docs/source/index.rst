@@ -3,52 +3,52 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-=====
-El0ps
-=====
-*-An Exact L0-Problem Solver-*
+=========
+``el0ps``
+=========
+
+*-- An Exact L0-Problem Solver --*
+
+--------
+
+``el0ps`` a Python package providing **generic** and **efficient** solvers for **L0-norm** problems.
+It also implements `scikit-learn <https://scikit-learn.org>`_ compatible estimators involving the L0-norm.
+You can use some already-made problem instances of **customize your own** based on several templates and utilities.
+Get a quick tour of the package with the :ref:`Getting started<getting_started>` page.
 
 
-|Python 3.8+| |Codecov| |License|
+Installation
+------------
 
-``el0ps`` is a Python package to solve optimization problems of the form
+``el0ps`` will be available on `pypi <https://pypi.org>`_ soon. The latest version of the package can currently be installed as
 
-.. math::
+.. code-block:: shell
 
-   \textstyle\min_x f(Ax) + \lambda\|x\|_0 + h(x)
+   $ pip install https://github.com/TheoGuyard/El0ps
 
-where :math:`f` is a datafit function, :math:`A` is a linear operator, :math:`\lambda>0` is the L0-regularization weight and :math:`h` is a penalty function.
-``el0ps`` is designed to be numerically efficient and supports a wide range of datafit and penalty functions.
-You can pick from ``el0ps``'s already-made datafits and penalties or customize your own by building on top of the available template classes.
+Feel free to contribute by report any bug on the `issue <https://github.com/TheoGuyard/El0ps/issues>`_ page or by opening a `pull request <https://github.com/TheoGuyard/El0ps/pulls>`_.
+
+.. note::
+
+   The main features of the package are self contained but some require additional dependencies such as commercial Mixed-Integer Programming solvers.
+   Visit the :ref:`Solvers<solvers>` page for more details.
 
 Cite
 ----
 
-``el0ps`` is distributed under
+This package is distributed under
 `AGPL v3 license <https://github.com/TheoGuyard/El0ps/blob/main/LICENSE>`_.
-Please cite the package as follows:
+Please cite it as follows:
 
-.. todo:: Add citation
+.. code-block:: bibtex
 
-.. .. code-block:: bibtex
-
-..    @inproceedings{skglm,
-..       title     = {},
-..       author    = {},
-..       booktitle = {},
-..       year      = {},
-..    }
-
-
-Documentation tree
-------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   getting_started.rst
-   api.rst
-   .. custom.rst
+   @inproceedings{el0ps2024guyard,
+      title        = {A New Branch-and-Bound Pruning Framework for L0-Regularized Problems},
+      author       = {Guyard, Th{\'e}o and Herzet, C{\'e}dric and Elvira, Cl{\'e}ment and Ayse-Nur Arslan},
+      booktitle    = {International Conference on Machine Learning (ICML)},
+      year         = {2024},
+      organization = {PMLR},
+   }
 
 
 .. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8%2B-blue
@@ -63,3 +63,14 @@ Documentation tree
    :target: https://pypi.org/project/el0ps/
 .. |License| image:: https://img.shields.io/badge/License-AGPL--v3-red.svg
    :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :includehidden:
+
+   getting_started.rst
+   ingredients/ingredients.rst
+   sklearn.rst
+   custom.rst
+   api.rst

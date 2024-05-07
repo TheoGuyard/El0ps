@@ -1,7 +1,7 @@
-﻿el0ps.penalty.L2norm
-====================
+﻿el0ps.penalties.L2norm
+======================
 
-.. currentmodule:: el0ps.penalty
+.. currentmodule:: el0ps.penalties
 
 .. autoclass:: L2norm
 
@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~L2norm.__init__
+      ~L2norm.bind_model
       ~L2norm.conjugate
       ~L2norm.conjugate_subdiff
       ~L2norm.get_spec

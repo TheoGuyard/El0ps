@@ -1,7 +1,7 @@
-﻿el0ps.penalty.BasePenalty
-=========================
+﻿el0ps.penalties.BasePenalty
+===========================
 
-.. currentmodule:: el0ps.penalty
+.. currentmodule:: el0ps.penalties
 
 .. autoclass:: BasePenalty
 
