@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from sklearn.utils.estimator_checks import check_estimator
 from el0ps.datafits import Leastsquares, Logistic, Squaredhinge
 from el0ps.estimators import L0Regression, L0Classification, L0SVC
 from el0ps.penalties import Bigm
@@ -37,6 +38,8 @@ test_data = [
 
 @pytest.mark.parametrize("estimator,A,y", test_data)
 def test_estimator(estimator, A, y):
+    checks = check_estimator(estimator, generate_only=True)
+    assert np.all(checks)
     estimator.fit(A, y)
     y_pred = estimator.predict(A)
     assert estimator.fit_result_.status == Status.OPTIMAL
