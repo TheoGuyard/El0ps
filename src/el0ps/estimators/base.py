@@ -7,7 +7,15 @@ from sklearn.linear_model._base import LinearModel
 from sklearn.preprocessing import LabelEncoder
 from el0ps.solvers import BaseSolver, BnbSolver
 from el0ps.datafits import BaseDatafit
-from el0ps.penalties import BasePenalty
+from el0ps.penalties import (
+    BasePenalty,
+    Bigm,
+    BigmL1norm,
+    BigmL2norm,
+    L1L2norm,
+    L1norm,
+    L2norm,
+)
 
 
 def _fit(
@@ -110,3 +118,28 @@ class BaseL0Estimator(LinearModel):
             Target vector.
         """
         ...
+
+
+def select_bigml1l2_penalty(
+    alpha: float = 0.0, beta: float = 0.0, M: float = np.inf
+):
+    if alpha == 0.0 and beta == 0.0 and M != np.inf:
+        penalty = Bigm(M)
+    elif alpha != 0.0 and beta == 0.0 and M == np.inf:
+        penalty = L1norm(alpha)
+    elif alpha != 0.0 and beta == 0.0 and M != np.inf:
+        penalty = BigmL1norm(M, alpha)
+    elif alpha == 0.0 and beta != 0.0 and M == np.inf:
+        penalty = L2norm(beta)
+    elif alpha == 0.0 and beta != 0.0 and M != np.inf:
+        penalty = BigmL2norm(M, beta)
+    elif alpha != 0.0 and beta != 0.0 and M == np.inf:
+        penalty = L1L2norm(alpha, beta)
+    elif alpha != 0.0 and beta != 0.0 and M != np.inf:
+        raise NotImplementedError("Penalty BigmL1L2norm not implemented yet.")
+    else:
+        raise ValueError(
+            "Setting `alpha=0`, `beta=0` and `M=np.inf` simulteanously is not "
+            "allowed."
+        )
+    return penalty
