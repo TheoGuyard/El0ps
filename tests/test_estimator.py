@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from el0ps.datafits import Leastsquares, Logistic, Squaredhinge
 from el0ps.estimators import L0L1L2Regressor, L0L1L2Classifier, L0L1L2SVC
 from el0ps.penalties import L1L2norm
