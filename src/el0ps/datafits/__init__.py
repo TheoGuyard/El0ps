@@ -1,6 +1,6 @@
 """Data-fidelity functions."""
 
-from .base import BaseDatafit, MipDatafit, SmoothDatafit, StronglyConvexDatafit
+from .base import BaseDatafit, MipDatafit, SmoothDatafit
 from .kullbackleibler import Kullbackleibler
 from .leastsquares import Leastsquares
 from .logcosh import Logcosh
@@ -11,7 +11,6 @@ __all__ = [
     "BaseDatafit",
     "MipDatafit",
     "SmoothDatafit",
-    "StronglyConvexDatafit",
     "Kullbackleibler",
     "Leastsquares",
     "Logcosh",

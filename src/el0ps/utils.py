@@ -33,23 +33,23 @@ def compute_lmbd_max(
     w = np.zeros(A.shape[0])
     v = np.abs(A.T @ datafit.gradient(w))
     i = np.argmax(v)
-    p = penalty.conjugate(i, v[i])
+    p = penalty.conjugate_scalar(i, v[i])
     if p < np.inf:
         lmbd_max = p
     else:
-        lmbd_max = penalty.param_maxval()
+        lmbd_max = penalty.param_maxval_scalar(i)
     return lmbd_max
 
 
-def compute_param_slope(
+def compute_param_slope_scalar(
     penalty: BasePenalty,
     i: int,
     lmbd: float,
     tol: float = 1e-4,
     maxit: int = 100,
 ) -> float:
-    """Utility function to compute the value of `param_slope` in a
-    ``BasePenalty`` instance when no closed-form is available.
+    """Utility function to compute the value of ``param_slope`` in a
+    :class:`.penalties.BasePenalty` instance when no closed-form is available.
 
     Parameters
     ----------
@@ -64,16 +64,16 @@ def compute_param_slope(
     maxit: int = 100
         Maximum number of bisection iterations.
     """
-    if penalty.param_maxval(i) < lmbd:
-        return penalty.param_maxdom(i)
+    if penalty.param_maxval_scalar(i) < lmbd:
+        return penalty.param_maxdom_scalar(i)
     a = 0.0
     b = 1.0
-    while penalty.conjugate(i, b) < lmbd:
+    while penalty.conjugate_scalar(i, b) < lmbd:
         b *= 2.0
     for _ in range(maxit):
         c = (a + b) / 2.0
-        fa = penalty.conjugate(i, a) - lmbd
-        fc = penalty.conjugate(i, c) - lmbd
+        fa = penalty.conjugate_scalar(i, a) - lmbd
+        fc = penalty.conjugate_scalar(i, c) - lmbd
         if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
             return c
         if fc * fa >= 0.0:
@@ -83,9 +83,9 @@ def compute_param_slope(
     return c
 
 
-def compute_param_limit(penalty: BasePenalty, i: int, lmbd: float) -> float:
-    """Utility function to compute the value of `param_limit` in a
-    ``BasePenalty`` instance when no closed-form is available.
+def compute_param_limit_scalar(penalty: BasePenalty, i: int, lmbd: float) -> float:
+    """Utility function to compute the value of ``param_limit_scalar`` in a
+    :class:`.penalties.BasePenalty` instance when no closed-form is available.
 
     Parameters
     ----------
@@ -96,8 +96,80 @@ def compute_param_limit(penalty: BasePenalty, i: int, lmbd: float) -> float:
     lmbd: float
         L0-regularization parameter.
     """
-    return np.max(penalty.conjugate_subdiff(i, penalty.param_slope(i, lmbd)))
+    param_slope_scalar = penalty.param_slope_scalar(i, lmbd)
+    return np.max(penalty.conjugate_subdiff_scalar(i, param_slope_scalar))
 
+
+def compute_param_maxval_scalar(
+    penalty: BasePenalty,
+    i: int,
+    tol: float = 1e-4,
+    maxit: int = 100,
+) -> float:
+    """Utility function to compute the value of ``param_maxval_scalar`` in a
+    :class:`.penalties.BasePenalty` instance when no closed-form is available.
+
+    Parameters
+    ----------
+    penalty: BasePenalty
+        The penalty instance.
+    i: int
+        Index of the splitting term.
+    tol: float = 1e-4
+        Bisection tolerance.
+    maxit: int = 100
+        Maximum number of bisection iterations.
+    """
+    a = 0.0
+    b = 1.0
+    while penalty.conjugate_scalar(i, b) < np.inf:
+        b *= 2.0
+    for _ in range(maxit):
+        if (b - a < tol):
+            return penalty.conjugate_scalar(i, a)
+        c = (a + b) / 2.0
+        fc = penalty.conjugate_scalar(i, c)
+        if fc < np.inf:
+            a = c
+        else:
+            b = c
+    return penalty.conjugate_scalar(i, a)
+
+
+def compute_param_maxdom_scalar(
+    penalty: BasePenalty,
+    i: int,
+    tol: float = 1e-4,
+    maxit: int = 100,
+) -> float:
+    """Utility function to compute the value of ``param_maxdom_scalar`` in a
+    :class:`.penalties.BasePenalty` instance when no closed-form is available.
+
+    Parameters
+    ----------
+    penalty: BasePenalty
+        The penalty instance.
+    i: int
+        Index of the splitting term.
+    tol: float = 1e-4
+        Bisection tolerance.
+    maxit: int = 100
+        Maximum number of bisection iterations.
+    """
+    a = 0.0
+    b = 1.0
+    while penalty.conjugate_scalar(i, b) < np.inf:
+        b *= 2.0
+    for _ in range(maxit):
+        if (b - a < tol):
+            return c
+        c = (a + b) / 2.0
+        fc = penalty.conjugate_scalar(i, c)
+        if fc < np.inf:
+            a = c
+        else:
+            b = c
+    return c
 
 @lru_cache()
 def compiled_clone(instance):

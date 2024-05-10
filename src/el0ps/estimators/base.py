@@ -7,7 +7,16 @@ from sklearn.linear_model._base import LinearModel
 from sklearn.preprocessing import LabelEncoder
 from el0ps.solvers import BaseSolver, BnbSolver
 from el0ps.datafits import BaseDatafit
-from el0ps.penalties import BasePenalty
+from el0ps.penalties import (
+    BasePenalty,
+    Bigm,
+    BigmL1norm,
+    BigmL2norm,
+    BigmL1L2norm,
+    L1L2norm,
+    L1norm,
+    L2norm,
+)
 
 
 def _fit(
@@ -67,13 +76,12 @@ class BaseL0Estimator(LinearModel):
 
     The optimization problem solved is
 
-    .. math::
-        min     f(X @ w) + lmbd ||w||_0 + g(w)
+    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
 
-    where :math:`f` is a datafit term, :math:`g` is a penalty term and
+    where :math:`f` is a datafit term, :math:`h` is a penalty term and
     :math:`lmbd` is the L0-norm weight. The derived classes implement how
     the datafit and penalty terms are defined.
-    """
+    """   # noqa: W605
 
     def __init__(
         self,
@@ -110,3 +118,28 @@ class BaseL0Estimator(LinearModel):
             Target vector.
         """
         ...
+
+
+def select_bigml1l2_penalty(
+    alpha: float = 0.0, beta: float = 0.0, M: float = np.inf
+):
+    if alpha == 0.0 and beta == 0.0 and M != np.inf:
+        penalty = Bigm(M)
+    elif alpha != 0.0 and beta == 0.0 and M == np.inf:
+        penalty = L1norm(alpha)
+    elif alpha != 0.0 and beta == 0.0 and M != np.inf:
+        penalty = BigmL1norm(M, alpha)
+    elif alpha == 0.0 and beta != 0.0 and M == np.inf:
+        penalty = L2norm(beta)
+    elif alpha == 0.0 and beta != 0.0 and M != np.inf:
+        penalty = BigmL2norm(M, beta)
+    elif alpha != 0.0 and beta != 0.0 and M == np.inf:
+        penalty = L1L2norm(alpha, beta)
+    elif alpha != 0.0 and beta != 0.0 and M != np.inf:
+        penalty = BigmL1L2norm(M, alpha, beta)
+    else:
+        raise ValueError(
+            "Setting `alpha=0`, `beta=0` and `M=np.inf` simulteanously is not "
+            "allowed."
+        )
+    return penalty

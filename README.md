@@ -9,9 +9,10 @@ El0ps
 <!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
 <!-- [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml) -->
 
-``el0ps`` a Python package providing **generic** and **efficient** solvers for **L0-norm** problems.
+``el0ps`` is a Python package providing **generic** and **efficient** solvers for **L0-norm** problems.
 It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving the L0-norm.
 You can use some already-made problem instances or **customize your own** based on several templates and utilities.
+
 Check out the [documentation](https://el0ps.github.io) for a starting tour of the package.
 
 ## Installation
@@ -27,58 +28,79 @@ Feel free to contribute by reporting any bug on the [issue](https://github.com/T
 
 ## Quick start
 
-`el0ps` solves L0-norm optimization problems involving a datafit and a penalty function.
+``el0ps`` addresses optimization problems expressed as
+
+$$\tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
+
+where $f(\cdot)$ is a *datafit* function, $h(\cdot)$ is a *penalty* function, $\mathbf{A} \in \mathbb{R}^{m \times n}$ is a matrix and $\lambda>0$ is an hyperparameter.
+The package provides efficient solvers for this family of problems, methods to fit regularization paths and other utilities.
 
 ### Create and solve problem instances
 
 An instance can be created and solved as simply as follows.
 
 ```python
-from sklearn.datasets import make_regression
+import numpy as np
 from el0ps.datafits import Leastsquares
 from el0ps.penalties import L2norm
 from el0ps.solvers import BnbSolver
 
-# Target problem: min_x f(Ax) + lmbd * ||x||_0 + h(x)
+# Generate random data
+A = np.random.randn(50, 100)
+y = np.random.randn(50)
 
-# Define the problem data
-A, y = make_regression()   # sparse regression data y ~ Ax
-datafit = Leastsquares(y)  # function f(Ax) = (1/2) * ||y - Ax||_2^2
-penalty = L2norm(alpha=1.) # function  h(x) = alpha * ||x||_2^2
+# Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
+datafit = Leastsquares(y)
 
-# Solve the problem using a Branch-and-Bound solver
+# Instantiate the function h(x) = alpha * ||x||_2^2
+penalty = L2norm(alpha=0.1)
+
+# Solve the problem with el0ps' Branch-and-Bound solver
 solver = BnbSolver()
-result = solver.solver(datafit, penalty, A, lmbd=0.1)
+result = solver.solve(datafit, penalty, A, lmbd=10.)
 ```
 
-You can use some already-made datafits and penalties or **customize your own** based on template classes.
+You can pass various options to the solver and once the problem is solved, you can recover different quantities such as the solver status, the solution or the optimal value of the problem from the ``result`` variable.
 
-### Fit regularization paths
 
-`el0ps` provides utilities to solve a sequence of problems with varying values of $\lambda$ through regularization paths.
+### Fitting regularization paths
+
+You can also fit a regularization path where problem $(\mathcal{P})$ is solved over a grid of $\lambda$.
+Fitting a path with `lmbd_num` different values of this parameter logarithmically spaced from some `lmbd_max` to some `lmbd_min` can be simply done as follows.
+
 
 ```python
-from el0ps.path import Path
+from el0ps import Path
 
-# Solve the problem over 100 values of lmbd from 1e2 to 1e-2
-path = Path(lmbd_max=1e2, lmbd_min=1e-2, lmbd_num=100)
-path.fit(solver, datafit, penalty, A)
+path = Path(lmbd_max=1e2, lmbd_min=1e-3, lmbd_num=100)
+data = path.fit(solver, datafit, penalty, A)
 ```
+
+Once the path is fitted, you can recover different statistics `data` variable such as the number of non-zeros in the solution, the datafit value or the solution time.
+Various other options can be passed to the path object.
+An option of interest is the `lmbd_scaled` which is `False` by default.
+When setting `lmbd_scaled=True`, the values of the parameter $\lambda$ are scaled so that the first solution constructed in the path when `lmbd=lmbd_max` correponds to the all-zero vector. 
+
 
 ### `scikit-learn` estimators
 
-`el0ps` also provides [scikit-learn](https://scikit-learn.org>) compatible estimators to use in a pipeline.
+`el0ps` also provides [scikit-learn](https://scikit-learn.org>) compatible estimators based on problem $(\mathcal{P})$.
+They can be used similarly to any other estimator in the package pipeline as follows.
 
 ```python
+from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from el0ps.estimators import L0L2Regression
+from el0ps.estimators import L0Regressor
 
-# Create training and testing data
+# Generate sparse regression data
+A, y = make_regression(n_samples=100, n_features=1000)
+
+# Split training and testing sets
 A_train, A_test, y_train, y_test = train_test_split(A, y)
 
-# Initialize a regerssion with L0L2-norm regularization (Leastsquares datafit and L2norm penalty)
-estimator = L0L2Regression(lmbd=0.1, alpha=1.)
+# Initialize a regerssor with L0-norm regularization
+estimator = L0Regression(lmbd=0.1)
 
 # Fit and score the estimator manually ...
 estimator.fit(A_train, y_train)
@@ -90,7 +112,7 @@ pipeline.fit(A_train, y_train)
 pipeline.score(A_test, y_test)
 ```
 
-You can also build your own estimators upon used-defined datafits and penalties.
+Like datafit and penalty functions, you can build your own estimators.
 
 
 ## Cite

@@ -63,30 +63,9 @@ class BaseDatafit:
         ...
 
 
-class MipDatafit(BaseDatafit):
-    """Base class for :class:`.datafit.BaseDatafit` that can be modeled into
-    a Mixed-Integer Program."""
-
-    @abstractmethod
-    def bind_model(self, model: pmo.block) -> None:
-        """Bind the datafit function into a pyomo `kernel` model. The model
-        should contain a scalar and unconstrained variable `model.f` as well as
-        a variable `model.w` with size `model.M`. The `bind_model` function
-        binds the following epigraph formulation:
-
-        .. math:: model.f >= self.value(model.w)
-
-        Arguments
-        ---------
-        model: pmo.block
-            The pyomo mixed-integer programming model (kernel model).
-        """
-        ...
-
-
 class SmoothDatafit(BaseDatafit):
-    """Base class for differentiable :class:`.datafit.BaseDatafit` functions
-    with a Lipschitz-continuous gradient."""
+    """Base class for differentiable datafit functions with Lipschitz
+    continuous gradient."""
 
     @abstractmethod
     def lipschitz_constant(self) -> float:
@@ -116,17 +95,20 @@ class SmoothDatafit(BaseDatafit):
         ...
 
 
-class StronglyConvexDatafit(BaseDatafit):
-    """Base class for strongly convex :class:`.datafit.BaseDatafit`
-    functions."""
+class MipDatafit:
+    """Base class for datafit functions that can be modeled into a
+    Mixed-Integer Program."""
 
     @abstractmethod
-    def strong_convexity_constant(self) -> float:
-        """Strong convexity constant of the function.
+    def bind_model(self, model: pmo.block) -> None:
+        """Bind the datafit function into a pyomo kernel model. The model
+        should contain a scalar and unconstrained variable `model.f` as well as
+        a variable `model.w` with size `model.M`. The `bind_model` function
+        binds the epigraph formulation `model.f >= self.value(model.w)`.
 
-        Returns
-        -------
-        S: float
-            The strong convexity constant of the function.
+        Arguments
+        ---------
+        model: pmo.block
+            The pyomo mixed-integer programming model (kernel model).
         """
         ...

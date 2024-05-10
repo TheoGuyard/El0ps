@@ -5,9 +5,11 @@ from .base import SmoothDatafit
 
 
 class Kullbackleibler(SmoothDatafit):
-    r"""Kullback-Leibler datafit function given by
+    r"""Kullback-Leibler datafit function.
 
-    .. math:: f(x) = \sum_j y_j \log(y_j / (x_j + e)) + x_j + e - y_j
+    The function is defined as
+
+    .. math:: f(x) = \textstyle\sum_j y_j \log(\frac{y_j}{x_j + e}) + (x_j + e) - y_j
 
     where ``e`` is a smoothing parameter.
 
@@ -15,11 +17,11 @@ class Kullbackleibler(SmoothDatafit):
     ----------
     y: ArrayLike
         Data vector.
-    e: float = 1e-6
-        Smoothing parameter, positive.
-    """
+    e: float = 1e-8
+        Positive smoothing parameter.
+    """  # noqa: E501
 
-    def __init__(self, y: ArrayLike, e: float = 1e-6) -> None:
+    def __init__(self, y: ArrayLike, e: float = 1e-8) -> None:
         self.y = y
         self.e = e
         self.L = np.max(y) / e**2

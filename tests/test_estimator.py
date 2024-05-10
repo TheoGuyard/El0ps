@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from sklearn.utils.estimator_checks import check_estimator
 from el0ps.datafits import Leastsquares, Logistic, Squaredhinge
-from el0ps.estimators import L0Regression, L0Classification, L0SVC
+from el0ps.estimators import L0Regressor, L0Classifier, L0SVC
 from el0ps.penalties import Bigm
 from el0ps.solvers import Status
 from el0ps.utils import compute_lmbd_max
@@ -30,8 +30,8 @@ lmbd_svc = lmbd_factor * compute_lmbd_max(
 
 # TODO: test other estimators
 test_data = [
-    (L0Classification(lmbd_cls, M_cls), A_cls, y_cls),
-    (L0Regression(lmbd_reg, M_reg), A_reg, y_reg),
+    (L0Classifier(lmbd_cls, M_cls), A_cls, y_cls),
+    (L0Regressor(lmbd_reg, M_reg), A_reg, y_reg),
     (L0SVC(lmbd_svc, M_svc), A_svc, y_svc),
 ]
 

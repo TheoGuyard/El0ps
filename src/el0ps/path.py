@@ -12,18 +12,22 @@ from el0ps.solvers import BaseSolver, Result, Status, BnbSolver
 
 @dataclass
 class PathOptions:
-    """``Path`` options.
+    """:class:`.path.Path` options.
 
     Parameters
     ----------
-    lmbd_ratio_max: float = 1e-0
-        Maximum value of ``lmbd/lmbd_max`` in the path. The value ``lmbd_max``
-        is computed using the :func:`.compute_lmbd_max` function.
-    lmbd_ratio_min: float = 1e-2
-        Minimum value of ``lmbd/lmbd_max`` in the path. The value ``lmbd_max``
-        is computed using the :func:`.compute_lmbd_max` function.
-    lmbd_ratio_num: int = 10
-        Number of different values of ``lmbd`` in the path.
+    lmbd_max: float = 1e-0
+        Maximum value of ``lmbd`` in the path.
+    lmbd_min: float = 1e-2
+        Minimum value of ``lmbd`` in the path.
+    lmbd_num: int = 10
+        Number of values of ``lmbd`` in the path.
+    lmbd_scaled: bool = False
+        If false, the values of :math:`\lambda` in the path are scaled by a
+        factor :math:`\lambda_{\max}` so that when `\lambda=1`, the solution
+        to the problem is the all-zero vector. The value of
+        :math:`\lambda_{\max}` is computed using the
+        :func:`.utils.compute_lmbd_max` function.
     max_nnz: int = sys.maxsize
         Stop the path fitting when a solution with more than ``max_nnz``
         non-zero coefficients is found.
@@ -32,11 +36,12 @@ class PathOptions:
         not solved to optimality.
     verbose: bool = True
         Toogle displays during path fitting.
-    """
+    """   # noqa: W605
 
-    lmbd_ratio_max: float = 1e-0
-    lmbd_ratio_min: float = 1e-2
-    lmbd_ratio_num: int = 10
+    lmbd_max: float = 1e-0
+    lmbd_min: float = 1e-2
+    lmbd_num: int = 10
+    lmbd_scaled: bool = False
     max_nnz: int = sys.maxsize
     stop_if_not_optimal: bool = True
     verbose: bool = True
@@ -53,48 +58,55 @@ class PathOptions:
 
     def __post_init__(self):
         self._validate_types()
-        if not 0.0 <= self.lmbd_ratio_min <= self.lmbd_ratio_max <= 1.0:
+        if not 0.0 <= self.lmbd_min <= self.lmbd_max:
             raise ValueError(
-                "Parameters must satisfy "
-                "`0 <= lmbd_ratio_min <= lmbd_ratio_max <= 1`."
+                "Parameters must satisfy `0 <= lmbd_min <= lmbd_max`."
             )
-        if not self.lmbd_ratio_num >= 0.0:
-            raise ValueError("Parameters `lmbd_ratio_num` must be positive.")
+        if not self.lmbd_num >= 0.0:
+            raise ValueError("Parameters `lmbd_num` must be positive.")
+        if self.lmbd_scaled and self.lmbd_max > 1:
+            raise ValueError(
+                "Parameters must satisfy `lmbd_max<=1` if `lmbd_scaled=True`."
+            )
         if not self.max_nnz >= 0.0:
             raise ValueError("Parameters max_nnz must be positive.")
 
 
 class Path:
-    """L0-regularization path.
+    """Path fitting for L0-regularized problems.
 
-    The L0-regularization path corresponds to different solutions of an
-    L0-penalized problem when the regularization parameter ``lmbd`` is varied.
+    The optimization problem considered is
+
+    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
+
+    where :math:`f` is a datafit term, :math:`h` is a penalty term and
+    :math:`\lambda` is the L0-norm weight. It is solved for a range of values
+    of the parameter :math:`\lambda`.
 
     Parameters
     ----------
     kwargs: dict
-        Path options passed to :class:`path.PathOptions`.
+        Path options passed to :class:`.path.PathOptions`.
 
     Attributes
     ----------
     options: PathOptions
         Path options.
     fit_data: dict
-        Path fitting data, see `_path_keys` attributes for the keys considered.
-    """
+        Path fitting data.
+    """   # noqa: W605
 
-    _path_hstr = "   ratio   status     time    nodes  obj. val  los. val  pen. val  n-zero"  # noqa: E501
+    _path_hstr = "   lmbda   status     time    nodes  obj. val  los. val  pen. val  n-zero"  # noqa: E501
     _path_fstr = (
         "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2e}  {:>7.2e}  {:>7.2e} {:>7}"
     )
     _path_keys = [
-        "lmbd_ratio",
+        "lmbd",
         "status",
         "solve_time",
         "iter_count",
         "rel_gap",
         "x",
-        "lmbd_value",
         "objective_value",
         "datafit_value",
         "penalty_value",
@@ -114,7 +126,7 @@ class Path:
             *[
                 self.fit_data[k][-1]
                 for k in [
-                    "lmbd_ratio",
+                    "lmbd",
                     "status",
                     "solve_time",
                     "iter_count",
@@ -142,7 +154,6 @@ class Path:
 
     def fill_fit_data(
         self,
-        lmbd_ratio: float,
         datafit: JitClassType,
         penalty: JitClassType,
         A: ArrayLike,
@@ -150,21 +161,12 @@ class Path:
         results: Result,
     ) -> None:
         for k in self._path_keys:
-            if k == "lmbd_ratio":
-                self.fit_data[k].append(lmbd_ratio)
-            elif k == "lmbd_value":
+            if k == "lmbd":
                 self.fit_data[k].append(lmbd)
             elif k == "datafit_value":
                 self.fit_data[k].append(datafit.value(A @ results.x))
             elif k == "penalty_value":
-                self.fit_data[k].append(
-                    np.sum(
-                        [
-                            penalty.value(i, xi)
-                            for i, xi in enumerate(results.x)
-                        ]
-                    )
-                )
+                self.fit_data[k].append(penalty.value(results.x))
             else:
                 self.fit_data[k].append(getattr(results, k))
 
@@ -204,19 +206,19 @@ class Path:
         if self.options.verbose:
             self.display_path_head()
 
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.options.lmbd_ratio_max),
-            np.log10(self.options.lmbd_ratio_min),
-            self.options.lmbd_ratio_num,
+        lmbd_grid = np.logspace(
+            np.log10(self.options.lmbd_max),
+            np.log10(self.options.lmbd_min),
+            self.options.lmbd_num,
         )
-        lmbd_max = compute_lmbd_max(datafit, penalty, A)
+        if self.options.lmbd_scaled:
+            lmbd_grid *= compute_lmbd_max(datafit, penalty, A)
         x_init = np.zeros(A.shape[1])
 
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
+        for lmbd in lmbd_grid:
             results = solver.solve(datafit, penalty, A, lmbd, x_init)
             x_init = np.copy(results.x)
-            self.fill_fit_data(lmbd_ratio, datafit, penalty, A, lmbd, results)
+            self.fill_fit_data(datafit, penalty, A, lmbd, results)
             if self.options.verbose:
                 self.display_path_info()
             if not self.can_continue():

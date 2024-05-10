@@ -15,6 +15,6 @@ def test_path():
     penalty = Bigm(M)
     solver = BnbSolver()
 
-    path = Path(lmbd_ratio_max=1e-0, lmbd_ratio_min=1e-1, lmbd_ratio_num=10)
+    path = Path(lmbd_max=1e-0, lmbd_min=1e-1, lmbd_num=10, lmbd_scaled=True)
     fit = path.fit(solver, datafit, penalty, A)
     assert np.all(status == Status.OPTIMAL for status in fit["status"])

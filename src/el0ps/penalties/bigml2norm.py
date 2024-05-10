@@ -2,26 +2,31 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import MipPenalty
+from .base import BasePenalty, MipPenalty
 
 
-class BigmL2norm(MipPenalty):
-    r"""Big-M constraint plus L2-norm penalty function given by
-    :math:`h(x) = \alpha x^2` when :math:`|x| <= M` and
-    :math:`h(x) = +\infty` otherwise, with :math:`M > 0` and
-    :math:`\alpha > 0`.
+class BigmL2norm(BasePenalty, MipPenalty):
+    r"""Big-M constraint plus L2-norm penalty function.
+
+    The function is defined as
+
+    .. math:: h(x) = \beta \|x\|_2^2 + \mathbb{I}(\|x\|_{\infty} \leq M)
+
+    where :math:`\mathbb{I}(\cdot)` is the convex indicator function,
+    :math:`\beta > 0` and :math:`M > 0`.
+
 
     Parameters
     ----------
     M: float
         Big-M value.
-    alpha: float
+    beta: float
         L2-norm weight.
     """
 
-    def __init__(self, M: float, alpha: float) -> None:
+    def __init__(self, M: float, beta: float) -> None:
         self.M = M
-        self.alpha = alpha
+        self.beta = beta
 
     def __str__(self) -> str:
         return "BigmL2norm"
@@ -29,55 +34,55 @@ class BigmL2norm(MipPenalty):
     def get_spec(self) -> tuple:
         spec = (
             ("M", float64),
-            ("alpha", float64),
+            ("beta", float64),
         )
         return spec
 
     def params_to_dict(self) -> dict:
-        return dict(M=self.M, alpha=self.alpha)
+        return dict(M=self.M, beta=self.beta)
 
-    def value(self, i: int, x: float) -> float:
-        return self.alpha * x**2 if np.abs(x) <= self.M else np.inf
+    def value_scalar(self, i: int, x: float) -> float:
+        return self.beta * x**2 if np.abs(x) <= self.M else np.inf
 
-    def conjugate(self, i: int, x: float) -> float:
-        r = np.maximum(np.minimum(x / (2.0 * self.alpha), self.M), -self.M)
-        return x * r - self.alpha * r**2
+    def conjugate_scalar(self, i: int, x: float) -> float:
+        r = np.maximum(np.minimum(x / (2.0 * self.beta), self.M), -self.M)
+        return x * r - self.beta * r**2
 
-    def prox(self, i: int, x: float, eta: float) -> float:
-        v = x / (1.0 + 2.0 * eta * self.alpha)
+    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+        v = x / (1.0 + 2.0 * eta * self.beta)
         return np.maximum(np.minimum(v, self.M), -self.M)
 
-    def subdiff(self, i: int, x: float) -> ArrayLike:
+    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
         if np.abs(x) < self.M:
-            s = 2.0 * self.alpha * x
+            s = 2.0 * self.beta * x
             return [s, s]
         elif x == -self.M:
-            return [-np.inf, 2.0 * self.alpha * x]
+            return [-np.inf, 2.0 * self.beta * x]
         elif x == self.M:
-            return [2.0 * self.alpha * x, np.inf]
+            return [2.0 * self.beta * x, np.inf]
         else:
             return [np.nan, np.nan]
 
-    def conjugate_subdiff(self, i: int, x: float) -> ArrayLike:
-        s = np.maximum(np.minimum(x / (2.0 * self.alpha), self.M), -self.M)
+    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+        s = np.maximum(np.minimum(x / (2.0 * self.beta), self.M), -self.M)
         return [s, s]
 
-    def param_slope(self, i: int, lmbd: float) -> float:
-        if lmbd < self.alpha * self.M**2:
-            return np.sqrt(4.0 * lmbd * self.alpha)
+    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+        if lmbd < self.beta * self.M**2:
+            return np.sqrt(4.0 * lmbd * self.beta)
         else:
-            return (lmbd / self.M) + self.alpha * self.M
+            return (lmbd / self.M) + self.beta * self.M
 
-    def param_limit(self, i: int, lmbd: float) -> float:
-        if lmbd < self.alpha * self.M**2:
-            return np.sqrt(lmbd / self.alpha)
+    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+        if lmbd < self.beta * self.M**2:
+            return np.sqrt(lmbd / self.beta)
         else:
             return self.M
 
-    def param_maxval(self, i: int) -> float:
+    def param_maxval_scalar(self, i: int) -> float:
         return np.inf
 
-    def param_maxdom(self, i: int) -> float:
+    def param_maxdom_scalar(self, i: int) -> float:
         return np.inf
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
@@ -103,6 +108,6 @@ class BigmL2norm(MipPenalty):
             model.g
             >= (
                 lmbd * sum(model.z[i] for i in model.N)
-                + self.alpha * sum(model.g1_var[i] for i in model.N)
+                + self.beta * sum(model.g1_var[i] for i in model.N)
             )
         )

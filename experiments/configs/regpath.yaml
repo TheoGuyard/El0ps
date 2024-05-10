@@ -24,7 +24,8 @@ solvers:
     verbose   : false
 
 path_opts:
-  lmbd_ratio_max: 1.e-0
-  lmbd_ratio_min: 1.e-5
-  lmbd_ratio_num: 101
+  lmbd_max: 1.e-0
+  lmbd_min: 1.e-5
+  lmbd_num: 101
+  lmbd_scaled: true
   stop_if_not_optimal: true

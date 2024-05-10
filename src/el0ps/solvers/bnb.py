@@ -57,7 +57,7 @@ class BnbBranchingStrategy(Enum):
 
 @dataclass
 class BnbOptions:
-    """:class:`.solver.BnbSolver` options.
+    """:class:`.solvers.BnbSolver` options.
 
     Parameters
     ----------
@@ -111,7 +111,7 @@ class BnbSolver(BaseSolver):
     """Branch-and-Bound solver for L0-penalized problems."""
 
     _trace_keys = [
-        "solve_time",
+        "timer",
         "iter_count",
         "queue_length",
         "lower_bound",
@@ -157,8 +157,8 @@ class BnbSolver(BaseSolver):
         )
 
     @property
-    def solve_time(self):
-        """Solver solve time in seconds."""
+    def timer(self):
+        """Elapsed time from the start time."""
         return time.time() - self.start_time
 
     @property
@@ -168,6 +168,7 @@ class BnbSolver(BaseSolver):
 
     @property
     def supp_left(self):
+        """Number of support left to explore."""
         if len(self.queue) == 0:
             return 0.0
         return sum(
@@ -206,7 +207,7 @@ class BnbSolver(BaseSolver):
         self.upper_bound = (
             datafit.value(A @ self.x)
             + lmbd * np.linalg.norm(x_init, 0)
-            + sum(penalty.value(i, xi) for i, xi in enumerate(self.x))
+            + penalty.value(self.x)
         )
         self.trace = {key: [] for key in self._trace_keys}
 
@@ -259,7 +260,7 @@ class BnbSolver(BaseSolver):
     def print_progress(self, node: BnbNode):
         s = "|"
         s += " {:>6d}".format(self.iter_count)
-        s += " {:>6.2f}".format(self.solve_time)
+        s += " {:>6.2f}".format(self.timer)
         s += " {:>5d}".format(node.card_S0)
         s += " {:>5d}".format(node.card_S1)
         s += " {:>5d}".format(node.card_Sb)
@@ -275,7 +276,7 @@ class BnbSolver(BaseSolver):
         print(s)
 
     def can_continue(self):
-        if self.solve_time >= self.options.time_limit:
+        if self.timer >= self.options.time_limit:
             self.status = Status.TIME_LIMIT
         elif self.iter_count >= self.options.iter_limit:
             self.status = Status.ITER_LIMIT
@@ -408,7 +409,7 @@ class BnbSolver(BaseSolver):
 
         return Result(
             self.status,
-            self.solve_time,
+            self.timer,
             self.iter_count,
             self.rel_gap,
             self.x,
