@@ -20,7 +20,7 @@ class L0L1L2SVC(BaseL0SVC):
     The optimization problem solved is
 
     .. math::
-    
+
         \min        & \ \ \textstyle \|[1 - y \odot Xw]_+\|_2^2 + \lambda \|w\|_0 + \alpha \|w\|_1 + \beta \|w\|_2^2 \\
         \text{s.t.} & \ \ \|w\|_{\infty} \leq M
 
