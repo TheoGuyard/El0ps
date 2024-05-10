@@ -23,7 +23,7 @@ $ pip install pytest
 $ pytest -v
 ```
 
-> **_NOTE:_** When running experiments requiring the mixed-integer programming solvers [CPLEX](https://www.ibm.com/analytics/cplex-optimizer), [Gurobi](https://www.gurobi.com) or [Mosek](https://www.mosek.com), you need to have installed it priorly and have a valid license.
+When running experiments requiring the mixed-integer programming solvers [CPLEX](https://www.ibm.com/analytics/cplex-optimizer), [Gurobi](https://www.gurobi.com) or [Mosek](https://www.mosek.com), you need to have installed it priorly and have a valid license.
 
 ## Running experiments
 
@@ -38,11 +38,11 @@ The option `--save` allows saving the results of the experiment in the `results`
 Graphics can be generated from saved experiments matching a given configuration using the command
 
 ```shell
-$ python experiments/run.py <experiment_name> graphic <path_to_setup_file>
+$ python experiments/run.py <experiment_name> graphic <path_to_setup_file> --save
 ```
 
 and the option `--save` allows saving the results of the experiment in the `saves` folder.
-Examples of configuration files can be found in the `experiments/icml` folder.
+Examples of configuration files can be found in the `experiments/configs` folder.
 
 ## Available experiments
 
