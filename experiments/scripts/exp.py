@@ -82,9 +82,10 @@ def get_exp_regpath():
             },
         },
         "path_opts": {
-            "lmbd_ratio_max": 1.0e-0,
-            "lmbd_ratio_min": 1.0e-5,
-            "lmbd_ratio_num": 101,
+            "lmbd_max": 1.0e-0,
+            "lmbd_min": 1.0e-5,
+            "lmbd_num": 101,
+            "lmbd_scaled": True,
             "stop_if_not_optimal": True,
         },
     }
@@ -165,9 +166,10 @@ def get_exp_statistics():
         },
         "relaxed_solvers": ["Omp", "Lasso", "Enet", "L05", "Mcp", "Scad"],
         "path_opts": {
-            "lmbd_ratio_max": 1.0e-0,
-            "lmbd_ratio_min": 1.0e-5,
-            "lmbd_ratio_num": 101,
+            "lmbd_max": 1.0e-0,
+            "lmbd_min": 1.0e-5,
+            "lmbd_num": 101,
+            "lmbd_scaled": True,
             "stop_if_not_optimal": True,
             "max_nnz": 20,
             "verbose": False,

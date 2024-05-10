@@ -75,7 +75,7 @@ class BaseRegfunc:
         ...
 
     @abstractmethod
-    def value(self, i: int, lmbd: float, x: float) -> float:
+    def value_scalar(self, i: int, lmbd: float, x: float) -> float:
         """Value of the i-th splitting term of the function at ``x``.
 
         Parameters
@@ -95,7 +95,7 @@ class BaseRegfunc:
         ...
 
     @abstractmethod
-    def conjugate(self, i: int, lmbd: float, x: float) -> float:
+    def conjugate_scalar(self, i: int, lmbd: float, x: float) -> float:
         """Value of the i-th splitting term the conjugate of the function at
         ``x``.
 
@@ -117,7 +117,7 @@ class BaseRegfunc:
         ...
 
     @abstractmethod
-    def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+    def prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
         """Proximity operator of ``eta`` times the i-th splitting term the
         function at ``x``.
 
@@ -141,7 +141,7 @@ class BaseRegfunc:
         ...
 
     @abstractmethod
-    def subdiff(self, i: int, lmbd: float, x: float) -> tuple:
+    def subdiff_scalar(self, i: int, lmbd: float, x: float) -> tuple:
         """Subdifferential operator of the i-th splitting term the function at
         ``x``.
 
@@ -183,36 +183,36 @@ class ConvexRegfunc(BaseRegfunc):
     def params_to_dict(self) -> dict:
         return dict(penalty=self.penalty)
 
-    def value(self, i: int, lmbd: float, x: float) -> float:
+    def value_scalar(self, i: int, lmbd: float, x: float) -> float:
         z = np.abs(x)
-        if z <= self.penalty.param_limit(i, lmbd):
-            return self.penalty.param_slope(i, lmbd) * z
+        if z <= self.penalty.param_limit_scalar(i, lmbd):
+            return self.penalty.param_slope_scalar(i, lmbd) * z
         else:
-            return lmbd + self.penalty.value(i, x)
+            return lmbd + self.penalty.value_scalar(i, x)
 
-    def conjugate(self, i: int, lmbd: float, x: float) -> float:
-        return np.maximum(self.penalty.conjugate(i, x) - lmbd, 0.0)
+    def conjugate_scalar(self, i: int, lmbd: float, x: float) -> float:
+        return np.maximum(self.penalty.conjugate_scalar(i, x) - lmbd, 0.0)
 
-    def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
-        s = self.penalty.param_slope(i, lmbd)
+    def prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
+        s = self.penalty.param_slope_scalar(i, lmbd)
         z = np.abs(x)
         if z <= eta * s:
             return 0.0
-        elif z <= eta * s + self.penalty.param_limit(i, lmbd):
+        elif z <= eta * s + self.penalty.param_limit_scalar(i, lmbd):
             return x - eta * s * np.sign(x)
         else:
-            return self.penalty.prox(i, x, eta)
+            return self.penalty.prox_scalar(i, x, eta)
 
-    def subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
+    def subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
         z = np.abs(x)
         if z == 0.0:
-            s = self.penalty.param_slope(i, lmbd)
+            s = self.penalty.param_slope_scalar(i, lmbd)
             return [-s, s]
-        elif z < self.penalty.param_limit(i, lmbd):
-            s = self.penalty.param_slope(i, lmbd) * np.sign(x)
+        elif z < self.penalty.param_limit_scalar(i, lmbd):
+            s = self.penalty.param_slope_scalar(i, lmbd) * np.sign(x)
             return [s, s]
         else:
-            return self.penalty.subdiff(i, x)
+            return self.penalty.subdiff_scalar(i, x)
 
 
 class ConcaveRegfunc(BaseRegfunc):
@@ -248,7 +248,7 @@ class ConcaveRegfunc(BaseRegfunc):
             mcptwo=self.mcptwo,
         )
 
-    def mcp_value(self, i: int, lmbd: float, x: float) -> float:
+    def mcp_value_scalar(self, i: int, lmbd: float, x: float) -> float:
         c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
         z = np.abs(x)
         if z <= c / self.mcptwo[i]:
@@ -256,7 +256,9 @@ class ConcaveRegfunc(BaseRegfunc):
         else:
             return lmbd
 
-    def mcp_prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+    def mcp_prox_scalar(
+        self, i: int, lmbd: float, x: float, eta: float
+    ) -> float:
         c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
         z = np.abs(x)
         if z <= c * eta:
@@ -265,7 +267,7 @@ class ConcaveRegfunc(BaseRegfunc):
             return x
         return np.sign(x) * (z - c * eta) / (1.0 - eta * self.mcptwo[i])
 
-    def mcp_subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
+    def mcp_subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
         c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
         z = np.abs(x)
         if z == 0.0:
@@ -276,26 +278,28 @@ class ConcaveRegfunc(BaseRegfunc):
         else:
             return [0.0, 0.0]
 
-    def value(self, i: int, lmbd: float, x: float) -> float:
-        return self.mcp_value(i, lmbd, x) + self.penalty.value(i, x)
+    def value_scalar(self, i: int, lmbd: float, x: float) -> float:
+        return self.mcp_value_scalar(i, lmbd, x) + self.penalty.value_scalar(
+            i, x
+        )
 
-    def conjugate(self, i: int, lmbd: float, x: float) -> float:
+    def conjugate_scalar(self, i: int, lmbd: float, x: float) -> float:
         c = 1.0 / (2.0 * self.penalty.alpha)
         z = c * x
-        p = self.mcp_prox(i, lmbd, z, c)
+        p = self.mcp_prox_scalar(i, lmbd, z, c)
         return (
             0.5 * c * x**2
-            - self.mcp_value(i, lmbd, p)
+            - self.mcp_value_scalar(i, lmbd, p)
             - self.penalty.alpha * (p - z) ** 2
         )
 
-    def prox(self, i: int, lmbd: float, x: float, eta: float) -> float:
+    def prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
         c = 1.0 / (eta * 2.0 * self.penalty.alpha + 1.0)
-        return self.mcp_prox(i, lmbd, c * x, c * eta)
+        return self.mcp_prox_scalar(i, lmbd, c * x, c * eta)
 
-    def subdiff(self, i: int, lmbd: float, x: float) -> ArrayLike:
-        s_mcp = self.mcp_subdiff(i, lmbd, x)
-        s_pen = self.penalty.subdiff(i, x)
+    def subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
+        s_mcp = self.mcp_subdiff_scalar(i, lmbd, x)
+        s_pen = self.penalty.subdiff_scalar(i, x)
         return [s_mcp[0] + s_pen[0], s_mcp[1] + s_pen[1]]
 
 
@@ -369,7 +373,7 @@ class BnbBoundingSolver:
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
         th = np.array(
-            [self.penalty.param_slope(i, lmbd) for i in range(x.size)]
+            [self.penalty.param_slope_scalar(i, lmbd) for i in range(x.size)]
         )
 
         # ----- Outer loop ----- #
@@ -547,9 +551,9 @@ class BnbBoundingSolver:
             xi = x[i]
             ci = xi + stepsize[i] * np.dot(ai, u)
             if Sb[i]:
-                x[i] = regfunc.prox(i, lmbd, ci, stepsize[i])
+                x[i] = regfunc.prox_scalar(i, lmbd, ci, stepsize[i])
             else:
-                x[i] = penalty.prox(i, ci, stepsize[i])
+                x[i] = penalty.prox_scalar(i, ci, stepsize[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -607,9 +611,9 @@ class BnbBoundingSolver:
         """
         pv = datafit.value(w)
         for i in np.flatnonzero(S1):
-            pv += penalty.value(i, x[i]) + lmbd
+            pv += penalty.value_scalar(i, x[i]) + lmbd
         for i in np.flatnonzero(Sb):
-            pv += regfunc.value(i, lmbd, x[i])
+            pv += regfunc.value_scalar(i, lmbd, x[i])
         return pv
 
     @staticmethod
@@ -651,10 +655,10 @@ class BnbBoundingSolver:
         dv = -datafit.conjugate(-u)
         for i in np.flatnonzero(S1):
             v[i] = np.dot(A[:, i], u)
-            dv -= penalty.conjugate(i, v[i]) - lmbd
+            dv -= penalty.conjugate_scalar(i, v[i]) - lmbd
         for i in np.flatnonzero(Sb):
             v[i] = np.dot(A[:, i], u)
-            dv -= regfunc.conjugate(i, lmbd, v[i])
+            dv -= regfunc.conjugate_scalar(i, lmbd, v[i])
         return dv
 
     @staticmethod
@@ -694,8 +698,8 @@ class BnbBoundingSolver:
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
-            g = regfunc.conjugate(i, lmbd, v[i])
-            p = penalty.conjugate(i, v[i]) - lmbd
+            g = regfunc.conjugate_scalar(i, lmbd, v[i])
+            p = penalty.conjugate_scalar(i, v[i]) - lmbd
             if dv + g - p > ub:
                 Sb[i] = False
                 S0[i] = True

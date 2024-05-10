@@ -5,9 +5,11 @@ from .base import SmoothDatafit
 
 
 class Logcosh(SmoothDatafit):
-    r"""Logcosh datafit function given by
+    r"""Logcosh datafit function.
 
-    .. math:: f(x) = \sum_j \log(\cosh(x_j - y_j))
+    The function is defined as
+
+    .. math:: f(x) = \textstyle\sum_j \log(\cosh(x_j - y_j))
 
     Parameters
     ----------

@@ -1,5 +1,6 @@
 """Base classes for penalty functions and related utilities."""
 
+import numpy as np
 import pyomo.kernel as pmo
 from abc import abstractmethod
 from numpy.typing import ArrayLike
@@ -31,7 +32,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def value(self, i: int, x: float) -> float:
+    def value_scalar(self, i: int, x: float) -> float:
         """Value of the i-th splitting term of the function at ``x``.
 
         Parameters
@@ -49,7 +50,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def conjugate(self, i: int, x: float) -> float:
+    def conjugate_scalar(self, i: int, x: float) -> float:
         """Value of the conjugate of the i-th splitting term of the function
         at ``x``.
 
@@ -68,7 +69,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def prox(self, i: int, x: float, eta: float) -> float:
+    def prox_scalar(self, i: int, x: float, eta: float) -> float:
         """Proximity operator of ``eta`` times the i-th splitting term of the
         function at ``x``.
 
@@ -89,7 +90,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def subdiff(self, i: int, x: float) -> ArrayLike:
+    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
         """Subdifferential operator of the i-th splitting term of the function
         at ``x``.
 
@@ -108,7 +109,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def conjugate_subdiff(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
         """Subdifferential operator of the i-th splitting term of the function
         conjugate at ``x``.
 
@@ -127,7 +128,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_slope(self, i: int, lmbd: float) -> float:
+    def param_slope_scalar(self, i: int, lmbd: float) -> float:
         """Maximum value of ``x`` such that the i-th splitting term of the
         function is below ``lmbd``.
 
@@ -147,10 +148,10 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_limit(self, i: int, lmbd: float) -> float:
-        """Minimum value of `x` such that `x` is in the i-th splitting term of
-        the subdifferential of the
-        conjugate of the function at `self.param_slope(lmbd)`.
+    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+        """Minimum value of ``x`` such that ``x`` is in the i-th splitting term
+        of the subdifferential of the conjugate of the function at
+        ``self.param_slope(lmbd)``.
 
         Parameters
         ----------
@@ -165,10 +166,10 @@ class BasePenalty:
             The minimum value of `x` such that `x` is in the subdifferential of
             the conjugate of the function at `self.param_slope(lmbd)`.
         """
-        ...
+        return ...
 
     @abstractmethod
-    def param_maxval(self, i: int) -> float:
+    def param_maxval_scalar(self, i: int) -> float:
         """Maximum value of the i-th splitting term of the conjugate of the
         function over its domain.
 
@@ -185,7 +186,7 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_maxdom(self, i: int) -> float:
+    def param_maxdom_scalar(self, i: int) -> float:
         """Right boundary of the i-th splitting term of the conjugate domain.
 
         Parameters
@@ -200,15 +201,107 @@ class BasePenalty:
         """
         ...
 
+    def value(self, x: ArrayLike) -> float:
+        """Value of the function at ``x``.
 
-class MipPenalty(BasePenalty):
-    """Base class for :class:`.penalties.BasePenalty` that can be modeled into
-    a Mixed-Integer Program."""
+        Parameters
+        ----------
+        x: ArrayLike
+            Value at which the function is evaluated.
+
+        Returns
+        -------
+        value: float
+            The value of the function at ``x``.
+        """
+        v = np.zeros_like(x)
+        for i, xi in enumerate(x):
+            v[i] = self.value_scalar(i, xi)
+        return v.sum()
+
+    def conjugate(self, x: ArrayLike) -> float:
+        """Value of the conjugate of the function at ``x``.
+
+        Parameters
+        ----------
+        x: ArrayLike
+            Value at which the conjugate is evaluated.
+
+        Returns
+        -------
+        value: float
+            The value of the conjugate of the function at ``x``.
+        """
+        v = np.zeros_like(x)
+        for i, xi in enumerate(x):
+            v[i] = self.conjugate_scalar(i, xi)
+        return v.sum()
+
+    def prox(self, x: ArrayLike, eta: float) -> ArrayLike:
+        """Proximity operator of ``eta`` times the function at ``x``.
+
+        Parameters
+        ----------
+        x: ArrayLike
+            Value at which the prox is evaluated.
+        eta: float, positive
+            Multiplicative factor of the function.
+
+        Returns
+        -------
+        p: ArrayLike
+            The proximity operator of ``eta`` times the function at ``x``.
+        """
+        p = np.zeros_like(x)
+        for i, xi in enumerate(x):
+            p[i] = self.prox_scalar(i, xi, eta)
+        return p
+
+    def subdiff(self, x: ArrayLike) -> ArrayLike:
+        """Subdifferential operator of the function at ``x``.
+
+        Parameters
+        ----------
+        x: ArrayLike
+            Value at which the prox is evaluated.
+
+        Returns
+        -------
+        s: ArrayLike
+            The subdifferential (interval) of the function at ``x``.
+        """
+        s = np.zeros_like(x)
+        for i, xi in enumerate(x):
+            s[i] = self.subdiff_scalar(i, xi)
+        return s
+
+    def conjugate_subdiff(self, x: ArrayLike) -> ArrayLike:
+        """Subdifferential operator of the function conjugate at ``x``.
+
+        Parameters
+        ----------
+        x: ArrayLike
+            Value at which the prox is evaluated.
+
+        Returns
+        -------
+        s: ArrayLike
+            The subdifferential (interval) of the function conjugate at ``x``.
+        """
+        s = np.zeros_like(x)
+        for i, xi in enumerate(x):
+            s[i] = self.conjugate_subdiff_scalar(i, xi)
+        return s.sum()
+
+
+class MipPenalty:
+    """Base class for penalty functions that can be modeled into a
+    Mixed-Integer Program."""
 
     @abstractmethod
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         """Bind the L0-regularization together with the penalty function into a
-        pyomo `kernel` model. The model should contain a scalar and
+        pyomo kernel model. The model should contain a scalar and
         unconstrained variable `model.g`, a variable `model.x` with size
         `model.N` and a variable `model.z` with size `model.N`. The
         `bind_model` function binds the following epigraph formulation:

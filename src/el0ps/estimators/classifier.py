@@ -20,12 +20,12 @@ class L0L1L2Classifier(BaseL0Classifier):
     The optimization problem solved is
 
     .. math::
-        min     sum(log(1 + exp(-y * (X @ w))) + lmbd ||w||_0 + alpha ||w||_1 + beta ||w||_2^2
-        s.t.    ||w||_inf <= M
+        \min        & \ \ \textstyle\sum_j(\log(1 + \exp(-y_j * X_j^{\top}w)) + \lambda \|w\|_0 + \alpha \|w\|_1 + \beta \|w\|_2^2 \\
+        \text{s.t.} & \ \ \|w\|_{\infty} \leq M
 
-    The parameters `alpha` and `beta` can be set to zero and an inifite value
-    of `M` is allowed. However, setting `alpha=0`, `beta=0` and `M=np.inf`
-    simulteanously is not allowed.
+    where :math:`\alpha \geq 0`, :math:`\beta \geq 0` and :math:`M > 0`.
+    Setting :math:`alpha=0`, :math:`beta=0` or :math:`M=\infty` is allowed, but
+    not simulteanously.
 
 
     Parameters
@@ -65,8 +65,8 @@ class L0L1L2Classifier(BaseL0Classifier):
 
 
 class L0Classifier(L0L1L2Classifier):
-    """Substitute for :class:`estimators.L0L1L2Classifier` with parameters
-    `alpha=0` and `beta=0`."""
+    """Substitute for :class:`.estimators.L0L1L2Classifier` with parameters
+    ``alpha=0`` and ``beta=0``."""
 
     def __init__(
         self,
@@ -79,8 +79,8 @@ class L0Classifier(L0L1L2Classifier):
 
 
 class L0L1Classifier(L0L1L2Classifier):
-    """Substitute for :class:`estimators.L0L1L2Classifier` with parameter
-    `beta=0`."""
+    """Substitute for :class:`.estimators.L0L1L2Classifier` with parameter
+    ``beta=0``."""
 
     def __init__(
         self,
@@ -94,8 +94,8 @@ class L0L1Classifier(L0L1L2Classifier):
 
 
 class L0L2Classifier(L0L1L2Classifier):
-    """Substitute for :class:`estimators.L0L1L2Classifier` with parameter
-    `alpha=0`."""
+    """Substitute for :class:`.estimators.L0L1L2Classifier` with parameter
+    ``alpha=0``."""
 
     def __init__(
         self,

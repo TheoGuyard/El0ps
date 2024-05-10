@@ -11,7 +11,7 @@ from el0ps.penalties import BasePenalty
 
 
 class Status(Enum):
-    """:class:`solver.BaseSolver` status.
+    """Solver status.
 
     Attributes
     ----------
@@ -39,7 +39,7 @@ class Status(Enum):
 
 @dataclass
 class Result:
-    """:class:`solver.BaseSolver` results.
+    """Solver results.
 
     Attributes
     ----------
@@ -83,7 +83,15 @@ class Result:
 
 
 class BaseSolver:
-    """Base class for L0-regularized problem solvers."""
+    """Base class for L0-regularized problem solvers.
+
+    The optimization problem solved is
+
+    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
+
+    where :math:`f` is a datafit term, :math:`h` is a penalty term and
+    :math:`\lambda` is the L0-norm weight.
+    """  # noqa: W605
 
     @abstractmethod
     def solve(
@@ -94,13 +102,7 @@ class BaseSolver:
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
     ):
-        r"""Solve an L0-regularized problem of the form
-
-        .. math:: \textstyle\min_{x} f(Ax) + \lambda \|x\|_0 + h(x)
-
-        where :math:`f(\cdot)` is a data-fitting function, :math:`A` is a
-        matrix, :math:`\lambda>0` is the L0-regularization weight and
-        :math:`h(\cdot)` is a penalty function.
+        r"""Solve an L0-regularized problem.
 
         Parameters
         ----------

@@ -39,7 +39,7 @@ _optim_bindings = {
 
 @dataclass
 class MipOptions:
-    """:class:`.solver.MipSolver` options.
+    """:class:`.solvers.MipSolver` options.
 
     Parameters
     ----------

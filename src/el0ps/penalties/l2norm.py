@@ -2,59 +2,64 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import MipPenalty
+from .base import BasePenalty, MipPenalty
 
 
-class L2norm(MipPenalty):
-    r"""L2-norm penalty function given by :math:`h(x) = \alpha x^2`, with
-    :math:`\alpha>0`.
+class L2norm(BasePenalty, MipPenalty):
+    r"""L2-norm penalty function.
+
+    The function is defined as
+
+    .. math:: h(x) = \beta \|x\|_2^2
+
+    where :math:`\beta > 0`.
 
     Parameters
     ----------
-    alpha: float, positive
+    beta: float, positive
         L2-norm weight.
     """
 
-    def __init__(self, alpha: float) -> None:
-        self.alpha = alpha
+    def __init__(self, beta: float) -> None:
+        self.beta = beta
 
     def __str__(self) -> str:
         return "L2norm"
 
     def get_spec(self) -> tuple:
-        spec = (("alpha", float64),)
+        spec = (("beta", float64),)
         return spec
 
     def params_to_dict(self) -> dict:
-        return dict(alpha=self.alpha)
+        return dict(beta=self.beta)
 
-    def value(self, i: int, x: float) -> float:
-        return self.alpha * x**2
+    def value_scalar(self, i: int, x: float) -> float:
+        return self.beta * x**2
 
-    def conjugate(self, i: int, x: float) -> float:
-        return x**2 / (4.0 * self.alpha)
+    def conjugate_scalar(self, i: int, x: float) -> float:
+        return x**2 / (4.0 * self.beta)
 
-    def prox(self, i: int, x: float, eta: float) -> float:
-        return x / (1.0 + 2.0 * eta * self.alpha)
+    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+        return x / (1.0 + 2.0 * eta * self.beta)
 
-    def subdiff(self, i: int, x: float) -> ArrayLike:
-        s = 2.0 * self.alpha * x
+    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+        s = 2.0 * self.beta * x
         return [s, s]
 
-    def conjugate_subdiff(self, i: int, x: float) -> ArrayLike:
-        s = x / (2.0 * self.alpha)
+    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+        s = x / (2.0 * self.beta)
         return [s, s]
 
-    def param_slope(self, i: int, lmbd: float) -> float:
-        return 2.0 * np.sqrt(lmbd * self.alpha)
+    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+        return 2.0 * np.sqrt(lmbd * self.beta)
 
-    def param_limit(self, i: int, lmbd: float) -> float:
-        return np.sqrt(lmbd / self.alpha)
+    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+        return np.sqrt(lmbd / self.beta)
 
-    def param_maxval(self, i: int) -> float:
+    def param_maxval_scalar(self, i: int) -> float:
         return np.inf
 
-    def param_maxdom(self, i: int) -> float:
+    def param_maxdom_scalar(self, i: int) -> float:
         return np.inf
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
@@ -71,6 +76,6 @@ class L2norm(MipPenalty):
             model.g
             >= (
                 lmbd * sum(model.z[i] for i in model.N)
-                + self.alpha * sum(model.g1_var[i] for i in model.N)
+                + self.beta * sum(model.g1_var[i] for i in model.N)
             )
         )
