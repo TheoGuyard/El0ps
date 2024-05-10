@@ -24,20 +24,18 @@ Check out the [documentation](https://el0ps.github.io) for a starting tour of th
 $ pip install https://github.com/TheoGuyard/El0ps.git
 ```
 
-Feel free to contribute by reporting any bug on the [issue](https://github.com/TheoGuyard/El0ps/issues) page or opening a [pull request](https://github.com/TheoGuyard/El0ps/pulls).
-
 ## Quick start
 
 ``el0ps`` addresses optimization problems expressed as
 
 $$\tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
 
-where $f(\cdot)$ is a *datafit* function, $h(\cdot)$ is a *penalty* function, $\mathbf{A} \in \mathbb{R}^{m \times n}$ is a matrix and $\lambda>0$ is an hyperparameter.
-The package provides efficient solvers for this family of problems, methods to fit regularization paths and other utilities.
+where $f(\cdot)$ is a **datafit** function, $h(\cdot)$ is a **penalty** function, $\mathbf{A} \in \mathbb{R}^{m \times n}$ is a matrix and $\lambda>0$ is an hyperparameter.
+The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for [scikit-learn](https://scikit-learn.org>) estimators and other utilities.
 
 ### Create and solve problem instances
 
-An instance can be created and solved as simply as follows.
+An instance of problem $(\mathcal{P})$ can be created and solved as simply as follows.
 
 ```python
 import numpy as np
@@ -82,7 +80,7 @@ An option of interest is the `lmbd_scaled` which is `False` by default.
 When setting `lmbd_scaled=True`, the values of the parameter $\lambda$ are scaled so that the first solution constructed in the path when `lmbd=lmbd_max` correponds to the all-zero vector. 
 
 
-### `scikit-learn` estimators
+### Scikit-Learn estimators
 
 `el0ps` also provides [scikit-learn](https://scikit-learn.org>) compatible estimators based on problem $(\mathcal{P})$.
 They can be used similarly to any other estimator in the package pipeline as follows.
@@ -100,7 +98,7 @@ A, y = make_regression(n_samples=100, n_features=1000)
 A_train, A_test, y_train, y_test = train_test_split(A, y)
 
 # Initialize a regerssor with L0-norm regularization
-estimator = L0Regression(lmbd=0.1)
+estimator = L0Regressor(lmbd=0.1)
 
 # Fit and score the estimator manually ...
 estimator.fit(A_train, y_train)
@@ -113,6 +111,12 @@ pipeline.score(A_test, y_test)
 ```
 
 Like datafit and penalty functions, you can build your own estimators.
+
+## Contribute
+
+`el0ps` is still under development.
+As an open-source project, we kindly welcome any contributions.
+Feel free to report any bug on the [issue](https://github.com/TheoGuyard/El0ps/issues) page or to open a [pull request](https://github.com/TheoGuyard/El0ps/pulls).
 
 
 ## Cite

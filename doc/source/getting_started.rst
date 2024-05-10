@@ -16,7 +16,7 @@ What's in the box
    \tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
 where :math:`f(\cdot)` is a `datafit` function, :math:`h(\cdot)` is a `penalty` function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix and :math:`\lambda>0` is an hyperparameter.
-The package provides efficient solvers for this family of problems, methods to fit regularization paths and other utilities.
+The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for [scikit-learn](https://scikit-learn.org>) estimators and other utilities.
 Check out the :ref:`Ingredients<ingredients>` page for more details.
 
 .. tip::
@@ -93,7 +93,7 @@ They can be used similarly to any other estimator in the package pipeline as fol
     A_train, A_test, y_train, y_test = train_test_split(A, y)
 
     # Initialize a regerssor with L0-norm regularization
-    estimator = L0Regression(lmbd=0.1)
+    estimator = L0Regressor(lmbd=0.1)
 
     # Fit and score the estimator manually ...
     estimator.fit(A_train, y_train)
@@ -104,4 +104,4 @@ They can be used similarly to any other estimator in the package pipeline as fol
     pipeline.fit(A_train, y_train)
     pipeline.score(A_test, y_test)
 
-Like datafit and penalty functions, you can build your own estimators.
+Like datafit and penalty functions, you can customize your own estimators.
