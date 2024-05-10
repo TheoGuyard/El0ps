@@ -39,7 +39,8 @@ def test_instances(penalty):
         assert penalty.value_scalar(i, xi) == penalty.value_scalar(i, -xi)
         assert penalty.conjugate_scalar(i, ui) >= 0.0
         assert (
-            penalty.value_scalar(i, xi) + penalty.conjugate_scalar(i, ui) >= xi * ui - 1e-10
+            penalty.value_scalar(i, xi) + penalty.conjugate_scalar(i, ui)
+            >= xi * ui - 1e-10
         )
         slope = penalty.param_slope_scalar(i, lmbd)
         limit = penalty.param_limit_scalar(i, lmbd)
@@ -56,7 +57,8 @@ def test_instances(penalty):
         if limit < np.inf:
             assert penalty.conjugate_scalar(i, slope) == pytest.approx(lmbd)
             assert (
-                penalty.value_scalar(i, limit) + penalty.conjugate_scalar(i, slope)
+                penalty.value_scalar(i, limit)
+                + penalty.conjugate_scalar(i, slope)
                 >= limit * slope - 1e-10
             )
         else:
