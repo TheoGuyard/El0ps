@@ -36,7 +36,7 @@ class PathOptions:
         not solved to optimality.
     verbose: bool = True
         Toogle displays during path fitting.
-    """   # noqa: W605
+    """  # noqa: W605
 
     lmbd_max: float = 1e-0
     lmbd_min: float = 1e-2
@@ -94,7 +94,7 @@ class Path:
         Path options.
     fit_data: dict
         Path fitting data.
-    """   # noqa: W605
+    """  # noqa: W605
 
     _path_hstr = "   lmbda   status     time    nodes  obj. val  los. val  pen. val  n-zero"  # noqa: E501
     _path_fstr = (

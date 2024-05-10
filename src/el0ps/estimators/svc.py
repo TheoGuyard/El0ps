@@ -37,7 +37,7 @@ class L0L1L2SVC(BaseL0SVC):
         Whether to fit an intercept term.
     solver: BaseSolver, default=BnbSolver()
         Solver for the estimator associated problem.
-    """   # noqa: E501
+    """  # noqa: E501
 
     def __init__(
         self,

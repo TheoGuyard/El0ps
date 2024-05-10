@@ -256,7 +256,9 @@ class ConcaveRegfunc(BaseRegfunc):
         else:
             return lmbd
 
-    def mcp_prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
+    def mcp_prox_scalar(
+        self, i: int, lmbd: float, x: float, eta: float
+    ) -> float:
         c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
         z = np.abs(x)
         if z <= c * eta:
@@ -277,9 +279,8 @@ class ConcaveRegfunc(BaseRegfunc):
             return [0.0, 0.0]
 
     def value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        return (
-            self.mcp_value_scalar(i, lmbd, x) + 
-            self.penalty.value_scalar(i, x)
+        return self.mcp_value_scalar(i, lmbd, x) + self.penalty.value_scalar(
+            i, x
         )
 
     def conjugate_scalar(self, i: int, lmbd: float, x: float) -> float:

@@ -24,7 +24,7 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
         L1-norm weight.
     beta: float
         L2-norm weight.
-    """
+    """  # noqa: E501
 
     def __init__(self, M: float, alpha: float, beta: float) -> None:
         self.M = M
@@ -50,9 +50,8 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
 
     def conjugate_scalar(self, i: int, x: float) -> float:
         z = np.sign(x) * np.minimum(
-            np.maximum(
-                (np.abs(x) - self.alpha) / (2.0 * self.beta), 0.
-            ), self.M
+            np.maximum((np.abs(x) - self.alpha) / (2.0 * self.beta), 0.0),
+            self.M,
         )
         return x * z - self.alpha * z - self.beta * z**2
 
@@ -60,13 +59,14 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
         p = np.sign(x) * np.minimum(
             np.maximum(
                 (np.abs(x) - eta * self.alpha) / (1.0 + 2.0 * eta * self.beta),
-                0.
-            ), self.M
-        )        
+                0.0,
+            ),
+            self.M,
+        )
         return p
 
     def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
-        if x == 0.:
+        if x == 0.0:
             return [-self.alpha, self.alpha]
         if np.abs(x) < self.M:
             s = self.alpha * np.sign(x) + 2.0 * self.beta * x
@@ -79,7 +79,10 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
             return [np.nan, np.nan]
 
     def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
-        s = np.sign(x) * np.minimum(np.maximum((np.abs(x) - self.alpha) / (2.0 * self.beta), 0.), self.M)
+        s = np.sign(x) * np.minimum(
+            np.maximum((np.abs(x) - self.alpha) / (2.0 * self.beta), 0.0),
+            self.M,
+        )
         return [s, s]
 
     def param_slope_scalar(self, i: int, lmbd: float) -> float:
@@ -120,12 +123,8 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
             model.gneg_con[i] = pmo.constraint(
                 model.x[i] >= -self.M * model.z[i]
             )
-            model.g1pos_con[i] = pmo.constraint(
-                model.g1_var[i] >= model.x[i]
-            )
-            model.g1neg_con[i] = pmo.constraint(
-                model.g1_var[i] >= -model.x[i]
-            )
+            model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
+            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= -model.x[i])
             model.g2_con[i] = pmo.constraint(
                 model.x[i] ** 2 <= model.g2_var[i] * model.z[i]
             )

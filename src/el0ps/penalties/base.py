@@ -218,7 +218,7 @@ class BasePenalty:
         for i, xi in enumerate(x):
             v[i] = self.value_scalar(i, xi)
         return v.sum()
-    
+
     def conjugate(self, x: ArrayLike) -> float:
         """Value of the conjugate of the function at ``x``.
 
@@ -256,7 +256,7 @@ class BasePenalty:
         for i, xi in enumerate(x):
             p[i] = self.prox_scalar(i, xi, eta)
         return p
-    
+
     def subdiff(self, x: ArrayLike) -> ArrayLike:
         """Subdifferential operator of the function at ``x``.
 
@@ -269,12 +269,12 @@ class BasePenalty:
         -------
         s: ArrayLike
             The subdifferential (interval) of the function at ``x``.
-        """   
+        """
         s = np.zeros_like(x)
         for i, xi in enumerate(x):
             s[i] = self.subdiff_scalar(i, xi)
         return s
-    
+
     def conjugate_subdiff(self, x: ArrayLike) -> ArrayLike:
         """Subdifferential operator of the function conjugate at ``x``.
 

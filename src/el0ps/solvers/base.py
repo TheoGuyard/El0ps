@@ -91,7 +91,7 @@ class BaseSolver:
 
     where :math:`f` is a datafit term, :math:`h` is a penalty term and
     :math:`\lambda` is the L0-norm weight.
-    """   # noqa: W605
+    """  # noqa: W605
 
     @abstractmethod
     def solve(

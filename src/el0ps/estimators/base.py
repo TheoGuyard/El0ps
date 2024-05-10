@@ -81,7 +81,7 @@ class BaseL0Estimator(LinearModel):
     where :math:`f` is a datafit term, :math:`h` is a penalty term and
     :math:`lmbd` is the L0-norm weight. The derived classes implement how
     the datafit and penalty terms are defined.
-    """   # noqa: W605
+    """  # noqa: W605
 
     def __init__(
         self,

@@ -83,7 +83,9 @@ def compute_param_slope_scalar(
     return c
 
 
-def compute_param_limit_scalar(penalty: BasePenalty, i: int, lmbd: float) -> float:
+def compute_param_limit_scalar(
+    penalty: BasePenalty, i: int, lmbd: float
+) -> float:
     """Utility function to compute the value of ``param_limit_scalar`` in a
     :class:`.penalties.BasePenalty` instance when no closed-form is available.
 
@@ -125,7 +127,7 @@ def compute_param_maxval_scalar(
     while penalty.conjugate_scalar(i, b) < np.inf:
         b *= 2.0
     for _ in range(maxit):
-        if (b - a < tol):
+        if b - a < tol:
             return penalty.conjugate_scalar(i, a)
         c = (a + b) / 2.0
         fc = penalty.conjugate_scalar(i, c)
@@ -161,15 +163,16 @@ def compute_param_maxdom_scalar(
     while penalty.conjugate_scalar(i, b) < np.inf:
         b *= 2.0
     for _ in range(maxit):
-        if (b - a < tol):
-            return c
         c = (a + b) / 2.0
+        if b - a < tol:
+            return c
         fc = penalty.conjugate_scalar(i, c)
         if fc < np.inf:
             a = c
         else:
             b = c
     return c
+
 
 @lru_cache()
 def compiled_clone(instance):
