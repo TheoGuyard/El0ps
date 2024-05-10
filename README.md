@@ -118,7 +118,6 @@ Like datafit and penalty functions, you can build your own estimators.
 As an open-source project, we kindly welcome any contributions.
 Feel free to report any bug on the [issue](https://github.com/TheoGuyard/El0ps/issues) page or to open a [pull request](https://github.com/TheoGuyard/El0ps/pulls).
 
-
 ## Cite
 
 `el0ps` is distributed under

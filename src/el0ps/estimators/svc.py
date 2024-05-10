@@ -1,4 +1,4 @@
-"""Base classes for L0-norm Support Vector Classifier estimators."""
+"""Base classes for L0-norm SVC estimators."""
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -9,7 +9,7 @@ from .base import BaseL0Estimator, select_bigml1l2_penalty, _fit
 
 
 class BaseL0SVC(BaseL0Estimator, ClassifierMixin):
-    """Base class for L0-norm Support Vector Classifier estimators."""
+    """Base class for L0-norm SVC estimators."""
 
     pass
 
@@ -20,6 +20,7 @@ class L0L1L2SVC(BaseL0SVC):
     The optimization problem solved is
 
     .. math::
+    
         \min        & \ \ \textstyle \|[1 - y \odot Xw]_+\|_2^2 + \lambda \|w\|_0 + \alpha \|w\|_1 + \beta \|w\|_2^2 \\
         \text{s.t.} & \ \ \|w\|_{\infty} \leq M
 
@@ -31,7 +32,11 @@ class L0L1L2SVC(BaseL0SVC):
     ----------
     lmbd: float
         L0-norm weight.
-    M: float
+    alpha: float
+        L1-norm weight.
+    beta: float
+        L2-norm weight.
+    M: float, default=np.inf
         Big-M value.
     fit_intercept: bool, default=False
         Whether to fit an intercept term.
