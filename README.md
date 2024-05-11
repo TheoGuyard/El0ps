@@ -50,8 +50,8 @@ y = np.random.randn(50)
 # Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
 datafit = Leastsquares(y)
 
-# Instantiate the function h(x) = alpha * ||x||_2^2
-penalty = L2norm(alpha=0.1)
+# Instantiate the function h(x) = beta * ||x||_2^2
+penalty = L2norm(beta=0.1)
 
 # Solve the problem with el0ps' Branch-and-Bound solver
 solver = BnbSolver()
@@ -125,7 +125,7 @@ Feel free to report any bug on the [issue](https://github.com/TheoGuyard/El0ps/i
 Please cite the package as follows:
 
 ```bibtex
-@inproceedings{el0ps2024guyard,
+@inproceedings{guyard2024el0ps,
     title        = {A New Branch-and-Bound Pruning Framework for L0-Regularized Problems},
     author       = {Guyard, Th{\'e}o and Herzet, C{\'e}dric and Elvira, Cl{\'e}ment and Ayse-Nur Arslan},
     booktitle    = {International Conference on Machine Learning (ICML)},

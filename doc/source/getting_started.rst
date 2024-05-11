@@ -44,8 +44,8 @@ Here is a simple example showing how to solve an instance of problem :math:`(\ma
     # Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
     datafit = Leastsquares(y)
 
-    # Instantiate the function h(x) = alpha * ||x||_2^2
-    penalty = L2norm(alpha=0.1)
+    # Instantiate the function h(x) = beta * ||x||_2^2
+    penalty = L2norm(beta=0.1)
     
     # Solve the problem with el0ps' Branch-and-Bound solver
     solver = BnbSolver()
