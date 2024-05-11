@@ -25,9 +25,9 @@ Installation
 
 ``el0ps`` will be available on `pypi <https://pypi.org>`_ soon. The latest version of the package can currently be installed as
 
-.. code-block:: shell
+.. prompt:: shell $
 
-   $ pip install https://github.com/TheoGuyard/El0ps
+   pip install https://github.com/TheoGuyard/El0ps
 
 Feel free to contribute by report any bug on the `issue <https://github.com/TheoGuyard/El0ps/issues>`_ page or by opening a `pull request <https://github.com/TheoGuyard/El0ps/pulls>`_.
 

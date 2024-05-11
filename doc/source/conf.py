@@ -23,7 +23,9 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
+    'sphinx-prompt',
     'sphinx_autodoc_typehints',
+    'sphinx_copybutton',
     'numpydoc',
 ]
 
