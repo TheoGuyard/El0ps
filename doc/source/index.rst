@@ -68,6 +68,6 @@ Please cite it as follows:
    :includehidden:
 
    getting_started.rst
-   ingredients/ingredients.rst
+   ingredients.rst
    custom.rst
    api.rst

@@ -16,7 +16,7 @@ What's in the box
    \tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
 where :math:`f(\cdot)` is a `datafit` function, :math:`h(\cdot)` is a `penalty` function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix and :math:`\lambda>0` is an hyperparameter.
-The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for [scikit-learn](https://scikit-learn.org>) estimators and other utilities.
+The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for `scikit-learn <https://scikit-learn.org>`_ estimators and other utilities.
 Check out the :ref:`Ingredients<ingredients>` page for more details.
 
 .. tip::
@@ -44,8 +44,8 @@ Here is a simple example showing how to solve an instance of problem :math:`(\ma
     # Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
     datafit = Leastsquares(y)
 
-    # Instantiate the function h(x) = alpha * ||x||_2^2
-    penalty = L2norm(alpha=0.1)
+    # Instantiate the function h(x) = beta * ||x||_2^2
+    penalty = L2norm(beta=0.1)
     
     # Solve the problem with el0ps' Branch-and-Bound solver
     solver = BnbSolver()

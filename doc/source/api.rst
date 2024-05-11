@@ -35,6 +35,9 @@ Datafits
 .. autosummary::
     :toctree: generated/
 
+    BaseDatafit
+    SmoothDatafit
+    MipDatafit
     Kullbackleibler
     Leastsquares
     Logcosh
@@ -51,6 +54,8 @@ Penalties
 .. autosummary::
     :toctree: generated/
 
+    BasePenalty
+    MipPenalty
     Bigm
     BigmL1norm
     BigmL2norm
@@ -70,6 +75,7 @@ Solvers
 
     Status
     Result
+    BaseSolver
     BnbSolver
     BnbOptions
     MipSolver

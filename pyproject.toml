@@ -10,7 +10,7 @@ authors = [{name = "Theo Guyard", email = "guyard.theo@gmail.com"}]
 dependencies = ["numba", "numpy", "pyomo", "scikit-learn", "scipy", "cvxpy"]
 
 [project.optional-dependencies]
-dev = ["black", "coverage", "flake8", "furo", "numpydoc", "pydoctest", "pytest", "sphinx", "sphinx_autodoc_typehints"]
+dev = ["black", "coverage", "flake8", "furo", "numpydoc", "pydoctest", "pytest", "sphinx", "sphinx_autodoc_typehints", "sphinx_copybutton", "sphinx-prompt"]
 exp = ["libsvmdata", "l0bnb", "l0learn", "matplotlib", "openml", "pandas", "pyyaml", "skglm", "ucimlrepo"]
 mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 
