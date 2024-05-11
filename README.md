@@ -21,7 +21,7 @@ Check out the [documentation](https://el0ps.github.io) for a starting tour of th
 
 
 ```shell
-$ pip install https://github.com/TheoGuyard/El0ps.git
+pip install https://github.com/TheoGuyard/El0ps.git
 ```
 
 ## Quick start
