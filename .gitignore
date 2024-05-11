@@ -27,6 +27,7 @@ htmlcov
 /doc/gen_modules/
 /doc/generated/
 /doc/auto_examples/
+/doc/source/generated/
 
 # pyomo
 *.log
