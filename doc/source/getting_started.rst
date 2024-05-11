@@ -16,7 +16,7 @@ What's in the box
    \tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
 where :math:`f(\cdot)` is a `datafit` function, :math:`h(\cdot)` is a `penalty` function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix and :math:`\lambda>0` is an hyperparameter.
-The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for [scikit-learn](https://scikit-learn.org>) estimators and other utilities.
+The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for `scikit-learn <https://scikit-learn.org>`_ estimators and other utilities.
 Check out the :ref:`Ingredients<ingredients>` page for more details.
 
 .. tip::
