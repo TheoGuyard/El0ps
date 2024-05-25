@@ -15,14 +15,18 @@ What's in the box
 
    \tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
-where :math:`f(\cdot)` is a `datafit` function, :math:`h(\cdot)` is a `penalty` function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix and :math:`\lambda>0` is an hyperparameter.
+where :math:`f(\cdot)` is a `datafit` function, :math:`h(\cdot)` is a `penalty` function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`\|\cdot\|_0` is the so-called :math:`\ell_0`-norm defined for all :math:`\mathbf{x} \in \mathbb{R}^n` as
+
+.. math:: \|\mathbf{x}\|_0 = \mathrm{card}(\{i \in 1,\dots,n \mid x_i \neq 0\})
+
+and :math:`\lambda>0` is an hyperparameter.
 The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for `scikit-learn <https://scikit-learn.org>`_ estimators and other utilities.
 Check out the :ref:`Ingredients<ingredients>` page for more details.
 
 .. tip::
 
     ``el0ps`` comes with already-made datafits and penalties. It is also designed to be modular and allows users to define their own.
-    This can be make through convinient templates classes. Check out the :ref:`User-defined problems<custom>` page for more details.
+    Check out the :ref:`User-defined problems<custom>` page for more details.
 
 
 Solving a problem
@@ -37,9 +41,17 @@ Here is a simple example showing how to solve an instance of problem :math:`(\ma
     from el0ps.penalties import L2norm
     from el0ps.solvers import BnbSolver
 
-    # Generate random data
+    # Generate sparse regression data
+    np.random.seed(0)
+    x = np.zeros(100)
+    s = np.random.randint(100, size=5)
+    x[s] = 1.
     A = np.random.randn(50, 100)
-    y = np.random.randn(50)
+    A /= np.linalg.norm(A, ord=2)
+    y = A @ x
+    e = np.random.randn(50)
+    e *= np.sqrt((y @ y) / (10. * (e @ e)))
+    y += e
 
     # Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
     datafit = Leastsquares(y)
@@ -49,7 +61,7 @@ Here is a simple example showing how to solve an instance of problem :math:`(\ma
     
     # Solve the problem with el0ps' Branch-and-Bound solver
     solver = BnbSolver()
-    result = solver.solve(datafit, penalty, A, lmbd=10.)
+    result = solver.solve(datafit, penalty, A, lmbd=0.01)
 
 You can pass various options to the solver (see the :class:`.solvers.BnbOptions` documentation).
 Once the problem is solved, you can recover different quantities such as the solver status, the solution or the optimal value of the problem from the ``result`` variable (see the :class:`.solvers.Result` documentation).
@@ -63,9 +75,9 @@ Fitting a path with ``lmbd_num`` different values of this parameter logarithmica
 
 .. code-block:: python
 
-    from el0ps import Path
+    from el0ps.path import Path
 
-    path = Path(lmbd_max=1e2, lmbd_min=1e-3, lmbd_num=100)
+    path = Path(lmbd_max=1e-0, lmbd_min=1e-2, lmbd_num=20)
     data = path.fit(solver, datafit, penalty, A)
 
 Once the path is fitted, you can recover different statistics ``data`` variable such as the number of non-zeros in the solution, the datafit value or the solution time.
@@ -87,13 +99,13 @@ They can be used similarly to any other estimator in the package pipeline as fol
     from el0ps.estimators import L0Regressor
 
     # Generate sparse regression data
-    A, y = make_regression(n_samples=100, n_features=1000)
+    A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
     
     # Split training and testing sets
     A_train, A_test, y_train, y_test = train_test_split(A, y)
 
-    # Initialize a regerssor with L0-norm regularization
-    estimator = L0Regressor(lmbd=0.1)
+    # Initialize a regerssor with L0-norm regularization with Big-M constraint
+    estimator = L0Regressor(lmbd=0.1, M=1.)
 
     # Fit and score the estimator manually ...
     estimator.fit(A_train, y_train)

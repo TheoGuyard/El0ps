@@ -10,7 +10,11 @@ Ingredients
 
    \tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
-where :math:`f(\cdot)` is a datafit function, :math:`h(\cdot)` is a penalty function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix and :math:`\lambda>0` is an hyperparameter.
+where :math:`f(\cdot)` is a datafit function, :math:`h(\cdot)` is a penalty function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`\|\cdot\|_0` is the so-called :math:`\ell_0`-norm defined for all :math:`\mathbf{x} \in \mathbb{R}^n` as
+
+.. math:: \|\mathbf{x}\|_0 = \mathrm{card}(\{i \in 1,\dots,n \mid x_i \neq 0\})
+
+and :math:`\lambda>0` is an hyperparameter.
 To construct and solve instances of this problem, ``el0ps`` is build on three main classes:
 
 - :class:`.datafits.BaseDatafit` defining datafit functions

@@ -11,8 +11,8 @@
 
 --------
 
-``el0ps`` is a Python package providing **generic** and **efficient** solvers for **L0-norm** problems.
-It also implements `scikit-learn <https://scikit-learn.org>`_ compatible estimators involving the L0-norm.
+``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
+It also implements `scikit-learn <https://scikit-learn.org>`_ compatible estimators involving these problems.
 You can use some already-made problem instances or **customize your own** based on several templates and utilities.
 
 .. tip::

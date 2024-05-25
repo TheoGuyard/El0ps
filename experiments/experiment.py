@@ -511,11 +511,11 @@ class Statistics(Experiment):
         self.nnz_grid = np.array(range(self.config["path_opts"]["max_nnz"]))
         self.stats_specs = {
             "solve_time": {"log": True},
-            "acc_score": {"log": False},
-            "fdr_score": {"log": False},
+            # "acc_score": {"log": False},
+            # "fdr_score": {"log": False},
             # "f1_score": {"log": False},
-            "train_error": {"log": False},
-            # "test_error": {"log": True},
+            "train_error": {"log": True},
+            "test_error": {"log": True},
         }
 
         stats = {

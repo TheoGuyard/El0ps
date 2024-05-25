@@ -9,8 +9,8 @@ El0ps
 <!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
 <!-- [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml) -->
 
-``el0ps`` is a Python package providing **generic** and **efficient** solvers for **L0-norm** problems.
-It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving the L0-norm.
+``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
+It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving these problems.
 You can use some already-made problem instances or **customize your own** based on several templates and utilities.
 
 Check out the [documentation](https://el0ps.github.io) for a starting tour of the package.
@@ -43,9 +43,17 @@ from el0ps.datafits import Leastsquares
 from el0ps.penalties import L2norm
 from el0ps.solvers import BnbSolver
 
-# Generate random data
+# Generate sparse regression data
+np.random.seed(0)
+x = np.zeros(100)
+s = np.random.randint(100, size=5)
+x[s] = 1.
 A = np.random.randn(50, 100)
-y = np.random.randn(50)
+A /= np.linalg.norm(A, ord=2)
+y = A @ x
+e = np.random.randn(50)
+e *= np.sqrt((y @ y) / (10. * (e @ e)))
+y += e
 
 # Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
 datafit = Leastsquares(y)
@@ -55,7 +63,7 @@ penalty = L2norm(beta=0.1)
 
 # Solve the problem with el0ps' Branch-and-Bound solver
 solver = BnbSolver()
-result = solver.solve(datafit, penalty, A, lmbd=10.)
+result = solver.solve(datafit, penalty, A, lmbd=0.01)
 ```
 
 You can pass various options to the solver and once the problem is solved, you can recover different quantities such as the solver status, the solution or the optimal value of the problem from the ``result`` variable.
@@ -68,9 +76,9 @@ Fitting a path with `lmbd_num` different values of this parameter logarithmicall
 
 
 ```python
-from el0ps import Path
+from el0ps.path import Path
 
-path = Path(lmbd_max=1e2, lmbd_min=1e-3, lmbd_num=100)
+path = Path(lmbd_max=1e-0, lmbd_min=1e-2, lmbd_num=20)
 data = path.fit(solver, datafit, penalty, A)
 ```
 
@@ -92,13 +100,13 @@ from sklearn.pipeline import Pipeline
 from el0ps.estimators import L0Regressor
 
 # Generate sparse regression data
-A, y = make_regression(n_samples=100, n_features=1000)
+A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
 
 # Split training and testing sets
 A_train, A_test, y_train, y_test = train_test_split(A, y)
 
-# Initialize a regerssor with L0-norm regularization
-estimator = L0Regressor(lmbd=0.1)
+# Initialize a regerssor with L0-norm regularization with Big-M constraint
+estimator = L0Regressor(lmbd=0.1, M=1.)
 
 # Fit and score the estimator manually ...
 estimator.fit(A_train, y_train)

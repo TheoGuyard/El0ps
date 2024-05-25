@@ -310,8 +310,8 @@ class MipPenalty:
 
         and must ensures that `model.z[i] = 0` implies `model.x[i] = 0`.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         model: pmo.block
             The pyomo mixed-integer programming model (kernel model).
         lmbd: float
