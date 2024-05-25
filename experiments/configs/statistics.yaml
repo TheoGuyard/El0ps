@@ -1,20 +1,23 @@
 expname: statistics
 
 dataset:
-  dataset_type: synthetic
+  # dataset_type: synthetic
+  # dataset_opts: 
+  #   matrix      : correlated(0.9)
+  #   model       : linear
+  #   supp_pos    : equispaced
+  #   supp_val    : unit
+  #   k           : 10
+  #   m           : 150
+  #   n           : 200
+  #   s           : 10.
+  #   normalize   : true
+  dataset_type: libsvm
   dataset_opts: 
-    matrix      : correlated(0.9)
-    model       : linear
-    supp_pos    : equispaced
-    supp_val    : unit
-    k           : 10
-    m           : 150
-    n           : 200
-    s           : 10.
-    normalize   : true
+    dataset_name  : housing
   process_opts: 
-    center        : true
-    normalize     : true
+    center        : false
+    normalize     : false
   datafit_name: Leastsquares
   penalty_name: BigmL2norm
   test_size: 0.3333
@@ -23,7 +26,7 @@ solvers:
   solvers_name:
     - el0ps
   solvers_opts:
-    time_limit: 600.
+    time_limit: 60.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8 
     verbose   : false

@@ -4,4 +4,4 @@
 User-defined problems
 =====================
 
-.. todo:: Todo
+.. warning:: This documentation page is still under construction. We'll try to be complete it as soon as possible!

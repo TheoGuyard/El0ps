@@ -168,15 +168,17 @@ class LassoPath:
 
     def __init__(
         self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
+        lmbd_max=1.0,
+        lmbd_min=1e-3,
+        lmbd_num=31,
+        lmbd_scaled=False,
         max_nnz=10,
         stop_if_not_optimal=True,
     ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
+        self.lmbd_max = lmbd_max
+        self.lmbd_min = lmbd_min
+        self.lmbd_num = lmbd_num
+        self.lmbd_scaled = lmbd_scaled
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
 
@@ -196,17 +198,17 @@ class LassoPath:
 
         y = datafit.y
 
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
+        lmbd_grid = np.logspace(
+            np.log10(self.lmbd_max),
+            np.log10(self.lmbd_min),
+            self.lmbd_num,
         )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+        if self.lmbd_scaled:
+            lmbd_grid *= np.linalg.norm(A.T @ y, np.inf)
 
         start_time = time.time()
 
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
+        for lmbd in lmbd_grid:
             est = Lasso(alpha=lmbd, max_iter=int(1e5), fit_intercept=False)
             est.fit(A, y)
             x = est.coef_
@@ -229,15 +231,17 @@ class EnetPath:
 
     def __init__(
         self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
+        lmbd_max=1.0,
+        lmbd_min=1e-3,
+        lmbd_num=31,
+        lmbd_scaled=False,
         max_nnz=10,
         stop_if_not_optimal=True,
     ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
+        self.lmbd_max = lmbd_max
+        self.lmbd_min = lmbd_min
+        self.lmbd_num = lmbd_num
+        self.lmbd_scaled = lmbd_scaled
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
 
@@ -257,12 +261,14 @@ class EnetPath:
 
         y = datafit.y
 
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
+        lmbd_grid = np.logspace(
+            np.log10(self.lmbd_max),
+            np.log10(self.lmbd_min),
+            self.lmbd_num,
         )
         lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+        if self.lmbd_scaled:
+            lmbd_grid *= lmbd_max
 
         # Calibrate L1 ratio
         param_grid = {
@@ -277,8 +283,7 @@ class EnetPath:
 
         start_time = time.time()
 
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
+        for lmbd in lmbd_grid:
             est = ElasticNet(
                 alpha=lmbd,
                 l1_ratio=l1_ratio,
@@ -369,15 +374,17 @@ class L05Path:
 
     def __init__(
         self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
+        lmbd_max=1.0,
+        lmbd_min=1e-3,
+        lmbd_num=31,
+        lmbd_scaled=False,
         max_nnz=10,
         stop_if_not_optimal=True,
     ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
+        self.lmbd_max = lmbd_max
+        self.lmbd_min = lmbd_min
+        self.lmbd_num = lmbd_num
+        self.lmbd_scaled = lmbd_scaled
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
 
@@ -397,17 +404,17 @@ class L05Path:
 
         y = datafit.y
 
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
+        lmbd_grid = np.logspace(
+            np.log10(self.lmbd_max),
+            np.log10(self.lmbd_min),
+            self.lmbd_num,
         )
-        lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+        if self.lmbd_scaled:
+            lmbd_grid *= np.linalg.norm(A.T @ y, np.inf)
 
         start_time = time.time()
 
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
+        for lmbd in lmbd_grid:
             est = L05Regression(
                 alpha=lmbd,
                 max_iter=int(1e5),
@@ -434,15 +441,17 @@ class McpPath:
 
     def __init__(
         self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
+        lmbd_max=1.0,
+        lmbd_min=1e-3,
+        lmbd_num=31,
+        lmbd_scaled=False,
         max_nnz=10,
         stop_if_not_optimal=True,
     ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
+        self.lmbd_max = lmbd_max
+        self.lmbd_min = lmbd_min
+        self.lmbd_num = lmbd_num
+        self.lmbd_scaled = lmbd_scaled
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
 
@@ -462,12 +471,14 @@ class McpPath:
 
         y = datafit.y
 
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
+        lmbd_grid = np.logspace(
+            np.log10(self.lmbd_max),
+            np.log10(self.lmbd_min),
+            self.lmbd_num,
         )
         lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+        if self.lmbd_scaled:
+            lmbd_grid *= lmbd_max
 
         # Calibrate MCP ratio
         param_grid = {
@@ -482,8 +493,7 @@ class McpPath:
 
         start_time = time.time()
 
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
+        for lmbd in lmbd_grid:
             est = MCPRegression(
                 alpha=lmbd,
                 gamma=gamma,
@@ -574,15 +584,17 @@ class ScadPath:
 
     def __init__(
         self,
-        lmbd_ratio_max=1.0,
-        lmbd_ratio_min=1e-3,
-        lmbd_ratio_num=31,
+        lmbd_max=1.0,
+        lmbd_min=1e-3,
+        lmbd_num=31,
+        lmbd_scaled=False,
         max_nnz=10,
         stop_if_not_optimal=True,
     ) -> None:
-        self.lmbd_ratio_max = lmbd_ratio_max
-        self.lmbd_ratio_min = lmbd_ratio_min
-        self.lmbd_ratio_num = lmbd_ratio_num
+        self.lmbd_max = lmbd_max
+        self.lmbd_min = lmbd_min
+        self.lmbd_num = lmbd_num
+        self.lmbd_scaled = lmbd_scaled
         self.max_nnz = max_nnz
         self.stop_if_not_optimal = stop_if_not_optimal
 
@@ -602,12 +614,14 @@ class ScadPath:
 
         y = datafit.y
 
-        lmbd_ratio_grid = np.logspace(
-            np.log10(self.lmbd_ratio_max),
-            np.log10(self.lmbd_ratio_min),
-            self.lmbd_ratio_num,
+        lmbd_grid = np.logspace(
+            np.log10(self.lmbd_max),
+            np.log10(self.lmbd_min),
+            self.lmbd_num,
         )
         lmbd_max = np.linalg.norm(A.T @ y, np.inf)
+        if self.lmbd_scaled:
+            lmbd_grid *= lmbd_max
 
         param_grid = {
             "alpha": lmbd_max * np.logspace(-2, 1, 4),
@@ -621,8 +635,7 @@ class ScadPath:
 
         start_time = time.time()
 
-        for lmbd_ratio in lmbd_ratio_grid:
-            lmbd = lmbd_ratio * lmbd_max
+        for lmbd in lmbd_grid:
             est = SCADRegression(
                 alpha=lmbd,
                 gamma=gamma,
@@ -704,41 +717,46 @@ def get_relaxed_path(solver_name, path_opts={}):
         return OmpPath(max_nnz=path_opts["max_nnz"])
     elif solver_name == "Lasso":
         return LassoPath(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
     elif solver_name == "Enet":
         return EnetPath(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
     elif solver_name == "L05":
         return L05Path(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
     elif solver_name == "Mcp":
         return McpPath(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
     elif solver_name == "Scad":
         return ScadPath(
-            lmbd_ratio_max=path_opts["lmbd_ratio_max"],
-            lmbd_ratio_min=path_opts["lmbd_ratio_min"],
-            lmbd_ratio_num=path_opts["lmbd_ratio_num"],
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
             max_nnz=path_opts["max_nnz"],
             stop_if_not_optimal=path_opts["stop_if_not_optimal"],
         )
