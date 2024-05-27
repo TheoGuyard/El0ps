@@ -21,7 +21,7 @@ Check out the [documentation](https://theoguyard.github.io/El0ps/html/index.html
 
 
 ```shell
-pip install https://github.com/TheoGuyard/El0ps.git
+pip install git+https://github.com/TheoGuyard/El0ps.git
 ```
 
 ## Quick start
