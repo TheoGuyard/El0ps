@@ -23,11 +23,11 @@ You can use some already-made problem instances or **customize your own** based 
 Installation
 ------------
 
-``el0ps`` will be available on `pypi <https://pypi.org>`_ soon. The latest version of the package can currently be installed as
+``el0ps`` is available on `pypi <https://pypi.org>`_ soon. The latest version of the package can be installed as
 
 .. prompt:: shell $
 
-   pip install git+https://github.com/TheoGuyard/El0ps
+   pip install el0ps
 
 Feel free to contribute by report any bug on the `issue <https://github.com/TheoGuyard/El0ps/issues>`_ page or by opening a `pull request <https://github.com/TheoGuyard/El0ps/pulls>`_.
 
@@ -53,12 +53,12 @@ Please cite it as follows:
    :target: https://www.python.org/downloads/release/python-390/
 .. |Documentation| image:: https://img.shields.io/badge/documentation-latest-blue
    :target: https://el0ps.github.io
+.. |PyPI version| image:: https://badge.fury.io/py/el0ps.svg
+   :target: https://pypi.org/project/el0ps/
 .. |Test Status| image:: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg
    :target: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml
 .. |Codecov| image:: https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6
    :target: https://codecov.io/gh/TheoGuyard/El0ps
-.. |PyPI version| image:: https://badge.fury.io/py/el0ps.svg
-   :target: https://pypi.org/project/el0ps/
 .. |License| image:: https://img.shields.io/badge/License-AGPL--v3-red.svg
    :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
 

@@ -4,10 +4,10 @@ El0ps
 
 [![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://theoguyard.github.io/El0ps/html/index.html)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/release/python-390/)
+[![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/)
 [![codecov](https://codecov.io/github/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/github/TheoGuyard/El0ps)
 [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE)
-<!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
 
 ``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
 It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving these problems.
@@ -17,11 +17,11 @@ Check out the [documentation](https://theoguyard.github.io/El0ps/html/index.html
 
 ## Installation
 
-`el0ps` will be available on [pypi](https://pypi.org>) soon. The latest version of the package can currently be installed as
+`el0ps` is available on [pypi](https://pypi.org>) soon. The latest version of the package can be installed as
 
 
 ```shell
-pip install git+https://github.com/TheoGuyard/El0ps.git
+pip install el0ps
 ```
 
 ## Quick start
