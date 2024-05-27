@@ -6,7 +6,7 @@ jobs:
   run:
     strategy:
       matrix:
-        python: ['3.8']
+        python: ['3.9']
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
