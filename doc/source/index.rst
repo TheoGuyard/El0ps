@@ -49,8 +49,8 @@ Please cite it as follows:
    }
 
 
-.. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8%2B-blue
-   :target: https://www.python.org/downloads/release/python-380/
+.. |Python 3.9+| image:: https://img.shields.io/badge/python-3.9%2B-blue
+   :target: https://www.python.org/downloads/release/python-390/
 .. |Documentation| image:: https://img.shields.io/badge/documentation-latest-blue
    :target: https://el0ps.github.io
 .. |Test Status| image:: https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg
