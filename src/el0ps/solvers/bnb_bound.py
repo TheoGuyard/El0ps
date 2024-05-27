@@ -1,47 +1,11 @@
-import cvxpy as cp
 import numpy as np
 import time
 from abc import abstractmethod
-from numba import njit, float64
+from numba import njit
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
 from el0ps.utils import compiled_clone
 from .bnb_node import BnbNode
-
-
-def calibrate_mcptwo(
-    datafit: JitClassType,
-    penalty: JitClassType,
-    A: ArrayLike,
-    regfunc_type: str,
-):
-    n = A.shape[1]
-    if regfunc_type == "convex":
-        mcptwo = 2.0 * penalty.alpha * np.ones(n)
-        L = np.copy(A)
-        h = np.zeros(n)
-    elif regfunc_type == "concave_eig":
-        G = datafit.strong_convexity_constant() * (A.T @ A)
-        g = np.min(np.real(np.linalg.eigvals(G)))
-        mcptwo = (g + 2.0 * penalty.alpha) * np.ones(n)
-        L = np.linalg.cholesky(G + np.diag(2.0 * penalty.alpha - mcptwo)).T
-        h = (A.T + L.T) @ datafit.y
-    elif regfunc_type == "concave_etp":
-        G = datafit.strong_convexity_constant() * (A.T @ A)
-        var = cp.Variable(n)
-        obj = cp.Maximize(cp.sum(var))
-        cst = [
-            G + 2.0 * penalty.alpha * np.eye(n) - cp.diag(var) >> 0.0,
-            var >= 0.0,
-        ]
-        problem = cp.Problem(obj, cst)
-        problem.solve()
-        mcptwo = np.array(var.value).flatten()
-        L = np.linalg.cholesky(G + np.diag(2.0 * penalty.alpha - mcptwo)).T
-        h = (A.T + L.T) @ datafit.y
-    else:
-        raise ValueError(f"Invalid regfunc_type {regfunc_type}.")
-    return mcptwo, L, h
 
 
 class BaseRegfunc:
@@ -213,94 +177,6 @@ class ConvexRegfunc(BaseRegfunc):
             return [s, s]
         else:
             return self.penalty.subdiff_scalar(i, x)
-
-
-class ConcaveRegfunc(BaseRegfunc):
-
-    def __init__(
-        self,
-        penalty: JitClassType,
-        mcptwo: ArrayLike,
-        L: ArrayLike,
-        h: ArrayLike,
-    ) -> None:
-
-        if str(penalty) != "L2norm":
-            raise Exception
-
-        self.penalty = penalty
-        self.mcptwo = mcptwo
-        self.L = L
-        self.h = h
-
-    def get_spec(self) -> tuple:
-        spec = (
-            ("penalty", self.penalty._numba_type_.class_type.instance_type),
-            ("mcptwo", float64[:]),
-            ("L", float64[::-1, :]),
-            ("h", float64[:]),
-        )
-        return spec
-
-    def params_to_dict(self) -> dict:
-        return dict(
-            penalty=self.penalty,
-            mcptwo=self.mcptwo,
-        )
-
-    def mcp_value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
-        z = np.abs(x)
-        if z <= c / self.mcptwo[i]:
-            return c * z - 0.5 * self.mcptwo[i] * z**2
-        else:
-            return lmbd
-
-    def mcp_prox_scalar(
-        self, i: int, lmbd: float, x: float, eta: float
-    ) -> float:
-        c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
-        z = np.abs(x)
-        if z <= c * eta:
-            return 0.0
-        if z > c / self.mcptwo[i]:
-            return x
-        return np.sign(x) * (z - c * eta) / (1.0 - eta * self.mcptwo[i])
-
-    def mcp_subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
-        c = np.sqrt(2.0 * lmbd * self.mcptwo[i])
-        z = np.abs(x)
-        if z == 0.0:
-            return [-c, c]
-        elif z <= c / self.mcptwo[i]:
-            s = np.sign(x) * c - self.mcptwo[i] * x
-            return [s, s]
-        else:
-            return [0.0, 0.0]
-
-    def value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        return self.mcp_value_scalar(i, lmbd, x) + self.penalty.value_scalar(
-            i, x
-        )
-
-    def conjugate_scalar(self, i: int, lmbd: float, x: float) -> float:
-        c = 1.0 / (2.0 * self.penalty.alpha)
-        z = c * x
-        p = self.mcp_prox_scalar(i, lmbd, z, c)
-        return (
-            0.5 * c * x**2
-            - self.mcp_value_scalar(i, lmbd, p)
-            - self.penalty.alpha * (p - z) ** 2
-        )
-
-    def prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
-        c = 1.0 / (eta * 2.0 * self.penalty.alpha + 1.0)
-        return self.mcp_prox_scalar(i, lmbd, c * x, c * eta)
-
-    def subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
-        s_mcp = self.mcp_subdiff_scalar(i, lmbd, x)
-        s_pen = self.penalty.subdiff_scalar(i, x)
-        return [s_mcp[0] + s_pen[0], s_mcp[1] + s_pen[1]]
 
 
 class BnbBoundingSolver:

@@ -7,11 +7,41 @@ requires-python = ">=3.8"
 license = {file = "LICENSE.txt"}
 # keywords = ["sample", "setuptools", "development"]
 authors = [{name = "Theo Guyard", email = "guyard.theo@gmail.com"}]
-dependencies = ["numba", "numpy", "pyomo", "scikit-learn", "scipy", "cvxpy"]
+dependencies = [
+    "numpy>=1.12",
+    "numba",
+    "scikit-learn>=1.0",
+    "scipy>=0.18.0",
+    "pyomo",
+]
 
 [project.optional-dependencies]
-dev = ["black", "coverage", "flake8", "furo", "numpydoc", "pydoctest", "pytest", "sphinx", "sphinx_autodoc_typehints", "sphinx_copybutton", "sphinx-prompt"]
-exp = ["libsvmdata", "l0bnb", "l0learn", "matplotlib", "openml", "pandas", "pyyaml", "skglm", "ucimlrepo"]
+dev = [
+    "black",
+    "build",
+    "coverage",
+    "flake8",
+    "furo",
+    "numpydoc",
+    "pydoctest",
+    "pytest",
+    "sphinx",
+    "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
+    "sphinx-prompt",
+    "twine",
+]
+exp = [
+    "libsvmdata",
+    "l0bnb",
+    "l0learn",
+    "matplotlib",
+    "openml",
+    "pandas",
+    "pyyaml",
+    "skglm",
+    "ucimlrepo",
+]
 mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 
 [project.urls]
