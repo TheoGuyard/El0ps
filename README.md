@@ -2,18 +2,18 @@ El0ps
 =====
 *-An Exact L0-Problem Solver-*
 
-[![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://el0ps.github.io)
+[![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://theoguyard.github.io/El0ps/html/index.html)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/release/python-380/)
-[![Codecov](https://codecov.io/gh/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/gh/TheoGuyard/El0ps)
-[![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/benchopt/benchopt/blob/main/LICENSE)
+[![codecov](https://codecov.io/github/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/github/TheoGuyard/El0ps)
+[![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE)
 <!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
-<!-- [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml) -->
+[![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml)
 
 ``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
 It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving these problems.
 You can use some already-made problem instances or **customize your own** based on several templates and utilities.
 
-Check out the [documentation](https://el0ps.github.io) for a starting tour of the package.
+Check out the [documentation](https://theoguyard.github.io/El0ps/html/index.html) for a starting tour of the package.
 
 ## Installation
 
