@@ -6,8 +6,8 @@ El0ps
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/release/python-380/)
 [![codecov](https://codecov.io/github/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/github/TheoGuyard/El0ps)
 [![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE)
-<!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
 [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml)
+<!-- [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/) -->
 
 ``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
 It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving these problems.
