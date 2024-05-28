@@ -23,13 +23,20 @@ You can use some already-made problem instances or **customize your own** based 
 Installation
 ------------
 
-``el0ps`` is available on `pypi <https://pypi.org>`_ soon. The latest version of the package can be installed as
+``el0ps`` is available on `pypi <https://pypi.org>`_. The latest version of the package can be installed as
 
 .. prompt:: shell $
 
    pip install el0ps
 
+Contribute
+----------
+
+``el0ps`` is still in its early stages of development.
 Feel free to contribute by report any bug on the `issue <https://github.com/TheoGuyard/El0ps/issues>`_ page or by opening a `pull request <https://github.com/TheoGuyard/El0ps/pulls>`_.
+Any feedback or contribution is welcome.
+Check out the :ref:`Contribution<contribute>` page for more information.
+
 
 Cite
 ----
@@ -71,3 +78,5 @@ Please cite it as follows:
    ingredients.rst
    custom.rst
    api.rst
+   contribute.rst
+   news.rst
