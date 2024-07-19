@@ -95,28 +95,6 @@ class SmoothDatafit(BaseDatafit):
         ...
 
 
-class TwiceDifferentiableDatafit(SmoothDatafit):
-    """Base class for twice differentiable datafit functions. The datafit is
-    assumed separable so that the Hessian is diagonal."""
-
-    @abstractmethod
-    def hessian(self, x: ArrayLike) -> ArrayLike:
-        """Value of the Hessian at ``x``. Since the function is separable, the
-        Hessian is diagonal and returned as a vector.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            Vector at which the Hessian is evaluated.
-
-        Returns
-        -------
-        H: ArrayLike
-            The Hessian at ``x`` returned as a vector.
-        """
-        ...
-
-
 class MipDatafit:
     """Base class for datafit functions that can be modeled into a
     Mixed-Integer Program."""

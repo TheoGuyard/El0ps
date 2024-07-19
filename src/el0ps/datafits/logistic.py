@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numba import float64
 from numpy.typing import ArrayLike
-from .base import MipDatafit, TwiceDifferentiableDatafit
+from .base import MipDatafit, SmoothDatafit
 
 
-class Logistic(TwiceDifferentiableDatafit, MipDatafit):
+class Logistic(SmoothDatafit, MipDatafit):
     r"""Logistic datafit function.
 
     The function is defined as
@@ -47,10 +47,6 @@ class Logistic(TwiceDifferentiableDatafit, MipDatafit):
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return -self.y / (1.0 + np.exp(self.y * x))
-
-    def hessian(self, x: ArrayLike) -> ArrayLike:
-        z = np.exp(self.y * x)
-        return (z * self.y**2) / (1.0 + z) ** 2
 
     def bind_model(self, model: pmo.block) -> None:
         model.c1_var = pmo.variable_dict()

@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numba import float64
 from numpy.typing import ArrayLike
-from .base import MipDatafit, TwiceDifferentiableDatafit
+from .base import MipDatafit, SmoothDatafit
 
 
-class Leastsquares(TwiceDifferentiableDatafit, MipDatafit):
+class Leastsquares(SmoothDatafit, MipDatafit):
     r"""Least-squares datafit function.
 
     The function is defined as
@@ -44,9 +44,6 @@ class Leastsquares(TwiceDifferentiableDatafit, MipDatafit):
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return x - self.y
-
-    def hessian(self, x: ArrayLike) -> ArrayLike:
-        return np.ones(len(x))
 
     def bind_model(self, model: pmo.block) -> None:
         model.c_var = pmo.variable()

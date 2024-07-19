@@ -1,10 +1,10 @@
 import numpy as np
 from numba import float64
 from numpy.typing import ArrayLike
-from .base import TwiceDifferentiableDatafit
+from .base import SmoothDatafit
 
 
-class Logcosh(TwiceDifferentiableDatafit):
+class Logcosh(SmoothDatafit):
     r"""Logcosh datafit function.
 
     The function is defined as
@@ -46,6 +46,3 @@ class Logcosh(TwiceDifferentiableDatafit):
 
     def gradient(self, x: ArrayLike) -> ArrayLike:
         return np.tanh(x - self.y)
-
-    def hessian(self, x: ArrayLike) -> ArrayLike:
-        return 1.0 / np.cosh(x - self.y) ** 2

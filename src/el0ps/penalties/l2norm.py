@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import MipPenalty, SmoothPenalty
+from .base import BasePenalty, MipPenalty
 
 
-class L2norm(MipPenalty, SmoothPenalty):
+class L2norm(BasePenalty, MipPenalty):
     r"""L2-norm penalty function.
 
     The function is defined as
@@ -62,12 +62,6 @@ class L2norm(MipPenalty, SmoothPenalty):
 
     def param_maxdom_scalar(self, i: int) -> float:
         return np.inf
-
-    def lipschitz_constant(self) -> float:
-        return self.L
-
-    def gradient(self, x: ArrayLike) -> ArrayLike:
-        return self.L * x
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         model.g1_var = pmo.variable_dict()

@@ -4,7 +4,6 @@ import pytest
 from el0ps.datafits import (
     BaseDatafit,
     SmoothDatafit,
-    TwiceDifferentiableDatafit,
     Kullbackleibler,
     Leastsquares,
     Logcosh,
@@ -36,7 +35,3 @@ def test_instances(datafit):
         assert datafit.value(x) >= datafit.value(u) + np.dot(
             datafit.gradient(u), x - u
         )
-    if isinstance(datafit, TwiceDifferentiableDatafit):
-        H = datafit.hessian(x)
-        assert H.shape == (x.size, x.size)
-        assert x.T @ datafit.hessian(x) @ x >= 0.0

@@ -294,38 +294,6 @@ class BasePenalty:
         return s.sum()
 
 
-class SmoothPenalty(BasePenalty):
-    """Base class for differentiable penalty functions with Lipschitz
-    continuous gradient."""
-
-    @abstractmethod
-    def lipschitz_constant(self) -> float:
-        """Lipschitz constant of the gradient.
-
-        Returns
-        -------
-        L: float
-            The Lipschitz constant of the gradient.
-        """
-        ...
-
-    @abstractmethod
-    def gradient(self, x: ArrayLike) -> ArrayLike:
-        """Value of gradient at ``x``.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            Vector at which the gradient is evaluated.
-
-        Returns
-        -------
-        g: ArrayLike
-            The gradient at ``x``.
-        """
-        ...
-
-
 class MipPenalty:
     """Base class for penalty functions that can be modeled into a
     Mixed-Integer Program."""

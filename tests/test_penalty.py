@@ -3,7 +3,6 @@ import pytest
 
 from el0ps.penalties import (
     SmoothPenalty,
-    TwiceDifferentiablePenalty,
     Bigm,
     BigmL1norm,
     BigmL2norm,
@@ -82,7 +81,3 @@ def test_instances(penalty):
             assert penalty.value(x) >= penalty.value(u) + np.dot(
                 penalty.gradient(u), x - u
             )
-        if isinstance(penalty, TwiceDifferentiablePenalty):
-            H = penalty.hessian(x)
-            assert H.shape == (x.size, x.size)
-            assert x.T @ penalty.hessian(x) @ x >= 0.0
