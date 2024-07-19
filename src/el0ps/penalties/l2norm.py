@@ -22,13 +22,12 @@ class L2norm(BasePenalty, MipPenalty):
 
     def __init__(self, beta: float) -> None:
         self.beta = beta
-        self.L = 2.0 * beta
 
     def __str__(self) -> str:
         return "L2norm"
 
     def get_spec(self) -> tuple:
-        spec = (("beta", float64), ("L", float64))
+        spec = (("beta", float64),)
         return spec
 
     def params_to_dict(self) -> dict:
@@ -38,17 +37,17 @@ class L2norm(BasePenalty, MipPenalty):
         return self.beta * x**2
 
     def conjugate_scalar(self, i: int, x: float) -> float:
-        return x**2 / (2.0 * self.L)
+        return x**2 / (4.0 * self.beta)
 
     def prox_scalar(self, i: int, x: float, eta: float) -> float:
-        return x / (1.0 + self.L * eta)
+        return x / (1.0 + 2.0 * self.beta * eta)
 
     def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
-        s = self.L * x
+        s = 2.0 * self.beta * x
         return [s, s]
 
     def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
-        s = x / self.L
+        s = x / (2.0 * self.beta)
         return [s, s]
 
     def param_slope_scalar(self, i: int, lmbd: float) -> float:

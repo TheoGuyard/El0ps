@@ -312,9 +312,9 @@ class Regpath(Experiment):
         )
         self.stats_specs = {
             "solve_time": {"log": True},
-            # "iter_count": {"log": True},
-            # "objective_value": {"log": False},
-            # "datafit_value": {"log": False},
+            "iter_count": {"log": True},
+            "objective_value": {"log": False},
+            "datafit_value": {"log": False},
             "n_nnz": {"log": False},
         }
         stats = {
@@ -330,13 +330,7 @@ class Regpath(Experiment):
             found += 1
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
-                if (
-                    self.config["expname"] == file_data["config"]["expname"] and
-                    self.config["dataset"] == file_data["config"]["dataset"] and
-                    self.config["solvers"]["solvers_opts"] == file_data["config"]["solvers"]["solvers_opts"] and
-                    self.config["path_opts"] == file_data["config"]["path_opts"] and
-                    all(solver_name in self.config["solvers"]["solvers_name"] for solver_name in file_data["config"]["solvers"]["solvers_name"])
-                ):
+                if self.config == file_data["config"]:
                     match += 1
                     if not any(file_data["results"].values()):
                         empty += 1

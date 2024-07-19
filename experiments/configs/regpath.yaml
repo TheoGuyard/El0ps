@@ -1,32 +1,31 @@
 expname: regpath
 
 dataset:
-  dataset_type: hardcoded
+  dataset_type: libsvm
   dataset_opts: 
-    dataset_name  : leukemia
+    dataset_name  : bodyfat
   process_opts: 
-    center        : false
-    normalize     : false
-  datafit_name: Logistic
+    center        : true
+    normalize     : true
+  datafit_name: Leastsquares
   penalty_name: BigmL2norm
 
 solvers:
   solvers_name:
     - el0ps
-    - el0ps[simpruning=False,dualpruning=False]
-    - l0bnb
     - mip[optimizer_name=cplex]
     - mip[optimizer_name=gurobi]
     - mip[optimizer_name=mosek]
+    - l0bnb
   solvers_opts:
-    time_limit: 600.
+    time_limit: 3600.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8
     verbose   : false
 
 path_opts:
   lmbd_max: 1.e-0
-  lmbd_min: 1.e-2
-  lmbd_num: 21
+  lmbd_min: 1.e-5
+  lmbd_num: 101
   lmbd_scaled: true
   stop_if_not_optimal: true

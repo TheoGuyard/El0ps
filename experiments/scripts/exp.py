@@ -26,8 +26,8 @@ def get_exp_perfprofile():
                 "supp_pos": "equispaced",
                 "supp_val": "unit",
                 "k": 5,
-                "m": 100,
-                "n": 200,
+                "m": 500,
+                "n": 1000,
                 "s": 10.0,
                 "normalize": True,
             },
@@ -38,14 +38,13 @@ def get_exp_perfprofile():
         "solvers": {
             "solvers_name": [
                 "el0ps",
-                "el0ps[simpruning=False,dualpruning=False]",
-                "l0bnb",
                 "mip[optimizer_name=cplex]",
                 "mip[optimizer_name=gurobi]",
                 "mip[optimizer_name=mosek]",
+                "l0bnb",
             ],
             "solvers_opts": {
-                "time_limit": 600.0,
+                "time_limit": 3600.0,
                 "rel_tol": 1.0e-4,
                 "int_tol": 1.0e-8,
                 "verbose": False,
@@ -53,12 +52,7 @@ def get_exp_perfprofile():
         },
     }
 
-    for penalty_name in ["Bigm", "L2norm", "BigmL2norm"]:
-        setup = deepcopy(base_setup)
-        setup["dataset"]["penalty_name"] = penalty_name
-        exp["setups"].append(setup)
-
-    # exp["setups"].append(base_setup)
+    exp["setups"].append(base_setup)
 
     return exp
 
@@ -85,7 +79,7 @@ def get_exp_regpath():
         "solvers": {
             "solvers_name": ["el0ps"],
             "solvers_opts": {
-                "time_limit": 600.0,
+                "time_limit": 3600.0,
                 "rel_tol": 1.0e-4,
                 "int_tol": 1.0e-8,
                 "verbose": False,
@@ -93,34 +87,33 @@ def get_exp_regpath():
         },
         "path_opts": {
             "lmbd_max": 1.0e-0,
-            "lmbd_min": 1.0e-2,
-            "lmbd_num": 21,
+            "lmbd_min": 1.0e-5,
+            "lmbd_num": 101,
             "lmbd_scaled": True,
             "stop_if_not_optimal": True,
         },
     }
 
     for dataset_name, datafit_name, penalty_name, center, normalize in [
-        # ("riboflavin", "Leastsquares", "BigmL1norm", True, True),
-        # ("riboflavin", "Leastsquares", "BigmL2norm", True, True),
-        # ("bctcga", "Leastsquares", "BigmL1norm", True, True),
-        # ("bctcga", "Leastsquares", "BigmL2norm", True, True),
-        # ("colon-cancer", "Logistic", "BigmL1norm", False, False),
-        # ("colon-cancer", "Logistic", "BigmL2norm", False, False),
-        # ("leukemia", "Logistic", "BigmL1norm", False, False),
-        # ("leukemia", "Logistic", "BigmL2norm", False, False),
-        # ("arcene", "Squaredhinge", "BigmL1norm", False, False),
-        # ("arcene", "Squaredhinge", "BigmL2norm", False, False),
-        # ("breast-cancer", "Squaredhinge", "BigmL1norm", False, False),
-        # ("breast-cancer", "Squaredhinge", "BigmL2norm", False, False),
+        ("riboflavin", "Leastsquares", "BigmL1norm", True, True),
+        ("riboflavin", "Leastsquares", "BigmL2norm", True, True),
+        ("bctcga", "Leastsquares", "BigmL1norm", True, True),
+        ("bctcga", "Leastsquares", "BigmL2norm", True, True),
+        ("colon-cancer", "Logistic", "BigmL1norm", False, False),
+        ("colon-cancer", "Logistic", "BigmL2norm", False, False),
+        ("leukemia", "Logistic", "BigmL1norm", False, False),
+        ("leukemia", "Logistic", "BigmL2norm", False, False),
+        ("arcene", "Squaredhinge", "BigmL1norm", False, False),
+        ("arcene", "Squaredhinge", "BigmL2norm", False, False),
+        ("breast-cancer", "Squaredhinge", "BigmL1norm", False, False),
+        ("breast-cancer", "Squaredhinge", "BigmL2norm", False, False),
     ]: 
         for solver_name in [
             "el0ps",
-            "el0ps[simpruning=False,dualpruning=False]",
-            "l0bnb",
             "mip[optimizer_name=cplex]",
             "mip[optimizer_name=gurobi]",
             "mip[optimizer_name=mosek]",
+            "l0bnb",
         ]:
             if can_handle_instance(solver_name, datafit_name, penalty_name):
                 setup = deepcopy(base_setup)
