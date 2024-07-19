@@ -1,11 +1,16 @@
+import os
+import sys
 from copy import deepcopy
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from solvers import can_handle_instance  # noqa
 
 
 def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
         "command": "perfprofile",
-        "walltime": "07:15:00",
+        "walltime": "01:00:00",
         "besteffort": True,
         "production": True,
         "setups": [],
@@ -21,8 +26,8 @@ def get_exp_perfprofile():
                 "supp_pos": "equispaced",
                 "supp_val": "unit",
                 "k": 5,
-                "m": 500,
-                "n": 1000,
+                "m": 100,
+                "n": 200,
                 "s": 10.0,
                 "normalize": True,
             },
@@ -35,12 +40,12 @@ def get_exp_perfprofile():
                 "el0ps",
                 "el0ps[simpruning=False,dualpruning=False]",
                 "l0bnb",
-                "cplex",
-                "gurobi",
-                "mosek",
+                "mip[optimizer_name=cplex]",
+                "mip[optimizer_name=gurobi]",
+                "mip[optimizer_name=mosek]",
             ],
             "solvers_opts": {
-                "time_limit": 3600.0,
+                "time_limit": 600.0,
                 "rel_tol": 1.0e-4,
                 "int_tol": 1.0e-8,
                 "verbose": False,
@@ -48,7 +53,12 @@ def get_exp_perfprofile():
         },
     }
 
-    exp["setups"].append(base_setup)
+    for penalty_name in ["Bigm", "L2norm", "BigmL2norm"]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["penalty_name"] = penalty_name
+        exp["setups"].append(setup)
+
+    # exp["setups"].append(base_setup)
 
     return exp
 
@@ -57,7 +67,7 @@ def get_exp_regpath():
     exp = {
         "name": "regpath",
         "command": "regpath",
-        "walltime": "12:00:00",
+        "walltime": "05:00:00",
         "besteffort": False,
         "production": True,
         "setups": [],
@@ -75,7 +85,7 @@ def get_exp_regpath():
         "solvers": {
             "solvers_name": ["el0ps"],
             "solvers_opts": {
-                "time_limit": 3600.0,
+                "time_limit": 600.0,
                 "rel_tol": 1.0e-4,
                 "int_tol": 1.0e-8,
                 "verbose": False,
@@ -83,42 +93,47 @@ def get_exp_regpath():
         },
         "path_opts": {
             "lmbd_max": 1.0e-0,
-            "lmbd_min": 1.0e-5,
-            "lmbd_num": 101,
+            "lmbd_min": 1.0e-2,
+            "lmbd_num": 21,
             "lmbd_scaled": True,
             "stop_if_not_optimal": True,
         },
     }
 
-    for dataset_name, datafit_name, penalty_name in [
-        ("riboflavin", "Leastsquares", "BigmL1norm"),
-        ("riboflavin", "Leastsquares", "BigmL2norm"),
-        ("bctcga", "Leastsquares", "BigmL1norm"),
-        ("bctcga", "Leastsquares", "BigmL2norm"),
-        ("colon-cancer", "Logistic", "BigmL1norm"),
-        ("colon-cancer", "Logistic", "BigmL2norm"),
-        ("leukemia", "Logistic", "BigmL1norm"),
-        ("leukemia", "Logistic", "BigmL2norm"),
-        ("arcene", "Squaredhinge", "BigmL1norm"),
-        ("arcene", "Squaredhinge", "BigmL2norm"),
-        ("breast-cancer", "Squaredhinge", "BigmL1norm"),
-        ("breast-cancer", "Squaredhinge", "BigmL2norm"),
-    ]:
+    for dataset_name, datafit_name, penalty_name, center, normalize in [
+        # ("riboflavin", "Leastsquares", "BigmL1norm", True, True),
+        # ("riboflavin", "Leastsquares", "BigmL2norm", True, True),
+        # ("bctcga", "Leastsquares", "BigmL1norm", True, True),
+        # ("bctcga", "Leastsquares", "BigmL2norm", True, True),
+        # ("colon-cancer", "Logistic", "BigmL1norm", False, False),
+        # ("colon-cancer", "Logistic", "BigmL2norm", False, False),
+        # ("leukemia", "Logistic", "BigmL1norm", False, False),
+        # ("leukemia", "Logistic", "BigmL2norm", False, False),
+        # ("arcene", "Squaredhinge", "BigmL1norm", False, False),
+        # ("arcene", "Squaredhinge", "BigmL2norm", False, False),
+        # ("breast-cancer", "Squaredhinge", "BigmL1norm", False, False),
+        # ("breast-cancer", "Squaredhinge", "BigmL2norm", False, False),
+    ]: 
         for solver_name in [
             "el0ps",
-            "el0ps[simpruning=False]",
             "el0ps[simpruning=False,dualpruning=False]",
             "l0bnb",
-            "cplex",
-            "gurobi",
-            "mosek",
+            "mip[optimizer_name=cplex]",
+            "mip[optimizer_name=gurobi]",
+            "mip[optimizer_name=mosek]",
         ]:
-            setup = deepcopy(base_setup)
-            setup["dataset"]["dataset_opts"]["dataset_name"] = dataset_name
-            setup["dataset"]["datafit_name"] = datafit_name
-            setup["dataset"]["penalty_name"] = penalty_name
-            setup["solvers"]["solvers_name"] = [solver_name]
-            exp["setups"].append(setup)
+            if can_handle_instance(solver_name, datafit_name, penalty_name):
+                setup = deepcopy(base_setup)
+                setup["dataset"]["dataset_opts"]["dataset_name"] = dataset_name
+                setup["dataset"]["datafit_name"] = datafit_name
+                setup["dataset"]["penalty_name"] = penalty_name
+                setup["dataset"]["process_opts"]["center"] = center
+                setup["dataset"]["process_opts"]["normalize"] = normalize
+                setup["solvers"]["solvers_name"] = [solver_name]
+                if datafit_name == "arcene":
+                    setup["path_ops"]["lmbd_max"] = 1e-2
+                    setup["path_ops"]["lmbd_min"] = 1e-4
+                exp["setups"].append(setup)
 
     return exp
 

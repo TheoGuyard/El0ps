@@ -7,25 +7,24 @@ dataset:
     model       : linear
     supp_pos    : equispaced
     supp_val    : unit
-    k           : 3
-    m           : 10
-    n           : 15
+    k           : 5
+    m           : 500
+    n           : 1000
     s           : 10.
     normalize   : true
   process_opts: 
     center        : true
     normalize     : true
-  datafit_name: Squaredhinge
-  penalty_name: L2norm
+  datafit_name: Leastsquares
+  penalty_name: BigmL2norm
 
 solvers:
   solvers_name:
-    # - el0ps
-    - el0ps[smoothing=False]
-    # - mip[optimizer_name=cplex]
+    - el0ps
+    - mip[optimizer_name=cplex]
     - mip[optimizer_name=gurobi]
     - mip[optimizer_name=mosek]
-    # - l0bnb
+    - l0bnb
   solvers_opts:
     time_limit: 3600.
     rel_tol   : 1.e-4

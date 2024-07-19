@@ -306,15 +306,15 @@ class Regpath(Experiment):
     def load_results(self):
         print("Loading results...")
         self.lmbd_ratio_grid = np.logspace(
-            np.log10(self.config["path_opts"]["lmbd_ratio_max"]),
-            np.log10(self.config["path_opts"]["lmbd_ratio_min"]),
-            self.config["path_opts"]["lmbd_ratio_num"],
+            np.log10(self.config["path_opts"]["lmbd_max"]),
+            np.log10(self.config["path_opts"]["lmbd_min"]),
+            self.config["path_opts"]["lmbd_num"],
         )
         self.stats_specs = {
             "solve_time": {"log": True},
-            "iter_count": {"log": True},
-            "objective_value": {"log": False},
-            "datafit_value": {"log": False},
+            # "iter_count": {"log": True},
+            # "objective_value": {"log": False},
+            # "datafit_value": {"log": False},
             "n_nnz": {"log": False},
         }
         stats = {
@@ -330,7 +330,13 @@ class Regpath(Experiment):
             found += 1
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
-                if self.config == file_data["config"]:
+                if (
+                    self.config["expname"] == file_data["config"]["expname"] and
+                    self.config["dataset"] == file_data["config"]["dataset"] and
+                    self.config["solvers"]["solvers_opts"] == file_data["config"]["solvers"]["solvers_opts"] and
+                    self.config["path_opts"] == file_data["config"]["path_opts"] and
+                    all(solver_name in self.config["solvers"]["solvers_name"] for solver_name in file_data["config"]["solvers"]["solvers_name"])
+                ):
                     match += 1
                     if not any(file_data["results"].values()):
                         empty += 1
