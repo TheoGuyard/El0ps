@@ -79,17 +79,17 @@ class BnbOptions:
         Whether to use dual-pruning.
     workingsets: bool
         Whether to use working sets during the bounding process.
-    l1screening: bool
+    screening: bool
         Whether to use screening acceleration.
     simpruning: bool
-        Whether to use node-screening acceleration.
+        Whether to use simultaneous pruning acceleration.
     verbose: bool
         Whether to toggle solver verbosity.
     trace: bool
         Whether to store the solver trace.
     """
 
-    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.MIX
+    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.BBS
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
     bounding_regfunc_type: str = "convex"
     bounding_maxiter_inner: int = 1_000
@@ -101,7 +101,7 @@ class BnbOptions:
     int_tol: float = 1e-8
     workingsets: bool = True
     dualpruning: bool = True
-    l1screening: bool = True
+    screening: bool = True
     simpruning: bool = True
     verbose: bool = False
     trace: bool = False
@@ -295,7 +295,7 @@ class BnbSolver(BaseSolver):
             self.options.rel_tol,
             self.options.workingsets,
             self.options.dualpruning,
-            self.options.l1screening,
+            self.options.screening,
             self.options.simpruning,
             upper=False,
         )

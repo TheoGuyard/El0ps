@@ -109,7 +109,9 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
         model.g2_var = pmo.variable_dict()
         for i in model.N:
             model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
-            model.g2_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
+            model.g2_var[i] = pmo.variable(
+                domain=pmo.NonNegativeReals, ub=self.M**2
+            )
 
         model.gpos_con = pmo.constraint_dict()
         model.gneg_con = pmo.constraint_dict()
@@ -125,14 +127,14 @@ class BigmL1L2norm(BasePenalty, MipPenalty):
             )
             model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
             model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= -model.x[i])
-            model.g2_con[i] = pmo.constraint(
-                model.x[i] ** 2 <= model.g2_var[i] * model.z[i]
+            model.g1_con[i] = pmo.conic.rotated_quadratic(
+                model.g2_var[i], model.z[i], [model.x[i]]
             )
         model.g_con = pmo.constraint(
             model.g
             >= (
                 lmbd * sum(model.z[i] for i in model.N)
                 + self.alpha * sum(model.g1_var[i] for i in model.N)
-                + self.beta * sum(model.g2_var[i] for i in model.N)
+                + 2.0 * self.beta * sum(model.g2_var[i] for i in model.N)
             )
         )

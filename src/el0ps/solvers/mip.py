@@ -16,9 +16,9 @@ _optim_bindings = {
     "cplex": {
         "optimizer_name": "cplex_direct",
         "time_limit": "timelimit",
-        "rel_tol": "mip.tolerances.mipgap",
-        "int_tol": "mip.tolerances.integrality",
-        "verbose": "mip.display",
+        "rel_tol": "mip_tolerances_mipgap",
+        "int_tol": "mip_tolerances_integrality",
+        "verbose": "mip_display",
     },
     "gurobi": {
         "optimizer_name": "gurobi_direct",

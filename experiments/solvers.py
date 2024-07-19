@@ -68,11 +68,11 @@ class L0bnbSolver(BaseSolver):
             M = penalty.M
         elif str(penalty) == "L2norm":
             l0 = lmbd
-            l2 = penalty.alpha
+            l2 = penalty.beta
             M = np.inf
         elif str(penalty) == "BigmL2norm":
             l0 = lmbd
-            l2 = penalty.alpha
+            l2 = penalty.beta
             M = penalty.M
         else:
             raise NotImplementedError(
@@ -793,7 +793,6 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "BigmL2norm",
                 "L2norm",
                 "L1L2norm",
-                "NeglogTriangular",
             ]
         elif solver_opts["optimizer_name"] == "mosek":
             handle_datafit = datafit_name in [
@@ -807,7 +806,6 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "BigmL2norm",
                 "L2norm",
                 "L1L2norm",
-                "NeglogTriangular",
             ]
         else:
             raise ValueError(

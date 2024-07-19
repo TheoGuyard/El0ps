@@ -2,6 +2,8 @@
 
 import numpy as np
 from functools import lru_cache
+from typing import Union
+from numba import njit
 from numba.experimental import jitclass
 from numpy.typing import ArrayLike
 from el0ps.datafits import SmoothDatafit

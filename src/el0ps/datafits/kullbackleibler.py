@@ -1,10 +1,10 @@
 import numpy as np
 from numba import float64
 from numpy.typing import ArrayLike
-from .base import SmoothDatafit
+from .base import TwiceDifferentiableDatafit
 
 
-class Kullbackleibler(SmoothDatafit):
+class Kullbackleibler(TwiceDifferentiableDatafit):
     r"""Kullback-Leibler datafit function.
 
     The function is defined as
@@ -59,3 +59,7 @@ class Kullbackleibler(SmoothDatafit):
     def gradient(self, x: ArrayLike) -> ArrayLike:
         z = np.maximum(x, 0.0) + self.e
         return 1.0 - self.y / z
+
+    def hessian(self, x: ArrayLike) -> ArrayLike:
+        z = np.maximum(x, 0.0) + self.e
+        return self.y / z**2

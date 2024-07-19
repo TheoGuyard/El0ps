@@ -228,7 +228,7 @@ class BnbBoundingSolver:
         rel_tol: float,
         workingsets: bool,
         dualpruning: bool,
-        l1screening: bool,
+        screening: bool,
         simpruning: bool,
         upper: bool = False,
     ):
@@ -265,7 +265,7 @@ class BnbBoundingSolver:
 
                 # Inner problem solver
                 pv_old = pv
-                self.inner_solve(
+                self.inner_loop(
                     self.datafit,
                     self.penalty,
                     self.regfunc,
@@ -333,7 +333,7 @@ class BnbBoundingSolver:
                 rel_tol_inner *= 1e-2
 
             # Accelerations
-            if dualpruning or l1screening or simpruning:
+            if dualpruning or screening or simpruning:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
@@ -348,8 +348,8 @@ class BnbBoundingSolver:
                     )
                 if dualpruning and dv > ub:
                     break
-                if l1screening:
-                    self.l1screening(
+                if screening:
+                    self.screening_test(
                         self.datafit,
                         self.A,
                         x,
@@ -409,7 +409,7 @@ class BnbBoundingSolver:
 
     @staticmethod
     @njit
-    def inner_solve(
+    def inner_loop(
         datafit: JitClassType,
         penalty: JitClassType,
         regfunc: JitClassType,
@@ -597,7 +597,7 @@ class BnbBoundingSolver:
 
     @staticmethod
     @njit
-    def l1screening(
+    def screening_test(
         datafit: JitClassType,
         A: ArrayLike,
         x: ArrayLike,

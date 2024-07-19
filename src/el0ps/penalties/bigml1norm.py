@@ -90,7 +90,7 @@ class BigmL1norm(BasePenalty, MipPenalty):
 
         model.g1_var = pmo.variable_dict()
         for i in model.N:
-            model.g1_var[i] = pmo.variable(domain=pmo.Reals)
+            model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
 
         model.gpos_con = pmo.constraint_dict()
         model.gneg_con = pmo.constraint_dict()
