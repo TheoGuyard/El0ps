@@ -70,9 +70,13 @@ class Logistic(SmoothDatafit, MipDatafit):
         model.f1f3_con = pmo.constraint_dict()
         model.f2f3_con = pmo.constraint_dict()
         for j in model.M:
-            model.c1_con[j] = pmo.constraint(model.c1_var[j] == 1.)
-            model.c2_con[j] = pmo.constraint(model.c2_var[j] == self.y[j] * model.w[j] - model.f1_var[j])
-            model.c3_con[j] = pmo.constraint(model.c3_var[j] == -model.f1_var[j])
+            model.c1_con[j] = pmo.constraint(model.c1_var[j] == 1.0)
+            model.c2_con[j] = pmo.constraint(
+                model.c2_var[j] == self.y[j] * model.w[j] - model.f1_var[j]
+            )
+            model.c3_con[j] = pmo.constraint(
+                model.c3_var[j] == -model.f1_var[j]
+            )
             model.f1f2_con[j] = pmo.conic.primal_exponential(
                 model.f2_var[j],
                 model.c1_var[j],
