@@ -89,7 +89,7 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.BBS
+    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.MIX
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
     bounding_regfunc_type: str = "convex"
     bounding_maxiter_inner: int = 1_000
