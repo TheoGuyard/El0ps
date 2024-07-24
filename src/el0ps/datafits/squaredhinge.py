@@ -48,13 +48,16 @@ class Squaredhinge(SmoothDatafit, MipDatafit):
 
     def bind_model(self, model: pmo.block) -> None:
         model.f1_var = pmo.variable_dict()
-        for j in model.M:
-            model.f1_var[j] = pmo.variable(domain=pmo.NonNegativeReals)
         model.f1_con = pmo.constraint_dict()
         for j in model.M:
+            model.f1_var[j] = pmo.variable(domain=pmo.NonNegativeReals)
             model.f1_con[j] = pmo.constraint(
                 model.f1_var[j] >= 1.0 - self.y[j] * model.w[j]
             )
-        model.f_con = pmo.constraint(
-            model.f >= sum(model.f1_var[j] ** 2 for j in model.M)
+        model.c_var = pmo.variable()
+        model.c_con = pmo.constraint(model.c_var == 0.5)
+        model.f_con = pmo.conic.rotated_quadratic(
+            model.f,
+            model.c_var,
+            [model.f1_var[j] for j in model.M],
         )

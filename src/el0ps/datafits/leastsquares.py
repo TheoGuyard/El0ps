@@ -46,7 +46,17 @@ class Leastsquares(SmoothDatafit, MipDatafit):
         return x - self.y
 
     def bind_model(self, model: pmo.block) -> None:
-        model.f_con = pmo.constraint(
-            model.f
-            >= sum((model.w[j] - self.y[j]) ** 2 for j in model.M) / 2.0
+        model.c_var = pmo.variable()
+        model.c_con = pmo.constraint(model.c_var == 1.0)
+        model.r_var = pmo.variable_dict()
+        model.r_con = pmo.constraint_dict()
+        for j in model.M:
+            model.r_var[j] = pmo.variable(domain=pmo.Reals)
+            model.r_con[j] = pmo.constraint(
+                model.r_var[j] == model.w[j] - self.y[j]
+            )
+        model.f_con = pmo.conic.rotated_quadratic(
+            model.f,
+            model.c_var,
+            [model.r_var[j] for j in model.M],
         )

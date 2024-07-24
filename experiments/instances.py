@@ -295,9 +295,9 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         bindings[datafit_name],
         bindings[penalty_name],
         intercept=False,
-        num_gamma=1 if bindings[penalty_name] == "L0" else 40,
-        gamma_max=0.0 if bindings[penalty_name] == "L0" else 1e2,
-        gamma_min=0.0 if bindings[penalty_name] == "L0" else 1e-4,
+        num_gamma=1 if bindings[penalty_name] == "L0" else 20,
+        gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e2,
+        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-2,
         num_folds=5,
     )
 

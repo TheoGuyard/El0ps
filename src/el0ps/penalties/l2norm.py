@@ -40,7 +40,7 @@ class L2norm(BasePenalty, MipPenalty):
         return x**2 / (4.0 * self.beta)
 
     def prox_scalar(self, i: int, x: float, eta: float) -> float:
-        return x / (1.0 + 2.0 * eta * self.beta)
+        return x / (1.0 + 2.0 * self.beta * eta)
 
     def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
         s = 2.0 * self.beta * x
@@ -65,17 +65,17 @@ class L2norm(BasePenalty, MipPenalty):
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         model.g1_var = pmo.variable_dict()
         for i in model.N:
-            model.g1_var[i] = pmo.variable(domain=pmo.Reals)
+            model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
 
         model.g1_con = pmo.constraint_dict()
         for i in model.N:
-            model.g1_con[i] = pmo.constraint(
-                model.x[i] ** 2 <= model.g1_var[i] * model.z[i]
+            model.g1_con[i] = pmo.conic.rotated_quadratic(
+                model.g1_var[i], model.z[i], [model.x[i]]
             )
         model.g_con = pmo.constraint(
             model.g
             >= (
                 lmbd * sum(model.z[i] for i in model.N)
-                + self.beta * sum(model.g1_var[i] for i in model.N)
+                + 2.0 * self.beta * sum(model.g1_var[i] for i in model.N)
             )
         )

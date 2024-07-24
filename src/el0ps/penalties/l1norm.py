@@ -1,10 +1,10 @@
 import numpy as np
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty, MipPenalty
+from .base import BasePenalty
 
 
-class L1norm(BasePenalty, MipPenalty):
+class L1norm(BasePenalty):
     r"""L1-norm penalty function.
 
     The function is defined as

@@ -10,7 +10,6 @@ from copy import deepcopy
 from datetime import datetime
 from el0ps.path import Path
 from el0ps.solvers import Status
-from el0ps.solvers.bnb_bound import calibrate_mcptwo
 from el0ps.utils import compiled_clone, compute_lmbd_max
 from sklearn.model_selection import train_test_split
 
@@ -57,6 +56,59 @@ class Experiment:
 
     def calibrate_parameters(self):
         print("Calibrating parameters...")
+
+        if self.config["dataset"]["dataset_type"] == "hardcoded":
+            dataset_name = self.config["dataset"]["dataset_opts"][
+                "dataset_name"
+            ]
+            dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
+            dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(
+                ".pkl"
+            )
+            with open(dataset_path, "rb") as dataset_file:
+                data = pickle.load(dataset_file)
+                if "calibrations" in data.keys():
+                    calibrations = data["calibrations"]
+                else:
+                    calibrations = None
+            for calibration in calibrations:
+                if (
+                    calibration["datafit_name"]
+                    == self.config["dataset"]["datafit_name"]
+                    and calibration["penalty_name"]
+                    == self.config["dataset"]["penalty_name"]
+                    and calibration["normalize"]
+                    == self.config["dataset"]["process_opts"]["normalize"]
+                    and calibration["center"]
+                    == self.config["dataset"]["process_opts"]["center"]
+                ):
+                    from el0ps.datafits import (  # noqa
+                        Leastsquares,
+                        Logistic,
+                        Squaredhinge,
+                    )
+                    from el0ps.penalties import BigmL1norm, BigmL2norm  # noqa
+
+                    self.datafit = eval(calibration["datafit_name"])(self.y)
+                    self.penalty = eval(calibration["penalty_name"])(
+                        **calibration["penalty_params"]
+                    )
+                    self.lmbd = calibration["lmbd"]
+                    lmbd_max = compute_lmbd_max(
+                        self.datafit, self.penalty, self.A
+                    )
+                    print("Calibration found")
+                    print(
+                        "  num nz: {}".format(sum(calibration["x_cal"] != 0.0))
+                    )
+                    print("  lratio: {}".format(self.lmbd / lmbd_max))
+                    for (
+                        param_name,
+                        param_value,
+                    ) in self.penalty.params_to_dict().items():
+                        print("  {}\t: {}".format(param_name, param_value))
+                    return
+
         datafit, penalty, lmbd, x_cal = calibrate_parameters(
             self.config["dataset"]["datafit_name"],
             self.config["dataset"]["penalty_name"],
@@ -307,15 +359,15 @@ class Regpath(Experiment):
     def load_results(self):
         print("Loading results...")
         self.lmbd_ratio_grid = np.logspace(
-            np.log10(self.config["path_opts"]["lmbd_ratio_max"]),
-            np.log10(self.config["path_opts"]["lmbd_ratio_min"]),
-            self.config["path_opts"]["lmbd_ratio_num"],
+            np.log10(self.config["path_opts"]["lmbd_max"]),
+            np.log10(self.config["path_opts"]["lmbd_min"]),
+            self.config["path_opts"]["lmbd_num"],
         )
         self.stats_specs = {
             "solve_time": {"log": True},
-            "iter_count": {"log": True},
-            "objective_value": {"log": False},
-            "datafit_value": {"log": False},
+            # "iter_count": {"log": False},
+            # "objective_value": {"log": False},
+            # "datafit_value": {"log": False},
             "n_nnz": {"log": False},
         }
         stats = {
@@ -331,7 +383,20 @@ class Regpath(Experiment):
             found += 1
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
-                if self.config == file_data["config"]:
+                # if self.config == file_data["config"]:
+                if (
+                    self.config["expname"] == file_data["config"]["expname"]
+                    and self.config["dataset"]
+                    == file_data["config"]["dataset"]
+                    and np.all(
+                        np.isin(
+                            file_data["config"]["solvers"]["solvers_name"],
+                            self.config["solvers"]["solvers_name"],
+                        )
+                    )
+                    and self.config["path_opts"]
+                    == file_data["config"]["path_opts"]
+                ):
                     match += 1
                     if not any(file_data["results"].values()):
                         empty += 1
@@ -634,101 +699,4 @@ class Statistics(Experiment):
         for stat_name, stat_values in self.mean_stats.items():
             for solver_name, solver_values in stat_values.items():
                 table[solver_name + "_" + stat_name] = solver_values
-        table.to_csv(save_path, index=False)
-
-
-class RelaxQuality(Experiment):
-    name = "relaxquality"
-
-    def run(self):
-        assert self.config["dataset"]["penalty_name"] == "L2norm"
-        results = {}
-        for regfunc_type in self.config["regfunc_types"]:
-            try:
-                mcptwo = calibrate_mcptwo(
-                    self.datafit, self.penalty, self.A, regfunc_type
-                )
-                results[regfunc_type] = mcptwo / (2.0 * self.penalty.alpha)
-            except Exception as e:
-                print(e)
-                results[regfunc_type] = None
-        self.results = results
-
-    def load_results(self):
-        print("Loading results...")
-        found, match, notcv = 0, 0, 0
-        ratios = {r: [] for r in self.config["regfunc_types"]}
-        for result_path in self.results_dir.glob(self.name + "_*.pickle"):
-            found += 1
-            with open(result_path, "rb") as file:
-                file_data = pickle.load(file)
-                if file_data["config"] == self.config:
-                    match += 1
-                    for regfunc_type, result in file_data["results"].items():
-                        if result is not None:
-                            ratios[regfunc_type] += list(result)
-                        else:
-                            notcv += 1
-        print("  {} files found".format(found))
-        print("  {} files matched".format(match))
-        print("  {} files not converged".format(notcv))
-
-        if match == 0:
-            self.grid_ratios = None
-            self.curve_ratios = None
-            return
-
-        print("Computing statistics...")
-        for regfunc_type, ratio in ratios.items():
-            print("  {}".format(regfunc_type))
-            print("     ratios num : {}".format(len(ratio)))
-            print("     ratios min : {}".format(np.min(ratio)))
-            print("     ratios max : {}".format(np.max(ratio)))
-            print("     ratios mean: {}".format(np.mean(ratio)))
-            print("     ratios std : {}".format(np.std(ratio)))
-
-        min_ratios = np.min([np.min(v) for v in ratios.values()])
-        max_ratios = np.max([np.max(v) for v in ratios.values()])
-        self.grid_ratios = np.linspace(min_ratios, max_ratios, 100)
-        self.curve_ratios = {
-            regfunc_type: [np.mean(ratio >= g) for g in self.grid_ratios]
-            for regfunc_type, ratio in ratios.items()
-        }
-
-    def plot(self):
-        if self.curve_ratios is None or self.grid_ratios is None:
-            return
-        _, axs = plt.subplots()
-        for regfunc_type, curve_ratio in self.curve_ratios.items():
-            axs.plot(
-                self.grid_ratios,
-                curve_ratio,
-                label=regfunc_type,
-            )
-        axs.grid(visible=True, which="major", axis="both")
-        axs.grid(visible=True, which="minor", axis="both", alpha=0.2)
-        axs.minorticks_on()
-        axs.set_ylabel("Prop.")
-        axs.set_xlabel("mcptwo / 2 alpha")
-        axs.legend()
-        plt.show()
-
-    def save_plot(self):
-        print("Saving data...")
-        # save_uuid = datetime.now().strftime("%Y:%m:%d-%H:%M:%S")
-        table = pd.DataFrame({"grid_ratios": self.grid_ratios})
-        for regfunc_type, curve_ratio in self.curve_ratios.items():
-            table[regfunc_type] = curve_ratio
-        # file_name = "{}_{}".format(self.name, save_uuid)
-        k = str(self.config["dataset"]["dataset_opts"]["k"])
-        m = str(self.config["dataset"]["dataset_opts"]["m"])
-        n = str(self.config["dataset"]["dataset_opts"]["n"])
-        r = (
-            self.config["dataset"]["dataset_opts"]["matrix"]
-            .split("(")[1]
-            .split(")")[0]
-        )
-        s = str(self.config["dataset"]["dataset_opts"]["s"])
-        file_name = "{}_{}_{}_{}_{}_{}".format(self.name, k, m, n, r, s)
-        save_path = self.saves_dir.joinpath("{}.csv".format(file_name))
         table.to_csv(save_path, index=False)

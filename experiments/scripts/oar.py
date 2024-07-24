@@ -24,13 +24,7 @@ run_path = script_dir.joinpath(run_file)
 
 
 experiments = [
-    get_exp(exp_name)
-    for exp_name in [
-        "perfprofile",
-        "regpath",
-        "statistics",
-        "relaxquality",
-    ]
+    get_exp(exp_name) for exp_name in ["perfprofile", "regpath", "statistics"]
 ]
 
 
