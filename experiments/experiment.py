@@ -82,12 +82,12 @@ class Experiment:
                     and calibration["center"]
                     == self.config["dataset"]["process_opts"]["center"]
                 ):
-                    from el0ps.datafits import (
+                    from el0ps.datafits import (  # noqa
                         Leastsquares,
                         Logistic,
                         Squaredhinge,
                     )
-                    from el0ps.penalties import BigmL1norm, BigmL2norm
+                    from el0ps.penalties import BigmL1norm, BigmL2norm  # noqa
 
                     self.datafit = eval(calibration["datafit_name"])(self.y)
                     self.penalty = eval(calibration["penalty_name"])(
