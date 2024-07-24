@@ -94,19 +94,19 @@ def get_exp_regpath():
         },
     }
 
-    for dataset_name, datafit_name, penalty_name, center, normalize in [
-        ("riboflavin", "Leastsquares", "BigmL1norm", True, True),
-        ("riboflavin", "Leastsquares", "BigmL2norm", True, True),
-        ("bctcga", "Leastsquares", "BigmL1norm", True, True),
-        ("bctcga", "Leastsquares", "BigmL2norm", True, True),
-        ("colon-cancer", "Logistic", "BigmL1norm", False, False),
-        ("colon-cancer", "Logistic", "BigmL2norm", False, False),
-        ("leukemia", "Logistic", "BigmL1norm", False, False),
-        ("leukemia", "Logistic", "BigmL2norm", False, False),
-        ("arcene", "Squaredhinge", "BigmL1norm", False, False),
-        ("arcene", "Squaredhinge", "BigmL2norm", False, False),
-        ("breast-cancer", "Squaredhinge", "BigmL1norm", False, False),
-        ("breast-cancer", "Squaredhinge", "BigmL2norm", False, False),
+    for dataset_name, datafit_name, penalty_name in [
+        ("riboflavin", "Leastsquares", "BigmL1norm"),
+        ("riboflavin", "Leastsquares", "BigmL2norm"),
+        ("bctcga", "Leastsquares", "BigmL1norm"),
+        ("bctcga", "Leastsquares", "BigmL2norm"),
+        ("colon-cancer", "Logistic", "BigmL1norm"),
+        ("colon-cancer", "Logistic", "BigmL2norm"),
+        ("leukemia", "Logistic", "BigmL1norm"),
+        ("leukemia", "Logistic", "BigmL2norm"),
+        ("arcene", "Squaredhinge", "BigmL1norm"),
+        ("arcene", "Squaredhinge", "BigmL2norm"),
+        ("breast-cancer", "Squaredhinge", "BigmL1norm"),
+        ("breast-cancer", "Squaredhinge", "BigmL2norm"),
     ]:
         for solver_name in [
             "el0ps",
@@ -120,12 +120,7 @@ def get_exp_regpath():
                 setup["dataset"]["dataset_opts"]["dataset_name"] = dataset_name
                 setup["dataset"]["datafit_name"] = datafit_name
                 setup["dataset"]["penalty_name"] = penalty_name
-                setup["dataset"]["process_opts"]["center"] = center
-                setup["dataset"]["process_opts"]["normalize"] = normalize
                 setup["solvers"]["solvers_name"] = [solver_name]
-                if datafit_name == "arcene":
-                    setup["path_ops"]["lmbd_max"] = 1e-2
-                    setup["path_ops"]["lmbd_min"] = 1e-4
                 exp["setups"].append(setup)
 
     return exp

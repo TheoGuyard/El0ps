@@ -56,6 +56,59 @@ class Experiment:
 
     def calibrate_parameters(self):
         print("Calibrating parameters...")
+
+        if self.config["dataset"]["dataset_type"] == "hardcoded":
+            dataset_name = self.config["dataset"]["dataset_opts"][
+                "dataset_name"
+            ]
+            dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
+            dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(
+                ".pkl"
+            )
+            with open(dataset_path, "rb") as dataset_file:
+                data = pickle.load(dataset_file)
+                if "calibrations" in data.keys():
+                    calibrations = data["calibrations"]
+                else:
+                    calibrations = None
+            for calibration in calibrations:
+                if (
+                    calibration["datafit_name"]
+                    == self.config["dataset"]["datafit_name"]
+                    and calibration["penalty_name"]
+                    == self.config["dataset"]["penalty_name"]
+                    and calibration["normalize"]
+                    == self.config["dataset"]["process_opts"]["normalize"]
+                    and calibration["center"]
+                    == self.config["dataset"]["process_opts"]["center"]
+                ):
+                    from el0ps.datafits import (
+                        Leastsquares,
+                        Logistic,
+                        Squaredhinge,
+                    )
+                    from el0ps.penalties import BigmL1norm, BigmL2norm
+
+                    self.datafit = eval(calibration["datafit_name"])(self.y)
+                    self.penalty = eval(calibration["penalty_name"])(
+                        **calibration["penalty_params"]
+                    )
+                    self.lmbd = calibration["lmbd"]
+                    lmbd_max = compute_lmbd_max(
+                        self.datafit, self.penalty, self.A
+                    )
+                    print("Calibration found")
+                    print(
+                        "  num nz: {}".format(sum(calibration["x_cal"] != 0.0))
+                    )
+                    print("  lratio: {}".format(self.lmbd / lmbd_max))
+                    for (
+                        param_name,
+                        param_value,
+                    ) in self.penalty.params_to_dict().items():
+                        print("  {}\t: {}".format(param_name, param_value))
+                    return
+
         datafit, penalty, lmbd, x_cal = calibrate_parameters(
             self.config["dataset"]["datafit_name"],
             self.config["dataset"]["penalty_name"],
@@ -312,9 +365,9 @@ class Regpath(Experiment):
         )
         self.stats_specs = {
             "solve_time": {"log": True},
-            "iter_count": {"log": True},
-            "objective_value": {"log": False},
-            "datafit_value": {"log": False},
+            # "iter_count": {"log": False},
+            # "objective_value": {"log": False},
+            # "datafit_value": {"log": False},
             "n_nnz": {"log": False},
         }
         stats = {
@@ -330,7 +383,20 @@ class Regpath(Experiment):
             found += 1
             with open(result_path, "rb") as file:
                 file_data = pickle.load(file)
-                if self.config == file_data["config"]:
+                # if self.config == file_data["config"]:
+                if (
+                    self.config["expname"] == file_data["config"]["expname"]
+                    and self.config["dataset"]
+                    == file_data["config"]["dataset"]
+                    and np.all(
+                        np.isin(
+                            file_data["config"]["solvers"]["solvers_name"],
+                            self.config["solvers"]["solvers_name"],
+                        )
+                    )
+                    and self.config["path_opts"]
+                    == file_data["config"]["path_opts"]
+                ):
                     match += 1
                     if not any(file_data["results"].values()):
                         empty += 1
