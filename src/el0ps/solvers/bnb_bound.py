@@ -148,9 +148,10 @@ class ConvexRegfunc(BaseRegfunc):
         return dict(penalty=self.penalty)
 
     def value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        z = np.abs(x)
-        if z <= self.penalty.param_limit_scalar(i, lmbd):
-            return self.penalty.param_slope_scalar(i, lmbd) * z
+        if 0.0 <= x <= self.penalty.param_limit_pos_scalar(i, lmbd):
+            return self.penalty.param_slope_pos_scalar(i, lmbd) * x
+        elif 0.0 >= x >= self.penalty.param_limit_neg_scalar(i, lmbd):
+            return self.penalty.param_slope_neg_scalar(i, lmbd) * x
         else:
             return lmbd + self.penalty.value_scalar(i, x)
 
@@ -158,22 +159,35 @@ class ConvexRegfunc(BaseRegfunc):
         return np.maximum(self.penalty.conjugate_scalar(i, x) - lmbd, 0.0)
 
     def prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
-        s = self.penalty.param_slope_scalar(i, lmbd)
-        z = np.abs(x)
-        if z <= eta * s:
+        sn = self.penalty.param_slope_neg_scalar(i, lmbd)
+        sp = self.penalty.param_slope_pos_scalar(i, lmbd)
+        if eta * sn <= x <= eta * sp:
             return 0.0
-        elif z <= eta * s + self.penalty.param_limit_scalar(i, lmbd):
-            return x - eta * s * np.sign(x)
+        elif (
+            eta * sn
+            > x
+            >= eta * sn + self.penalty.param_limit_neg_scalar(i, lmbd)
+        ):
+            return x - eta * sn
+        elif (
+            eta * sp
+            < x
+            <= eta * sp + self.penalty.param_limit_pos_scalar(i, lmbd)
+        ):
+            return x - eta * sp
         else:
             return self.penalty.prox_scalar(i, x, eta)
 
     def subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
-        z = np.abs(x)
-        if z == 0.0:
-            s = self.penalty.param_slope_scalar(i, lmbd)
-            return [-s, s]
-        elif z < self.penalty.param_limit_scalar(i, lmbd):
-            s = self.penalty.param_slope_scalar(i, lmbd) * np.sign(x)
+        if x == 0.0:
+            sn = self.penalty.param_slope_neg_scalar(i, lmbd)
+            sp = self.penalty.param_slope_pos_scalar(i, lmbd)
+            return [-sn, sp]
+        elif 0 > x > self.penalty.param_limit_neg_scalar(i, lmbd):
+            s = self.penalty.param_slope_neg_scalar(i, lmbd)
+            return [s, s]
+        elif 0 < x < self.penalty.param_limit_pos_scalar(i, lmbd):
+            s = self.penalty.param_slope_pos_scalar(i, lmbd)
             return [s, s]
         else:
             return self.penalty.subdiff_scalar(i, x)
@@ -248,9 +262,6 @@ class BnbBoundingSolver:
         pv = np.inf
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
-        th = np.array(
-            [self.penalty.param_slope_scalar(i, lmbd) for i in range(x.size)]
-        )
 
         # ----- Outer loop ----- #
 
@@ -308,7 +319,7 @@ class BnbBoundingSolver:
                     break
 
             # Working-set update
-            flag = self.ws_update(self.A, u, v, Ws, Sbi, th)
+            flag = self.ws_update(self.regfunc, self.A, lmbd, u, v, Ws, Sbi)
 
             # Outer stopping criterion
             if upper:
@@ -351,7 +362,9 @@ class BnbBoundingSolver:
                 if screening:
                     self.screening_test(
                         self.datafit,
+                        self.regfunc,
                         self.A,
+                        lmbd,
                         x,
                         w,
                         u,
@@ -361,7 +374,6 @@ class BnbBoundingSolver:
                         Ws,
                         Sb0,
                         Sbi,
-                        th,
                         self.lipschitz,
                         self.A_colnorm,
                     )  # noqa
@@ -437,17 +449,19 @@ class BnbBoundingSolver:
     @staticmethod
     @njit
     def ws_update(
+        regfunc: JitClassType,
         A: ArrayLike,
+        lmbd: float,
         u: ArrayLike,
         v: ArrayLike,
         Ws: ArrayLike,
         Sbi: ArrayLike,
-        th: ArrayLike,
     ) -> bool:
         flag = False
         for i in np.flatnonzero(~Ws & Sbi):
             v[i] = np.dot(A[:, i], u)
-            if np.abs(v[i]) > th[i]:
+            si = regfunc.subdiff_scalar(i, lmbd, 0.0)
+            if not (si[0] < v[i] < si[1]):
                 flag = True
                 Ws[i] = True
         return flag
@@ -599,7 +613,9 @@ class BnbBoundingSolver:
     @njit
     def screening_test(
         datafit: JitClassType,
+        regfunc: JitClassType,
         A: ArrayLike,
+        lmbd: float,
         x: ArrayLike,
         w: ArrayLike,
         u: ArrayLike,
@@ -609,7 +625,6 @@ class BnbBoundingSolver:
         Ws: ArrayLike,
         Sb0: ArrayLike,
         Sbi: ArrayLike,
-        th: ArrayLike,
         lipschitz: float,
         A_colnorm: ArrayLike,
     ) -> None:
@@ -617,7 +632,8 @@ class BnbBoundingSolver:
         r = np.sqrt(2.0 * np.abs(pv - dv) * lipschitz)
         for i in np.flatnonzero(Sbi):
             vi = v[i]
-            if np.abs(vi) + r * A_colnorm[i] < th[i]:
+            si = regfunc.subdiff_scalar(i, lmbd, 0.0)
+            if si[0] + r * A_colnorm[i] < vi < si[1] - r * A_colnorm[i]:
                 if x[i] != 0.0:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0

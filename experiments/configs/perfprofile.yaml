@@ -8,8 +8,8 @@ dataset:
     supp_pos    : equispaced
     supp_val    : unit
     k           : 5
-    m           : 500
-    n           : 1000
+    m           : 50
+    n           : 100
     s           : 10.
     normalize   : true
   process_opts: 
@@ -21,12 +21,12 @@ dataset:
 solvers:
   solvers_name:
     - el0ps
-    - mip[optimizer_name=cplex]
-    - mip[optimizer_name=gurobi]
+    # - mip[optimizer_name=cplex]
+    # - mip[optimizer_name=gurobi]
     - mip[optimizer_name=mosek]
     - l0bnb
   solvers_opts:
-    time_limit: 3600.
+    time_limit: 60.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8 
     verbose   : false

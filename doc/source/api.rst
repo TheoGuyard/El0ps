@@ -55,11 +55,11 @@ Penalties
     :toctree: generated/
 
     BasePenalty
+    SymmetricPenalty
     MipPenalty
     Bigm
     BigmL1norm
     BigmL2norm
-    BigmL1L2norm
     L1norm
     L2norm
     L1L2norm

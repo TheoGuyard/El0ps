@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty, MipPenalty
+from .base import SymmetricPenalty, MipPenalty
 
 
-class BigmL1norm(BasePenalty, MipPenalty):
+class BigmL1norm(SymmetricPenalty, MipPenalty):
     r"""Big-M constraint plus L1-norm penalty function.
 
     The function is defined as
@@ -79,12 +79,6 @@ class BigmL1norm(BasePenalty, MipPenalty):
 
     def param_limit_scalar(self, i: int, lmbd: float) -> float:
         return self.M
-
-    def param_maxval_scalar(self, i: int) -> float:
-        return np.inf
-
-    def param_maxdom_scalar(self, i: int) -> float:
-        return np.inf
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
 

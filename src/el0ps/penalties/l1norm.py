@@ -1,10 +1,10 @@
 import numpy as np
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import BasePenalty
+from .base import SymmetricPenalty
 
 
-class L1norm(BasePenalty):
+class L1norm(SymmetricPenalty):
     r"""L1-norm penalty function.
 
     The function is defined as
@@ -63,9 +63,3 @@ class L1norm(BasePenalty):
 
     def param_limit_scalar(self, i: int, lmbd: float) -> float:
         return np.inf
-
-    def param_maxval_scalar(self, i: int) -> float:
-        return 0.0
-
-    def param_maxdom_scalar(self, i: int) -> float:
-        return self.alpha
