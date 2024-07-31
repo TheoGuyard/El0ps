@@ -243,15 +243,6 @@ class Perfprofile(Experiment):
             return
 
         print("Computing statistics...")
-        for solver_name in self.config["solvers"]["solvers_name"]:
-            print("  {}".format(solver_name))
-            print("     times num : {}".format(len(times[solver_name])))
-            print("     times mean: {}".format(np.mean(times[solver_name])))
-            print("     times std : {}".format(np.std(times[solver_name])))
-            print("     nodes num : {}".format(len(nodes[solver_name])))
-            print("     nodes mean: {}".format(np.mean(nodes[solver_name])))
-            print("     nodes std : {}".format(np.std(nodes[solver_name])))
-
         min_times = np.min([np.min(v) for v in times.values()])
         max_times = np.max([np.max(v) for v in times.values()])
         self.grid_times = np.logspace(
@@ -260,19 +251,19 @@ class Perfprofile(Experiment):
             100,
         )
         self.curve_times = {
-            solver_name: [np.sum(stats <= g) for g in self.grid_times]
+            solver_name: [np.mean(stats <= g) for g in self.grid_times]
             for solver_name, stats in times.items()
         }
 
-        min_nodes = np.min([np.min(v) for v in nodes.values()])
-        max_nodes = np.max([np.max(v) for v in nodes.values()])
+        min_nodes = np.nanmin([np.nanmin(v) for v in nodes.values()])
+        max_nodes = np.nanmax([np.nanmax(v) for v in nodes.values()])
         self.grid_nodes = np.logspace(
             np.floor(np.log10(min_nodes)),
             np.ceil(np.log10(max_nodes)),
             100,
         )
         self.curve_nodes = {
-            solver_name: [np.sum(stats <= g) for g in self.grid_nodes]
+            solver_name: [np.mean(stats <= g) for g in self.grid_nodes]
             for solver_name, stats in nodes.items()
         }
 

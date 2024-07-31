@@ -26,8 +26,8 @@ def get_exp_perfprofile():
                 "supp_pos": "equispaced",
                 "supp_val": "unit",
                 "k": 5,
-                "m": 500,
-                "n": 1000,
+                "m": 100,
+                "n": 250,
                 "s": 10.0,
                 "normalize": True,
             },
@@ -38,6 +38,7 @@ def get_exp_perfprofile():
         "solvers": {
             "solvers_name": [
                 "el0ps",
+                "el0ps[simpruning=False]",
                 "mip[optimizer_name=cplex]",
                 "mip[optimizer_name=gurobi]",
                 "mip[optimizer_name=mosek]",
@@ -52,7 +53,22 @@ def get_exp_perfprofile():
         },
     }
 
-    exp["setups"].append(base_setup)
+    for (matrix, k, m, n, s) in [
+        ("correlated(0.1)", 5, 100, 250, 10.0),
+        ("correlated(0.9)", 5, 100, 250, 10.0),
+        ("correlated(0.95)", 5, 100, 250, 10.0),
+    ]:
+        for penalty in ["Bigm", "L2norm"]:
+            setup = deepcopy(base_setup)
+            setup["dataset"]["dataset_opts"]["matrix"] = matrix
+            setup["dataset"]["dataset_opts"]["k"] = k
+            setup["dataset"]["dataset_opts"]["m"] = m
+            setup["dataset"]["dataset_opts"]["n"] = n
+            setup["dataset"]["dataset_opts"]["s"] = s
+            setup["dataset"]["penalty_name"] = penalty
+            exp["setups"].append(setup)
+
+    # exp["setups"].append(base_setup)
 
     return exp
 
