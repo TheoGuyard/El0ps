@@ -12,7 +12,6 @@ from el0ps.penalties import (
     Bigm,
     BigmL1norm,
     BigmL2norm,
-    BigmL1L2norm,
     L1L2norm,
     L1norm,
     L2norm,
@@ -135,8 +134,6 @@ def select_bigml1l2_penalty(
         penalty = BigmL2norm(M, beta)
     elif alpha != 0.0 and beta != 0.0 and M == np.inf:
         penalty = L1L2norm(alpha, beta)
-    elif alpha != 0.0 and beta != 0.0 and M != np.inf:
-        penalty = BigmL1L2norm(M, alpha, beta)
     else:
         raise ValueError(
             "Setting `alpha=0`, `beta=0` and `M=np.inf` simulteanously is not "

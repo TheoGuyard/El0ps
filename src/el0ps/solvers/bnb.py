@@ -27,19 +27,21 @@ class BnbExplorationStrategy(Enum):
         Depth-first search.
     BBS: str
         Best-bound search.
-    MIX: str
-        Starts with a DFS strategy and switches to a BBS strategy when the
-        relative mip gap is domain a factor `mix_threshold` from the target
-        one.
     """
 
     BFS = "BFS"
     DFS = "DFS"
     BBS = "BBS"
-    MIX = "MIX"
 
-    def mix_threshold(self):
-        return 1e-1
+    def next_node(self, queue):
+        if self == BnbExplorationStrategy.DFS:
+            return queue.pop()
+        elif self == BnbExplorationStrategy.BFS:
+            return queue.pop(0)
+        elif self == BnbExplorationStrategy.BBS:
+            return queue.pop(np.argmin([qnode.lower_bound for qnode in queue]))
+        else:
+            raise NotImplementedError
 
 
 class BnbBranchingStrategy(Enum):
@@ -89,7 +91,7 @@ class BnbOptions:
         Whether to store the solver trace.
     """
 
-    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.MIX
+    exploration_strategy: BnbExplorationStrategy = BnbExplorationStrategy.DFS
     branching_strategy: BnbBranchingStrategy = BnbBranchingStrategy.LARGEST
     bounding_regfunc_type: str = "convex"
     bounding_maxiter_inner: int = 1_000
@@ -131,7 +133,7 @@ class BnbSolver(BaseSolver):
 
     def __init__(self, **kwargs) -> None:
         self.options = BnbOptions(**kwargs)
-        self.status = Status.RUNNING
+        self.status = Status.UNKNOWN
         self.start_time = None
         self.queue = None
         self.iter_count = None
@@ -184,6 +186,7 @@ class BnbSolver(BaseSolver):
         x_init: Union[ArrayLike, None],
     ):
 
+        # Prepare problem data
         if isinstance(datafit, BaseDatafit):
             datafit = compiled_clone(datafit)
         if isinstance(penalty, BasePenalty):
@@ -209,6 +212,8 @@ class BnbSolver(BaseSolver):
             + lmbd * np.linalg.norm(x_init, 0)
             + penalty.value(self.x)
         )
+
+        # Initialize trace
         self.trace = {key: [] for key in self._trace_keys}
 
         # Initialize the bounding solver
@@ -316,25 +321,7 @@ class BnbSolver(BaseSolver):
         )
 
     def next_node(self):
-        if self.options.exploration_strategy == BnbExplorationStrategy.DFS:
-            next_node = self.queue.pop()
-        elif self.options.exploration_strategy == BnbExplorationStrategy.BFS:
-            next_node = self.queue.pop(0)
-        elif self.options.exploration_strategy == BnbExplorationStrategy.BBS:
-            next_node = self.queue.pop(
-                np.argmin([qnode.lower_bound for qnode in self.queue])
-            )
-        elif self.options.exploration_strategy == BnbExplorationStrategy.MIX:
-            if (
-                self.rel_gap / self.options.rel_tol
-            ) < self.options.exploration_strategy.mix_threshold():
-                next_node = self.queue.pop(
-                    np.argmin([qnode.lower_bound for qnode in self.queue])
-                )
-            else:
-                next_node = self.queue.pop()
-        else:
-            raise NotImplementedError
+        next_node = self.options.exploration_strategy.next_node(self.queue)
         self.iter_count += 1
         return next_node
 
@@ -351,7 +338,7 @@ class BnbSolver(BaseSolver):
             else:
                 self.trace[key].append(getattr(self, key))
 
-    def update_bounds(self, node):
+    def update_bounds(self, node: BnbNode):
         if node.upper_bound < self.upper_bound:
             self.upper_bound = node.upper_bound
             self.x = np.copy(node.x_inc)
