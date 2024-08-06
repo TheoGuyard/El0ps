@@ -9,7 +9,7 @@ from typing import Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
 from el0ps.datafits import BaseDatafit
-from el0ps.penalties import BasePenalty
+from el0ps.penalties import BasePenalty, PeelablePenalty
 from el0ps.solvers import BaseSolver, Result, Status
 from el0ps.utils import compiled_clone
 from .bnb_node import BnbNode
@@ -85,6 +85,8 @@ class BnbOptions:
         Whether to use screening acceleration.
     simpruning: bool
         Whether to use simultaneous pruning acceleration.
+    peeling:bool
+        Whether to use peeling acceleration.
     verbose: bool
         Whether to toggle solver verbosity.
     trace: bool
@@ -105,6 +107,7 @@ class BnbOptions:
     dualpruning: bool = True
     screening: bool = True
     simpruning: bool = True
+    peeling: bool = False
     verbose: bool = False
     trace: bool = False
 
@@ -129,6 +132,7 @@ class BnbSolver(BaseSolver):
         "node_card_S1",
         "node_card_Sb",
         "node_depth",
+        "node_bound_spread",
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -209,7 +213,7 @@ class BnbSolver(BaseSolver):
         self.lower_bound = -np.inf
         self.upper_bound = (
             datafit.value(A @ self.x)
-            + lmbd * np.linalg.norm(x_init, 0)
+            + lmbd * np.linalg.norm(self.x, 0)
             + penalty.value(self.x)
         )
 
@@ -228,6 +232,15 @@ class BnbSolver(BaseSolver):
             )
             self.bounding_solver.setup(datafit, penalty, A)
 
+        # Bounds
+        if self.options.peeling:
+            assert isinstance(penalty, PeelablePenalty)
+            x_lb = np.copy(penalty.x_lb)
+            x_ub = np.copy(penalty.x_ub)
+        else:
+            x_lb = np.full(self.n, -np.inf)
+            x_ub = np.full(self.n, +np.inf)
+
         # Root node
         root = BnbNode(
             -1,
@@ -241,6 +254,8 @@ class BnbSolver(BaseSolver):
             np.zeros(self.n),
             np.zeros(self.m),
             np.zeros(self.n),
+            x_lb,
+            x_ub,
         )
         self.queue.append(root)
 
@@ -302,6 +317,7 @@ class BnbSolver(BaseSolver):
             self.options.dualpruning,
             self.options.screening,
             self.options.simpruning,
+            self.options.peeling,
             upper=False,
         )
 
@@ -313,6 +329,7 @@ class BnbSolver(BaseSolver):
             self.lmbd,
             self.upper_bound,
             self.options.rel_tol,
+            False,
             False,
             False,
             False,

@@ -358,6 +358,48 @@ class SymmetricPenalty(BasePenalty):
         return -self.param_limit_scalar(i, lmbd)
 
 
+class PeelablePenalty(BasePenalty):
+
+    def update_bounds(self, x_lb: ArrayLike, x_ub: ArrayLike) -> None:
+        """Update the bounds of the penalty function.
+
+        Parameters
+        ----------
+        x_lb: ArrayLike
+            The lower bounds of the penalty function.
+        x_ub: ArrayLike
+            The upper bounds of the penalty function.
+        """
+        self.x_lb = x_lb
+        self.x_ub = x_ub
+
+    def update_lower_bound_scalar(self, i: int, x_lb: float) -> None:
+        """Update the lower bound of the i-th splitting term of the penalty
+        function.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
+        x_lb: float
+            The new lower bound.
+        """
+        self.x_lb[i] = x_lb
+
+    def update_upper_bound_scalar(self, i: int, x_ub: float) -> None:
+        """Update the upper bound of the i-th splitting term of the penalty
+        function.
+
+        Parameters
+        ----------
+        i: int
+            Index of the splitting term.
+        x_ub: float
+            The new upper bound.
+        """
+        self.x_ub[i] = x_ub
+
+
 class MipPenalty:
     """Base class for penalty functions that can be modeled into a
     Mixed-Integer Program."""

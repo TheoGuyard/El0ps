@@ -148,9 +148,11 @@ class ConvexRegfunc(BaseRegfunc):
         return dict(penalty=self.penalty)
 
     def value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        if 0.0 <= x <= self.penalty.param_limit_pos_scalar(i, lmbd):
+        if x == 0.0:
+            return 0.0
+        if 0.0 < x <= self.penalty.param_limit_pos_scalar(i, lmbd):
             return self.penalty.param_slope_pos_scalar(i, lmbd) * x
-        elif 0.0 >= x >= self.penalty.param_limit_neg_scalar(i, lmbd):
+        elif 0.0 > x >= self.penalty.param_limit_neg_scalar(i, lmbd):
             return self.penalty.param_slope_neg_scalar(i, lmbd) * x
         else:
             return lmbd + self.penalty.value_scalar(i, x)
@@ -182,7 +184,7 @@ class ConvexRegfunc(BaseRegfunc):
         if x == 0.0:
             sn = self.penalty.param_slope_neg_scalar(i, lmbd)
             sp = self.penalty.param_slope_pos_scalar(i, lmbd)
-            return [-sn, sp]
+            return [sn, sp]
         elif 0 > x > self.penalty.param_limit_neg_scalar(i, lmbd):
             s = self.penalty.param_slope_neg_scalar(i, lmbd)
             return [s, s]
@@ -244,6 +246,7 @@ class BnbBoundingSolver:
         dualpruning: bool,
         screening: bool,
         simpruning: bool,
+        peeling: bool,
         upper: bool = False,
     ):
         start_time = time.time()
@@ -262,6 +265,11 @@ class BnbBoundingSolver:
         pv = np.inf
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
+
+        if peeling:
+            x_lb_init = np.copy(self.penalty.x_lb)
+            x_ub_init = np.copy(self.penalty.x_ub)
+            # self.penalty.update_bounds(node.x_lb, node.x_ub)
 
         # ----- Outer loop ----- #
 
@@ -344,7 +352,7 @@ class BnbBoundingSolver:
                 rel_tol_inner *= 1e-2
 
             # Accelerations
-            if dualpruning or screening or simpruning:
+            if dualpruning or screening or simpruning or peeling:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
@@ -381,7 +389,6 @@ class BnbBoundingSolver:
                     self.simpruning(
                         self.datafit,
                         self.penalty,
-                        self.regfunc,
                         self.A,
                         lmbd,
                         x,
@@ -397,8 +404,32 @@ class BnbBoundingSolver:
                         Sb0,
                         Sbi,
                     )  # noqa
+                if peeling:
+                    self.peeling(
+                        self.datafit,
+                        self.penalty,
+                        self.A,
+                        lmbd,
+                        x,
+                        w,
+                        u,
+                        v,
+                        ub,
+                        dv,
+                        S0,
+                        Sb,
+                        Sb0,
+                        Sbi,
+                        Ws,
+                    )  # noqa
 
         # ----- Post-processing ----- #
+
+        # Peeling
+        if peeling:
+            node.x_lb = np.copy(self.penalty.x_lb)
+            node.x_ub = np.copy(self.penalty.x_ub)
+            self.penalty.update_bounds(x_lb_init, x_ub_init)
 
         if upper:
             node.upper_bound = pv
@@ -570,7 +601,6 @@ class BnbBoundingSolver:
     def simpruning(
         datafit: JitClassType,
         penalty: JitClassType,
-        regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
         x: ArrayLike,
@@ -588,9 +618,8 @@ class BnbBoundingSolver:
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
-            g = regfunc.conjugate_scalar(i, lmbd, v[i])
             p = penalty.conjugate_scalar(i, v[i]) - lmbd
-            if dv + g - p > ub:
+            if dv + np.maximum(-p, 0.0) > ub:
                 Sb[i] = False
                 S0[i] = True
                 Ws[i] = False
@@ -600,12 +629,66 @@ class BnbBoundingSolver:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0
                     flag = True
-            elif dv + g > ub:
+            elif dv + np.maximum(p, 0.0) > ub:
                 Sb[i] = False
                 S1[i] = True
                 Ws[i] = True
                 Sb0[i] = False
                 Sbi[i] = False
+        if flag:
+            u[:] = -datafit.gradient(w)
+
+    @staticmethod
+    @njit
+    def peeling(
+        datafit: JitClassType,
+        penalty: JitClassType,
+        A: ArrayLike,
+        lmbd: float,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike,
+        v: ArrayLike,
+        ub: float,
+        dv: float,
+        S0: ArrayLike,
+        Sb: ArrayLike,
+        Sb0: ArrayLike,
+        Sbi: ArrayLike,
+        Ws: ArrayLike,
+    ) -> None:
+        flag = False
+        for i in np.flatnonzero(Sb):
+            p = np.maximum(lmbd - penalty.conjugate_scalar(i, v[i]), 0.0)
+            t = dv + p - ub
+            if t > 0:
+                Sb[i] = False
+                S0[i] = True
+                Ws[i] = False
+                Sb0[i] = False
+                Sbi[i] = False
+                if x[i] != 0.0:
+                    w -= x[i] * A[:, i]
+                    x[i] = 0.0
+                    flag = True
+            else:
+                c = t / v[i]
+                if v[i] < 0.0:
+                    x_ub_i = np.maximum(c + penalty.x_lb[i], 0.0)
+                    if x_ub_i < penalty.x_ub[i]:
+                        penalty.update_upper_bound_scalar(i, x_ub_i)
+                        if x[i] > x_ub_i:
+                            w += (x_ub_i - x[i]) * A[:, i]
+                            x[i] = x_ub_i
+                            flag = True
+                else:
+                    x_lb_i = np.minimum(c + penalty.x_ub[i], 0.0)
+                    if x_lb_i > penalty.x_lb[i]:
+                        penalty.update_lower_bound_scalar(i, x_lb_i)
+                        if x[i] < x_lb_i:
+                            w += (x_lb_i - x[i]) * A[:, i]
+                            x[i] = x_lb_i
+                            flag = True
         if flag:
             u[:] = -datafit.gradient(w)
 

@@ -8,7 +8,14 @@ from scipy import sparse
 from scipy.fftpack import dct
 from ucimlrepo import fetch_ucirepo
 from el0ps.datafits import *  # noqa
-from el0ps.penalties import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
+from el0ps.penalties import (
+    Bigm,
+    BigmL1norm,
+    BigmL2norm,
+    BoundsConstraint,
+    L1norm,
+    L2norm,
+)
 
 
 def acc_score(x_true, x):
@@ -274,6 +281,7 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         "Logistic": "Logistic",
         "Squaredhinge": "SquaredHinge",
         "Bigm": "L0",
+        "BoundsConstraint": "L0",
         "BigmL1norm": "L0L1",
         "BigmL2norm": "L0L2",
         "L1norm": "L0L1",
@@ -332,6 +340,9 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         penalty = BigmL1norm(best_M, best_gamma)
     elif penalty_name == "BigmL2norm":
         penalty = BigmL2norm(best_M, best_gamma)
+    elif penalty_name == "BoundsConstraint":
+        bounds = best_M * np.ones(n)
+        penalty = BoundsConstraint(-bounds, bounds)
     elif penalty_name == "L1norm":
         penalty = L1norm(best_gamma)
     elif penalty_name == "L2norm":

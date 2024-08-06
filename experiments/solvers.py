@@ -74,6 +74,10 @@ class L0bnbSolver(BaseSolver):
             l0 = lmbd
             l2 = penalty.beta
             M = penalty.M
+        elif str(penalty) == "BoundsConstraint":
+            l0 = lmbd
+            l2 = penalty.beta
+            M = np.maximum(-np.min(penalty.x_lb), np.max(penalty.x_ub))
         else:
             raise NotImplementedError(
                 "`L0bnbSolver` does not support `{}` yet.".format(str(penalty))
@@ -779,6 +783,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "Bigm",
                 "BigmL1norm",
                 "BigmL2norm",
+                "BoundsConstraint",
                 "L2norm",
                 "L1L2norm",
             ]
@@ -791,6 +796,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "Bigm",
                 "BigmL1norm",
                 "BigmL2norm",
+                "BoundsConstraint",
                 "L2norm",
                 "L1L2norm",
             ]
@@ -804,6 +810,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "Bigm",
                 "BigmL1norm",
                 "BigmL2norm",
+                "BoundsConstraint",
                 "L2norm",
                 "L1L2norm",
             ]
@@ -815,7 +822,12 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
             )
     elif solver_name == "l0bnb":
         handle_datafit = datafit_name in ["Leastsquares"]
-        handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "L2norm"]
+        handle_penalty = penalty_name in [
+            "Bigm",
+            "BigmL2norm",
+            "BoundsConstraint",
+            "L2norm",
+        ]
     else:
         raise ValueError("Unknown solver name {}".format(solver_name))
     return handle_datafit and handle_penalty

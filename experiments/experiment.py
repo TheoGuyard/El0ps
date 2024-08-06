@@ -120,7 +120,8 @@ class Experiment:
         print("  num nz: {}".format(sum(x_cal != 0.0)))
         print("  lratio: {}".format(lmbd / lmbd_max))
         for param_name, param_value in penalty.params_to_dict().items():
-            print("  {}\t: {}".format(param_name, param_value))
+            if param_name not in ["x_lb", "x_ub"]:
+                print("  {}\t: {}".format(param_name, param_value))
         self.datafit = datafit
         self.penalty = penalty
         self.lmbd = lmbd
@@ -193,11 +194,11 @@ class Perfprofile(Experiment):
                 self.config["dataset"]["datafit_name"],
                 self.config["dataset"]["penalty_name"],
             ):
-                print("Running {}...".format(solver_name))
                 solver_opts = self.config["solvers"]["solvers_opts"]
                 solver = get_solver(solver_name, solver_opts)
                 if can_handle_compilation(solver_name):
                     self.precompile_solver(solver)
+                    print("Running {}...".format(solver_name))
                     result = solver.solve(
                         self.compiled_datafit,
                         self.compiled_penalty,
@@ -205,6 +206,7 @@ class Perfprofile(Experiment):
                         self.lmbd,
                     )
                 else:
+                    print("Running {}...".format(solver_name))
                     result = solver.solve(
                         self.datafit, self.penalty, self.A, self.lmbd
                     )

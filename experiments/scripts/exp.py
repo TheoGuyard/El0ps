@@ -53,7 +53,7 @@ def get_exp_perfprofile():
         },
     }
 
-    for (matrix, k, m, n, s) in [
+    for matrix, k, m, n, s in [
         ("correlated(0.1)", 5, 100, 250, 10.0),
         ("correlated(0.9)", 5, 100, 250, 10.0),
         ("correlated(0.95)", 5, 100, 250, 10.0),

@@ -29,6 +29,10 @@ class BnbNode:
         Value of `A @ self.x`.
     x_inc: ArrayLike
         Incumbent solution.
+    x_lb: ArrayLike
+        Variable lower bound.
+    x_ub: ArrayLike
+        Variable upper bound.
     """
 
     def __init__(
@@ -44,6 +48,8 @@ class BnbNode:
         x: ArrayLike,
         w: ArrayLike,
         x_inc: ArrayLike,
+        x_lb: ArrayLike,
+        x_ub: ArrayLike,
     ) -> None:
         self.category = category
         self.S0 = S0
@@ -56,6 +62,8 @@ class BnbNode:
         self.x = x
         self.w = w
         self.x_inc = x_inc
+        self.x_lb = x_lb
+        self.x_ub = x_ub
 
     def __str__(self) -> str:
         s = ""
@@ -81,6 +89,8 @@ class BnbNode:
             np.copy(self.x),
             np.copy(self.w),
             np.copy(self.x_inc),
+            np.copy(self.x_lb),
+            np.copy(self.x_ub),
         )
 
     @property
@@ -105,6 +115,13 @@ class BnbNode:
     @property
     def depth(self):
         return self.card_S0 + self.card_S1
+
+    @property
+    def bound_spread(self):
+        if np.any(self.Sb):
+            return np.mean(self.x_ub[self.Sb] - self.x_lb[self.Sb])
+        else:
+            return 0.0
 
     def fix_to(self, idx: int, val: bool, A: ArrayLike):
         """Fix an extry of the node to zero or non-zero. Update the
@@ -144,6 +161,8 @@ class BnbNode:
             np.copy(self.x),
             np.copy(self.w),
             np.copy(self.x_inc),
+            np.copy(self.x_lb),
+            np.copy(self.x_ub),
         )
         child.fix_to(idx, val, A)
         return child
