@@ -57,58 +57,6 @@ class Experiment:
     def calibrate_parameters(self):
         print("Calibrating parameters...")
 
-        if self.config["dataset"]["dataset_type"] == "hardcoded":
-            dataset_name = self.config["dataset"]["dataset_opts"][
-                "dataset_name"
-            ]
-            dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
-            dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(
-                ".pkl"
-            )
-            with open(dataset_path, "rb") as dataset_file:
-                data = pickle.load(dataset_file)
-                if "calibrations" in data.keys():
-                    calibrations = data["calibrations"]
-                else:
-                    calibrations = None
-            for calibration in calibrations:
-                if (
-                    calibration["datafit_name"]
-                    == self.config["dataset"]["datafit_name"]
-                    and calibration["penalty_name"]
-                    == self.config["dataset"]["penalty_name"]
-                    and calibration["normalize"]
-                    == self.config["dataset"]["process_opts"]["normalize"]
-                    and calibration["center"]
-                    == self.config["dataset"]["process_opts"]["center"]
-                ):
-                    from el0ps.datafits import (  # noqa
-                        Leastsquares,
-                        Logistic,
-                        Squaredhinge,
-                    )
-                    from el0ps.penalties import BigmL1norm, BigmL2norm  # noqa
-
-                    self.datafit = eval(calibration["datafit_name"])(self.y)
-                    self.penalty = eval(calibration["penalty_name"])(
-                        **calibration["penalty_params"]
-                    )
-                    self.lmbd = calibration["lmbd"]
-                    lmbd_max = compute_lmbd_max(
-                        self.datafit, self.penalty, self.A
-                    )
-                    print("Calibration found")
-                    print(
-                        "  num nz: {}".format(sum(calibration["x_cal"] != 0.0))
-                    )
-                    print("  lratio: {}".format(self.lmbd / lmbd_max))
-                    for (
-                        param_name,
-                        param_value,
-                    ) in self.penalty.params_to_dict().items():
-                        print("  {}\t: {}".format(param_name, param_value))
-                    return
-
         datafit, penalty, lmbd, x_cal = calibrate_parameters(
             self.config["dataset"]["datafit_name"],
             self.config["dataset"]["penalty_name"],
@@ -116,36 +64,27 @@ class Experiment:
             self.y,
             self.x_true,
         )
-        lmbd_max = compute_lmbd_max(datafit, penalty, self.A)
-        print("  num nz: {}".format(sum(x_cal != 0.0)))
-        print("  lratio: {}".format(lmbd / lmbd_max))
-        for param_name, param_value in penalty.params_to_dict().items():
-            print("  {}\t: {}".format(param_name, param_value))
         self.datafit = datafit
         self.penalty = penalty
         self.lmbd = lmbd
+        self.x_cal = x_cal
 
-    def precompile(self):
-        print("Precompiling datafit and penalty...")
+        lmbd_max = compute_lmbd_max(self.datafit, self.penalty, self.A)
+        
+        print("  num nz: {}".format(sum(x_cal != 0.0)))
+        print("  lratio: {}".format(lmbd / lmbd_max))
+        for key, value in self.penalty.params_to_dict().items():
+            print("  {}\t: {}".format(key, value))
+
         self.compiled_datafit = compiled_clone(self.datafit)
         self.compiled_penalty = compiled_clone(self.penalty)
-        if "solvers" in self.config.keys():
-            solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
-        else:
-            solver_opts = {}
-        solver_opts["time_limit"] = 5.0
-        solver = get_solver("el0ps", solver_opts)
-        solver.solve(
-            self.compiled_datafit,
-            self.compiled_penalty,
-            self.A,
-            self.lmbd,
-        )
 
-    def precompile_solver(self, solver):
+    def precompile(self, solver):
         print(f"Precompiling solver {solver}...")
         time_limit = solver.options.time_limit
+        verbose = solver.options.verbose
         solver.options.time_limit = 5.0
+        solver.options.verbose = False
         solver.solve(
             self.compiled_datafit,
             self.compiled_penalty,
@@ -153,6 +92,7 @@ class Experiment:
             self.lmbd,
         )
         solver.options.time_limit = time_limit
+        solver.options.verbose = verbose
         solver.options.bounding_skip_setup = True
 
     @abstractmethod
@@ -193,11 +133,11 @@ class Perfprofile(Experiment):
                 self.config["dataset"]["datafit_name"],
                 self.config["dataset"]["penalty_name"],
             ):
-                print("Running {}...".format(solver_name))
                 solver_opts = self.config["solvers"]["solvers_opts"]
                 solver = get_solver(solver_name, solver_opts)
                 if can_handle_compilation(solver_name):
                     self.precompile_solver(solver)
+                    print("Running {}...".format(solver_name))
                     result = solver.solve(
                         self.compiled_datafit,
                         self.compiled_penalty,
@@ -205,6 +145,7 @@ class Perfprofile(Experiment):
                         self.lmbd,
                     )
                 else:
+                    print("Running {}...".format(solver_name))
                     result = solver.solve(
                         self.datafit, self.penalty, self.A, self.lmbd
                     )
@@ -324,12 +265,12 @@ class Regpath(Experiment):
                 self.config["dataset"]["datafit_name"],
                 self.config["dataset"]["penalty_name"],
             ):
+                print("Running {}...".format(solver_name))
                 solver_opts = self.config["solvers"]["solvers_opts"]
                 solver = get_solver(solver_name, solver_opts)
-                print("Running {}...".format(solver_name))
                 path = Path(**self.config["path_opts"])
                 if can_handle_compilation(solver_name):
-                    self.precompile_solver(solver)
+                    self.precompile(solver)
                     result = path.fit(
                         solver,
                         self.compiled_datafit,

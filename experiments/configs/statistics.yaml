@@ -1,17 +1,6 @@
 expname: statistics
 
 dataset:
-  # dataset_type: synthetic
-  # dataset_opts: 
-  #   matrix      : correlated(0.9)
-  #   model       : linear
-  #   supp_pos    : equispaced
-  #   supp_val    : unit
-  #   k           : 10
-  #   m           : 150
-  #   n           : 200
-  #   s           : 10.
-  #   normalize   : true
   dataset_type: libsvm
   dataset_opts: 
     dataset_name  : housing

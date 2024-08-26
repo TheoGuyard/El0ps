@@ -148,9 +148,11 @@ class ConvexRegfunc(BaseRegfunc):
         return dict(penalty=self.penalty)
 
     def value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        if 0.0 <= x <= self.penalty.param_limit_pos_scalar(i, lmbd):
+        if x == 0.0:
+            return 0.0
+        if 0.0 < x <= self.penalty.param_limit_pos_scalar(i, lmbd):
             return self.penalty.param_slope_pos_scalar(i, lmbd) * x
-        elif 0.0 >= x >= self.penalty.param_limit_neg_scalar(i, lmbd):
+        elif 0.0 > x >= self.penalty.param_limit_neg_scalar(i, lmbd):
             return self.penalty.param_slope_neg_scalar(i, lmbd) * x
         else:
             return lmbd + self.penalty.value_scalar(i, x)
@@ -182,7 +184,7 @@ class ConvexRegfunc(BaseRegfunc):
         if x == 0.0:
             sn = self.penalty.param_slope_neg_scalar(i, lmbd)
             sp = self.penalty.param_slope_pos_scalar(i, lmbd)
-            return [-sn, sp]
+            return [sn, sp]
         elif 0 > x > self.penalty.param_limit_neg_scalar(i, lmbd):
             s = self.penalty.param_slope_neg_scalar(i, lmbd)
             return [s, s]
@@ -244,6 +246,7 @@ class BnbBoundingSolver:
         dualpruning: bool,
         screening: bool,
         simpruning: bool,
+        peeling: bool,
         upper: bool = False,
     ):
         start_time = time.time()
@@ -263,6 +266,10 @@ class BnbBoundingSolver:
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
 
+        if peeling and not upper:
+            self.regfunc.penalty.x_lb = np.copy(node.x_lb)
+            self.regfunc.penalty.x_ub = np.copy(node.x_ub)
+
         # ----- Outer loop ----- #
 
         rel_tol_inner = 0.1 * rel_tol
@@ -278,7 +285,6 @@ class BnbBoundingSolver:
                 pv_old = pv
                 self.inner_loop(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     self.A,
                     lmbd,
@@ -291,7 +297,6 @@ class BnbBoundingSolver:
                 )
                 pv = self.compute_pv(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     lmbd,
                     x,
@@ -304,7 +309,6 @@ class BnbBoundingSolver:
                 if upper:
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -328,7 +332,6 @@ class BnbBoundingSolver:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -344,11 +347,10 @@ class BnbBoundingSolver:
                 rel_tol_inner *= 1e-2
 
             # Accelerations
-            if dualpruning or screening or simpruning:
+            if dualpruning or screening or simpruning or peeling:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -380,7 +382,6 @@ class BnbBoundingSolver:
                 if simpruning:
                     self.simpruning(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -397,8 +398,31 @@ class BnbBoundingSolver:
                         Sb0,
                         Sbi,
                     )  # noqa
+                if peeling:
+                    self.peeling(
+                        self.datafit,
+                        self.regfunc,
+                        self.A,
+                        lmbd,
+                        x,
+                        w,
+                        u,
+                        v,
+                        ub,
+                        dv,
+                        S0,
+                        Sb,
+                        Sb0,
+                        Sbi,
+                        Ws,
+                    )  # noqa
 
         # ----- Post-processing ----- #
+
+        # Peeling
+        if peeling and not upper:
+            node.x_lb = np.copy(self.regfunc.penalty.x_lb)
+            node.x_ub = np.copy(self.regfunc.penalty.x_ub)
 
         if upper:
             node.upper_bound = pv
@@ -407,7 +431,6 @@ class BnbBoundingSolver:
             if np.isnan(dv):
                 dv = self.compute_dv(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     self.A,
                     lmbd,
@@ -423,7 +446,6 @@ class BnbBoundingSolver:
     @njit
     def inner_loop(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -441,7 +463,7 @@ class BnbBoundingSolver:
             if Sb[i]:
                 x[i] = regfunc.prox_scalar(i, lmbd, ci, stepsize[i])
             else:
-                x[i] = penalty.prox_scalar(i, ci, stepsize[i])
+                x[i] = regfunc.penalty.prox_scalar(i, ci, stepsize[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -470,7 +492,6 @@ class BnbBoundingSolver:
     @njit
     def compute_pv(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         lmbd: float,
         x: ArrayLike,
@@ -484,8 +505,6 @@ class BnbBoundingSolver:
         ----------
         datafit: BaseDatafit
             Datafit function.
-        penalty: BasePenalty
-            Penalty function.
         regfunc: BaseRegfunc
             Regularization function.
         lmbd: float
@@ -501,7 +520,7 @@ class BnbBoundingSolver:
         """
         pv = datafit.value(w)
         for i in np.flatnonzero(S1):
-            pv += penalty.value_scalar(i, x[i]) + lmbd
+            pv += regfunc.penalty.value_scalar(i, x[i]) + lmbd
         for i in np.flatnonzero(Sb):
             pv += regfunc.value_scalar(i, lmbd, x[i])
         return pv
@@ -510,7 +529,6 @@ class BnbBoundingSolver:
     @njit
     def compute_dv(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -525,8 +543,6 @@ class BnbBoundingSolver:
         ----------
         datafit: BaseDatafit
             Datafit function.
-        penalty: BasePenalty
-            Penalty function.
         regfunc: BaseRegfunc
             Regularization function.
         A: ArrayLike
@@ -545,7 +561,7 @@ class BnbBoundingSolver:
         dv = -datafit.conjugate(-u)
         for i in np.flatnonzero(S1):
             v[i] = np.dot(A[:, i], u)
-            dv -= penalty.conjugate_scalar(i, v[i]) - lmbd
+            dv -= regfunc.penalty.conjugate_scalar(i, v[i]) - lmbd
         for i in np.flatnonzero(Sb):
             v[i] = np.dot(A[:, i], u)
             dv -= regfunc.conjugate_scalar(i, lmbd, v[i])
@@ -569,7 +585,6 @@ class BnbBoundingSolver:
     @njit
     def simpruning(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -588,9 +603,8 @@ class BnbBoundingSolver:
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
-            g = regfunc.conjugate_scalar(i, lmbd, v[i])
-            p = penalty.conjugate_scalar(i, v[i]) - lmbd
-            if dv + g - p > ub:
+            p = regfunc.penalty.conjugate_scalar(i, v[i]) - lmbd
+            if dv + np.maximum(-p, 0.0) > ub:
                 Sb[i] = False
                 S0[i] = True
                 Ws[i] = False
@@ -600,12 +614,63 @@ class BnbBoundingSolver:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0
                     flag = True
-            elif dv + g > ub:
+            elif dv + np.maximum(p, 0.0) > ub:
                 Sb[i] = False
                 S1[i] = True
                 Ws[i] = True
                 Sb0[i] = False
                 Sbi[i] = False
+        if flag:
+            u[:] = -datafit.gradient(w)
+
+    @staticmethod
+    @njit
+    def peeling(
+        datafit: JitClassType,
+        regfunc: JitClassType,
+        A: ArrayLike,
+        lmbd: float,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike,
+        v: ArrayLike,
+        ub: float,
+        dv: float,
+        S0: ArrayLike,
+        Sb: ArrayLike,
+        Sb0: ArrayLike,
+        Sbi: ArrayLike,
+        Ws: ArrayLike,
+    ) -> None:
+        flag = False
+        for i in np.flatnonzero(Sb):
+            p = np.maximum(
+                lmbd - regfunc.penalty.conjugate_scalar(i, v[i]), 0.0
+            )
+            t = dv + p - ub
+            if t > 0:
+                Sb[i] = False
+                S0[i] = True
+                Ws[i] = False
+                Sb0[i] = False
+                Sbi[i] = False
+                if x[i] != 0.0:
+                    w -= x[i] * A[:, i]
+                    x[i] = 0.0
+                    flag = True
+                regfunc.penalty.update_lower_bound_scalar(i, 0.0)
+                regfunc.penalty.update_upper_bound_scalar(i, 0.0)
+            else:
+                c = t / v[i]
+                if v[i] < 0.0:
+                    x_ub_i = np.maximum(c + regfunc.penalty.x_lb[i], 0.0)
+                    if x_ub_i < regfunc.penalty.x_ub[i]:
+                        regfunc.penalty.update_upper_bound_scalar(i, x_ub_i)
+                else:
+                    x_lb_i = np.minimum(c + regfunc.penalty.x_ub[i], 0.0)
+                    if x_lb_i > regfunc.penalty.x_lb[i]:
+                        regfunc.penalty.update_lower_bound_scalar(i, x_lb_i)
+
         if flag:
             u[:] = -datafit.gradient(w)
 

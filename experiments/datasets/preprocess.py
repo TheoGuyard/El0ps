@@ -59,10 +59,10 @@ def calibrate_dataset(
 
     with open(dataset_path, "rb") as dataset_file:
         data = pickle.load(dataset_file)
-        A = data["A"]
-        y = data["y"]
+        A = np.copy(data["A"])
+        y = np.copy(data["y"])
         if "x_true" in data.keys():
-            x_true = data["x_true"]
+            x_true = np.copy(data["x_true"])
         else:
             x_true = None
         if "calibrations" in data.keys():
@@ -87,8 +87,8 @@ def calibrate_dataset(
         return
 
     print(
-        "Calibrating {}/{}/{}/{}...".format(
-            datafit_name, penalty_name, center, normalize
+        "Calibrating {}/{}/{}/{}/{}...".format(
+            dataset_name, datafit_name, penalty_name, center, normalize
         )
     )
     _, penalty, lmbd, x_cal = calibrate_parameters(
@@ -100,7 +100,14 @@ def calibrate_dataset(
     )
     print("  num nz: {}".format(sum(x_cal != 0.0)))
     for param_name, param_value in penalty.params_to_dict().items():
-        print("  {}\t: {}".format(param_name, param_value))
+        if param_name in ["x_lb", "x_ub"]:
+            print(
+                "  {}\t: {}".format(
+                    param_name, np.linalg.norm(param_value, np.inf)
+                )
+            )
+        else:
+            print("  {}\t: {}".format(param_name, param_value))
     calibrations.append(
         {
             "datafit_name": datafit_name,
@@ -123,6 +130,31 @@ def calibrate_dataset(
         pickle.dump(data, dataset_file)
 
 
+def reset_calibrations(dataset_path):
+
+    with open(dataset_path, "rb") as dataset_file:
+        data = pickle.load(dataset_file)
+        A = np.copy(data["A"])
+        y = np.copy(data["y"])
+        if "x_true" in data.keys():
+            x_true = np.copy(data["x_true"])
+        else:
+            x_true = None
+        if "calibrations" in data.keys():
+            calibrations = data["calibrations"]
+        else:
+            calibrations = []
+
+    data = {
+        "A": A,
+        "y": y,
+        "x_true": x_true,
+        "calibrations": [],
+    }
+    with open(dataset_path, "wb") as dataset_file:
+        pickle.dump(data, dataset_file)
+
+
 if __name__ == "__main__":
 
     dataset_name = "bctcga"
@@ -130,5 +162,5 @@ if __name__ == "__main__":
     dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(".pkl")
     datafit_name = "Leastsquares"
     penalty_name = "Bigm"
-
+    
     pass

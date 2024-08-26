@@ -10,7 +10,6 @@ def onerun(exp: Experiment, save=True):
     exp.setup()
     exp.load_problem()
     exp.calibrate_parameters()
-    exp.precompile()
     exp.run()
     if save:
         exp.save_results()
