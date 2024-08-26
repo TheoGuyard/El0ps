@@ -76,7 +76,7 @@ class L0bnbSolver(BaseSolver):
             M = penalty.M
         elif str(penalty) == "BoundsConstraint":
             l0 = lmbd
-            l2 = penalty.beta
+            l2 = 0.0
             M = np.maximum(-np.min(penalty.x_lb), np.max(penalty.x_ub))
         else:
             raise NotImplementedError(

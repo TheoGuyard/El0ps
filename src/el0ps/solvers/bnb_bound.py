@@ -266,10 +266,9 @@ class BnbBoundingSolver:
         dv = np.nan
         Ws = S1 | (x != 0.0 if workingsets else Sb)
 
-        if peeling:
-            x_lb_init = np.copy(self.penalty.x_lb)
-            x_ub_init = np.copy(self.penalty.x_ub)
-            # self.penalty.update_bounds(node.x_lb, node.x_ub)
+        if peeling and not upper:
+            self.regfunc.penalty.x_lb = np.copy(node.x_lb)
+            self.regfunc.penalty.x_ub = np.copy(node.x_ub)
 
         # ----- Outer loop ----- #
 
@@ -286,7 +285,6 @@ class BnbBoundingSolver:
                 pv_old = pv
                 self.inner_loop(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     self.A,
                     lmbd,
@@ -299,7 +297,6 @@ class BnbBoundingSolver:
                 )
                 pv = self.compute_pv(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     lmbd,
                     x,
@@ -312,7 +309,6 @@ class BnbBoundingSolver:
                 if upper:
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -336,7 +332,6 @@ class BnbBoundingSolver:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -356,7 +351,6 @@ class BnbBoundingSolver:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -388,7 +382,7 @@ class BnbBoundingSolver:
                 if simpruning:
                     self.simpruning(
                         self.datafit,
-                        self.penalty,
+                        self.regfunc,
                         self.A,
                         lmbd,
                         x,
@@ -407,7 +401,7 @@ class BnbBoundingSolver:
                 if peeling:
                     self.peeling(
                         self.datafit,
-                        self.penalty,
+                        self.regfunc,
                         self.A,
                         lmbd,
                         x,
@@ -426,10 +420,9 @@ class BnbBoundingSolver:
         # ----- Post-processing ----- #
 
         # Peeling
-        if peeling:
-            node.x_lb = np.copy(self.penalty.x_lb)
-            node.x_ub = np.copy(self.penalty.x_ub)
-            self.penalty.update_bounds(x_lb_init, x_ub_init)
+        if peeling and not upper:
+            node.x_lb = np.copy(self.regfunc.penalty.x_lb)
+            node.x_ub = np.copy(self.regfunc.penalty.x_ub)
 
         if upper:
             node.upper_bound = pv
@@ -438,7 +431,6 @@ class BnbBoundingSolver:
             if np.isnan(dv):
                 dv = self.compute_dv(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     self.A,
                     lmbd,
@@ -454,7 +446,6 @@ class BnbBoundingSolver:
     @njit
     def inner_loop(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -472,7 +463,7 @@ class BnbBoundingSolver:
             if Sb[i]:
                 x[i] = regfunc.prox_scalar(i, lmbd, ci, stepsize[i])
             else:
-                x[i] = penalty.prox_scalar(i, ci, stepsize[i])
+                x[i] = regfunc.penalty.prox_scalar(i, ci, stepsize[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -501,7 +492,6 @@ class BnbBoundingSolver:
     @njit
     def compute_pv(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         lmbd: float,
         x: ArrayLike,
@@ -515,8 +505,6 @@ class BnbBoundingSolver:
         ----------
         datafit: BaseDatafit
             Datafit function.
-        penalty: BasePenalty
-            Penalty function.
         regfunc: BaseRegfunc
             Regularization function.
         lmbd: float
@@ -532,7 +520,7 @@ class BnbBoundingSolver:
         """
         pv = datafit.value(w)
         for i in np.flatnonzero(S1):
-            pv += penalty.value_scalar(i, x[i]) + lmbd
+            pv += regfunc.penalty.value_scalar(i, x[i]) + lmbd
         for i in np.flatnonzero(Sb):
             pv += regfunc.value_scalar(i, lmbd, x[i])
         return pv
@@ -541,7 +529,6 @@ class BnbBoundingSolver:
     @njit
     def compute_dv(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -556,8 +543,6 @@ class BnbBoundingSolver:
         ----------
         datafit: BaseDatafit
             Datafit function.
-        penalty: BasePenalty
-            Penalty function.
         regfunc: BaseRegfunc
             Regularization function.
         A: ArrayLike
@@ -576,7 +561,7 @@ class BnbBoundingSolver:
         dv = -datafit.conjugate(-u)
         for i in np.flatnonzero(S1):
             v[i] = np.dot(A[:, i], u)
-            dv -= penalty.conjugate_scalar(i, v[i]) - lmbd
+            dv -= regfunc.penalty.conjugate_scalar(i, v[i]) - lmbd
         for i in np.flatnonzero(Sb):
             v[i] = np.dot(A[:, i], u)
             dv -= regfunc.conjugate_scalar(i, lmbd, v[i])
@@ -600,7 +585,7 @@ class BnbBoundingSolver:
     @njit
     def simpruning(
         datafit: JitClassType,
-        penalty: JitClassType,
+        regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
         x: ArrayLike,
@@ -618,7 +603,7 @@ class BnbBoundingSolver:
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
-            p = penalty.conjugate_scalar(i, v[i]) - lmbd
+            p = regfunc.penalty.conjugate_scalar(i, v[i]) - lmbd
             if dv + np.maximum(-p, 0.0) > ub:
                 Sb[i] = False
                 S0[i] = True
@@ -642,7 +627,7 @@ class BnbBoundingSolver:
     @njit
     def peeling(
         datafit: JitClassType,
-        penalty: JitClassType,
+        regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
         x: ArrayLike,
@@ -659,7 +644,9 @@ class BnbBoundingSolver:
     ) -> None:
         flag = False
         for i in np.flatnonzero(Sb):
-            p = np.maximum(lmbd - penalty.conjugate_scalar(i, v[i]), 0.0)
+            p = np.maximum(
+                lmbd - regfunc.penalty.conjugate_scalar(i, v[i]), 0.0
+            )
             t = dv + p - ub
             if t > 0:
                 Sb[i] = False
@@ -671,24 +658,19 @@ class BnbBoundingSolver:
                     w -= x[i] * A[:, i]
                     x[i] = 0.0
                     flag = True
+                regfunc.penalty.update_lower_bound_scalar(i, 0.0)
+                regfunc.penalty.update_upper_bound_scalar(i, 0.0)
             else:
                 c = t / v[i]
                 if v[i] < 0.0:
-                    x_ub_i = np.maximum(c + penalty.x_lb[i], 0.0)
-                    if x_ub_i < penalty.x_ub[i]:
-                        penalty.update_upper_bound_scalar(i, x_ub_i)
-                        if x[i] > x_ub_i:
-                            w += (x_ub_i - x[i]) * A[:, i]
-                            x[i] = x_ub_i
-                            flag = True
+                    x_ub_i = np.maximum(c + regfunc.penalty.x_lb[i], 0.0)
+                    if x_ub_i < regfunc.penalty.x_ub[i]:
+                        regfunc.penalty.update_upper_bound_scalar(i, x_ub_i)
                 else:
-                    x_lb_i = np.minimum(c + penalty.x_ub[i], 0.0)
-                    if x_lb_i > penalty.x_lb[i]:
-                        penalty.update_lower_bound_scalar(i, x_lb_i)
-                        if x[i] < x_lb_i:
-                            w += (x_lb_i - x[i]) * A[:, i]
-                            x[i] = x_lb_i
-                            flag = True
+                    x_lb_i = np.minimum(c + regfunc.penalty.x_ub[i], 0.0)
+                    if x_lb_i > regfunc.penalty.x_lb[i]:
+                        regfunc.penalty.update_lower_bound_scalar(i, x_lb_i)
+
         if flag:
             u[:] = -datafit.gradient(w)
 

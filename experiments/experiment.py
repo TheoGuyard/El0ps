@@ -87,54 +87,55 @@ class Experiment:
                         Logistic,
                         Squaredhinge,
                     )
-                    from el0ps.penalties import BigmL1norm, BigmL2norm  # noqa
+                    from el0ps.penalties import (  # noqa
+                        BigmL1norm,
+                        BigmL2norm,
+                        BoundsConstraint,
+                    )
 
-                    self.datafit = eval(calibration["datafit_name"])(self.y)
-                    self.penalty = eval(calibration["penalty_name"])(
+                    datafit = eval(calibration["datafit_name"])(self.y)
+                    penalty = eval(calibration["penalty_name"])(
                         **calibration["penalty_params"]
                     )
-                    self.lmbd = calibration["lmbd"]
-                    lmbd_max = compute_lmbd_max(
-                        self.datafit, self.penalty, self.A
-                    )
+                    lmbd = calibration["lmbd"]
+                    x_cal = calibration["x_cal"]
                     print("Calibration found")
-                    print(
-                        "  num nz: {}".format(sum(calibration["x_cal"] != 0.0))
-                    )
-                    print("  lratio: {}".format(self.lmbd / lmbd_max))
-                    for (
-                        param_name,
-                        param_value,
-                    ) in self.penalty.params_to_dict().items():
-                        print("  {}\t: {}".format(param_name, param_value))
-                    return
+        else:
+            datafit, penalty, lmbd, x_cal = calibrate_parameters(
+                self.config["dataset"]["datafit_name"],
+                self.config["dataset"]["penalty_name"],
+                self.A,
+                self.y,
+                self.x_true,
+            )
 
-        datafit, penalty, lmbd, x_cal = calibrate_parameters(
-            self.config["dataset"]["datafit_name"],
-            self.config["dataset"]["penalty_name"],
-            self.A,
-            self.y,
-            self.x_true,
-        )
         lmbd_max = compute_lmbd_max(datafit, penalty, self.A)
-        print("  num nz: {}".format(sum(x_cal != 0.0)))
-        print("  lratio: {}".format(lmbd / lmbd_max))
-        for param_name, param_value in penalty.params_to_dict().items():
-            if param_name not in ["x_lb", "x_ub"]:
-                print("  {}\t: {}".format(param_name, param_value))
         self.datafit = datafit
         self.penalty = penalty
         self.lmbd = lmbd
+
+        if "bigmfactor" in self.config["dataset"]:
+            if hasattr(self.penalty, "x_lb") and hasattr(self.penalty, "x_ub"):
+                self.penalty.x_lb *= self.config["dataset"]["bigmfactor"]
+                self.penalty.x_ub *= self.config["dataset"]["bigmfactor"]
+            elif hasattr(self.penalty, "M"):
+                self.penalty.M *= self.config["dataset"]["bigmfactor"]
+
+        print("  num nz: {}".format(sum(x_cal != 0.0)))
+        print("  lratio: {}".format(lmbd / lmbd_max))
+        for key, value in self.penalty.params_to_dict().items():
+            if key in ["x_lb", "x_ub"]:
+                print("  {}\t: {}".format(key, value[0]))
+            else:
+                print("  {}\t: {}".format(key, value))
 
     def precompile(self):
         print("Precompiling datafit and penalty...")
         self.compiled_datafit = compiled_clone(self.datafit)
         self.compiled_penalty = compiled_clone(self.penalty)
-        if "solvers" in self.config.keys():
-            solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
-        else:
-            solver_opts = {}
+        solver_opts = deepcopy(self.config["solvers"]["solvers_opts"])
         solver_opts["time_limit"] = 5.0
+        solver_opts["verbose"] = False
         solver = get_solver("el0ps", solver_opts)
         solver.solve(
             self.compiled_datafit,
@@ -146,7 +147,9 @@ class Experiment:
     def precompile_solver(self, solver):
         print(f"Precompiling solver {solver}...")
         time_limit = solver.options.time_limit
+        verbose = solver.options.verbose
         solver.options.time_limit = 5.0
+        solver.options.verbose = False
         solver.solve(
             self.compiled_datafit,
             self.compiled_penalty,
@@ -154,6 +157,7 @@ class Experiment:
             self.lmbd,
         )
         solver.options.time_limit = time_limit
+        solver.options.verbose = verbose
         solver.options.bounding_skip_setup = True
 
     @abstractmethod

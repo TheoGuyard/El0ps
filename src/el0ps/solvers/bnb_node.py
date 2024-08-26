@@ -9,6 +9,8 @@ class BnbNode:
     ----------
     category: int
         Node category (root: -1, zero: 0, one: 1).
+    depth: int
+        Node depth.
     S0: ArrayLike
         Set of indices forced to be zero.
     S1: ArrayLike
@@ -38,6 +40,7 @@ class BnbNode:
     def __init__(
         self,
         category: int,
+        depth: int,
         S0: ArrayLike,
         S1: ArrayLike,
         Sb: ArrayLike,
@@ -52,6 +55,7 @@ class BnbNode:
         x_ub: ArrayLike,
     ) -> None:
         self.category = category
+        self.depth = depth
         self.S0 = S0
         self.S1 = S1
         self.Sb = Sb
@@ -69,6 +73,7 @@ class BnbNode:
         s = ""
         s += "BnbNode\n"
         s += "  Category    : {}".format(self.category)
+        s += "  Depth       : {}".format(self.depth)
         s += "  S0/S1/Sb    : {}/{}/{}\n".format(
             np.sum(self.S0), np.sum(self.S1), np.sum(self.Sb)
         )
@@ -113,15 +118,10 @@ class BnbNode:
         return np.sum(self.Sb)
 
     @property
-    def depth(self):
-        return self.card_S0 + self.card_S1
-
-    @property
     def bound_spread(self):
-        if np.any(self.Sb):
-            return np.mean(self.x_ub[self.Sb] - self.x_lb[self.Sb])
-        else:
+        if not np.any(self.Sb):
             return 0.0
+        return np.mean(self.x_ub[self.Sb] - self.x_lb[self.Sb])
 
     def fix_to(self, idx: int, val: bool, A: ArrayLike):
         """Fix an extry of the node to zero or non-zero. Update the
@@ -151,6 +151,7 @@ class BnbNode:
     def child(self, idx: int, val: bool, A: ArrayLike):
         child = BnbNode(
             int(val),
+            self.depth + 1,
             np.copy(self.S0),
             np.copy(self.S1),
             np.copy(self.Sb),

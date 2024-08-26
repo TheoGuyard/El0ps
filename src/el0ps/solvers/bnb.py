@@ -234,7 +234,8 @@ class BnbSolver(BaseSolver):
 
         # Bounds
         if self.options.peeling:
-            assert isinstance(penalty, PeelablePenalty)
+            assert hasattr(penalty, "x_lb")
+            assert hasattr(penalty, "x_ub")
             x_lb = np.copy(penalty.x_lb)
             x_ub = np.copy(penalty.x_ub)
         else:
@@ -244,6 +245,7 @@ class BnbSolver(BaseSolver):
         # Root node
         root = BnbNode(
             -1,
+            0,
             np.zeros(self.n, dtype=np.bool_),
             np.zeros(self.n, dtype=np.bool_),
             np.ones(self.n, dtype=np.bool_),
@@ -402,6 +404,7 @@ class BnbSolver(BaseSolver):
                 if not self.is_feasible(node):
                     self.branch(node)
             self.update_bounds(node)
+
             if self.options.trace:
                 self.update_trace(node)
             if self.options.verbose:

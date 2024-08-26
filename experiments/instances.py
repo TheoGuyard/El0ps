@@ -84,6 +84,13 @@ def synthetic_x(supp_pos, supp_val, k, n):
     elif supp_val == "normal":
         a = np.random.randn(k)
         x[s] = a + np.sign(a)
+    elif supp_val.startswith("normal"):
+        mean, std = supp_val[
+            supp_val.index("(") + 1 : supp_val.index(")")
+        ].split(",")
+        mean, std = float(mean), np.maximum(float(std), 1e-16)
+        a = np.random.normal(mean, std, k)
+        x[s] = a + np.sign(a)
     elif supp_val == "expdecr":
         x[s] = np.exp(-np.arange(k))
     else:
@@ -326,7 +333,7 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
             f1 = 0.0 if x_true is None else f1_score(x_true, x)
             if (f1 > best_f1) or (x_true is None):
                 if cv < best_cv:
-                    best_M = 1.5 * np.max(np.abs(x))
+                    best_M = np.max(np.abs(x))
                     best_lmbda = lmbda
                     best_gamma = gamma
                     best_cv = cv

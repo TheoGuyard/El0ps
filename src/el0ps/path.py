@@ -202,6 +202,9 @@ class Path:
             if not A.flags.f_contiguous:
                 A = np.array(A, order="F")
             solver.options.bounding_skip_setup = True
+            if solver.options.peeling:
+                x_lb_init = np.copy(penalty.x_lb)
+                x_ub_init = np.copy(penalty.x_ub)
 
         if self.options.verbose:
             self.display_path_head()
@@ -217,6 +220,12 @@ class Path:
 
         for lmbd in lmbd_grid:
             results = solver.solve(datafit, penalty, A, lmbd, x_init)
+
+            if isinstance(solver, BnbSolver):
+                if solver.options.peeling:
+                    penalty.x_lb = np.copy(x_lb_init)
+                    penalty.x_ub = np.copy(x_ub_init)
+
             x_init = np.copy(results.x)
             self.fill_fit_data(datafit, penalty, A, lmbd, results)
             if self.options.verbose:
