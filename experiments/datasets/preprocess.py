@@ -157,11 +157,10 @@ def reset_calibrations(dataset_path):
 
 if __name__ == "__main__":
 
-    dataset_name = "arcene"
+    dataset_name = "bctcga"
     dataset_dir = pathlib.Path(__file__).parent.absolute()
     dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(".pkl")
-    datafit_name = "Squaredhinge"
-    penalty_name = "BoundsConstraint"
-
-    preprocess_dataset(dataset_path, datafit_name, penalty_name)
-    calibrate_dataset(dataset_path, datafit_name, penalty_name)
+    datafit_name = "Leastsquares"
+    penalty_name = "Bigm"
+    
+    pass
