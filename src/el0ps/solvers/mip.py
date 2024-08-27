@@ -12,23 +12,24 @@ from el0ps.datafits import MipDatafit
 from el0ps.penalties import MipPenalty
 from el0ps.solvers import BaseSolver, Result, Status
 
-_optim_bindings = {
+
+_mip_optim_bindings = {
     "cplex": {
-        "optimizer_name": "cplex_direct",
+        "optimizer_name": "cplex_persistent",
         "time_limit": "timelimit",
         "rel_tol": "mip_tolerances_mipgap",
         "int_tol": "mip_tolerances_integrality",
         "verbose": "mip_display",
     },
     "gurobi": {
-        "optimizer_name": "gurobi_direct",
+        "optimizer_name": "gurobi_persistent",
         "time_limit": "TimeLimit",
         "rel_tol": "MIPGap",
         "int_tol": "IntFeasTol",
         "verbose": "OutputFlag",
     },
     "mosek": {
-        "optimizer_name": "mosek_direct",
+        "optimizer_name": "mosek_persistent",
         "time_limit": "dparam.mio_max_time",
         "rel_tol": "dparam.mio_tol_rel_gap",
         "int_tol": "dparam.mio_tol_abs_relax_int",
@@ -73,8 +74,8 @@ class MipSolver(BaseSolver):
         return "MipSolver"
 
     def initialize_optimizer(self):
-        if self.options.optimizer_name in _optim_bindings:
-            bindings = _optim_bindings[self.options.optimizer_name]
+        if self.options.optimizer_name in _mip_optim_bindings:
+            bindings = _mip_optim_bindings[self.options.optimizer_name]
             optim = pyo.SolverFactory(bindings["optimizer_name"])
             optim.options[bindings["time_limit"]] = self.options.time_limit
             optim.options[bindings["rel_tol"]] = self.options.rel_tol
@@ -84,7 +85,7 @@ class MipSolver(BaseSolver):
             raise ValueError(
                 "Solver {} not supported. Available ones are: {}".format(
                     self.options.optimizer_name,
-                    _optim_bindings.keys(),
+                    _mip_optim_bindings.keys(),
                 )
             )
         return optim
@@ -168,6 +169,7 @@ class MipSolver(BaseSolver):
 
         optim = self.initialize_optimizer()
         model = self.build_model(datafit, penalty, A, lmbd)
+        optim.set_instance(model)
 
         if x_init is not None:
             assert len(x_init) == A.shape[1]

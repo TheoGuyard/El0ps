@@ -302,6 +302,7 @@ class BnbBoundingSolver:
 
                 # Inner stopping criterion
                 if upper:
+                    v[Ws] = self.A[:, Ws].T @ u
                     dv = self.compute_dv(
                         self.datafit,
                         self.penalty,
@@ -318,12 +319,13 @@ class BnbBoundingSolver:
                 elif self.rel_gap(pv, pv_old) <= rel_tol_inner:
                     break
 
+            if upper:
+                break
+
             # Working-set update
             flag = self.ws_update(self.regfunc, self.A, lmbd, u, v, Ws, Sbi)
 
             # Outer stopping criterion
-            if upper:
-                break
             if not flag:
                 if np.isnan(dv):
                     dv = self.compute_dv(
