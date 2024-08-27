@@ -10,7 +10,6 @@ from .l1l2norm import L1L2norm
 
 __all__ = [
     "BasePenalty",
-    "SymmetricPenalty",
     "MipPenalty",
     "Bigm",
     "BigmL1norm",

@@ -3,7 +3,8 @@ from pyomo.opt.base.solvers import check_available_solvers
 from el0ps.datafits import Leastsquares
 from el0ps.penalties import Bigm
 from el0ps.utils import compute_lmbd_max
-from el0ps.solvers import Status, BnbSolver, MipSolver
+from el0ps.solvers import Status, BnbSolver, MipSolver, OaSolver
+from el0ps.solvers.mip import _mip_optim_bindings
 from .utils import make_regression
 
 
@@ -21,7 +22,13 @@ def test_solver():
     assert result.status == Status.OPTIMAL
 
     for optimizer_name in ["cplex", "gurobi", "mosek"]:
-        if check_available_solvers(optimizer_name + "_direct"):
+        if check_available_solvers(
+            _mip_optim_bindings[optimizer_name]["optimizer_name"]
+        ):
             solver = MipSolver(optimizer_name=optimizer_name)
+            result = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
+            assert result.status == Status.OPTIMAL
+
+            solver = OaSolver(optimizer_name=optimizer_name)
             result = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
             assert result.status == Status.OPTIMAL

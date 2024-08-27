@@ -9,6 +9,7 @@ from .bnb import (
     BnbSolver,
 )
 from .mip import MipOptions, MipSolver
+from .oa import OaOptions, OaSolver
 
 __all__ = [
     "BaseSolver",
@@ -21,4 +22,6 @@ __all__ = [
     "BnbSolver",
     "MipOptions",
     "MipSolver",
+    "OaOptions",
+    "OaSolver",
 ]

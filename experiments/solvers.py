@@ -21,6 +21,8 @@ from el0ps.solvers import (
     BnbOptions,
     MipOptions,
     MipSolver,
+    OaOptions,
+    OaSolver,
     Status,
     Result,
     BnbBranchingStrategy,
@@ -701,11 +703,32 @@ def extract_mip_options(solver_name):
     return {}
 
 
+def extract_oa_options(solver_name):
+    option_types = get_type_hints(OaOptions)
+    pattern = r"\[([^]]*)\]"
+    match = re.search(pattern, solver_name)
+    if match:
+        options_str = match.group(1)
+        if options_str:
+            option_pairs = options_str.split(",")
+            options_dict = {}
+            for pair in option_pairs:
+                k, v = pair.split("=")
+                if option_types[k] in [str, int, float]:
+                    options_dict[k] = option_types[k](v)
+                elif option_types[k] == bool:
+                    options_dict[k] = v in ["true", "True"]
+            return options_dict
+    return {}
+
+
 def get_solver(solver_name, options={}):
     if solver_name.startswith("el0ps"):
         return BnbSolver(**{**options, **extract_bnb_options(solver_name)})
     elif solver_name.startswith("mip"):
         return MipSolver(**{**options, **extract_mip_options(solver_name)})
+    elif solver_name.startswith("oa"):
+        return OaSolver(**{**options, **extract_oa_options(solver_name)})
     elif solver_name == "l0bnb":
         return L0bnbSolver(**options)
     else:
@@ -813,6 +836,9 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                     solver_opts["optimizer_name"]
                 )
             )
+    elif solver_name.startswith("oa"):
+        handle_datafit = True
+        handle_penalty = True
     elif solver_name == "l0bnb":
         handle_datafit = datafit_name in ["Leastsquares"]
         handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "L2norm"]
@@ -822,4 +848,8 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
 
 
 def can_handle_compilation(solver_name):
-    return solver_name.startswith("el0ps")
+    if solver_name.startswith("el0ps"):
+        return True
+    elif solver_name.startswith("oa"):
+        return True
+    return False

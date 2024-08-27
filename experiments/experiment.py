@@ -8,6 +8,8 @@ import numpy as np
 from abc import abstractmethod
 from copy import deepcopy
 from datetime import datetime
+from el0ps.datafits import *  # noqa
+from el0ps.penalties import *  # noqa
 from el0ps.path import Path
 from el0ps.solvers import Status
 from el0ps.utils import compiled_clone, compute_lmbd_max
@@ -55,75 +57,40 @@ class Experiment:
         self.x_true = x_true
 
     def calibrate_parameters(self):
-        print("Calibrating parameters...")
-
+        flag_calibration = False
         if self.config["dataset"]["dataset_type"] == "hardcoded":
-            dataset_name = self.config["dataset"]["dataset_opts"][
-                "dataset_name"
-            ]
-            dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
-            dataset_path = dataset_dir.joinpath(dataset_name).with_suffix(
-                ".pkl"
-            )
-            with open(dataset_path, "rb") as dataset_file:
+            file_name = self.config["dataset"]["dataset_opts"]["dataset_name"]
+            file_dir = pathlib.Path(__file__).parent.joinpath("datasets")
+            file_path = file_dir.joinpath(file_name).with_suffix(".pkl")
+            with open(file_path, "rb") as dataset_file:
                 data = pickle.load(dataset_file)
                 if "calibrations" in data.keys():
-                    calibrations = data["calibrations"]
-                else:
-                    calibrations = None
-            for calibration in calibrations:
-                if (
-                    calibration["datafit_name"]
-                    == self.config["dataset"]["datafit_name"]
-                    and calibration["penalty_name"]
-                    == self.config["dataset"]["penalty_name"]
-                    and calibration["normalize"]
-                    == self.config["dataset"]["process_opts"]["normalize"]
-                    and calibration["center"]
-                    == self.config["dataset"]["process_opts"]["center"]
-                ):
-                    from el0ps.datafits import (  # noqa
-                        Leastsquares,
-                        Logistic,
-                        Squaredhinge,
-                    )
-                    from el0ps.penalties import BigmL1norm, BigmL2norm  # noqa
+                    for calibration in data["calibrations"]:
+                        if calibration["dataset"] == self.config["dataset"]:
+                            print("Calibration found")
+                            self.datafit = calibration["datafit"]
+                            self.penalty = calibration["penalty"]
+                            self.lmbd = calibration["lmbd"]
+                            self.x_cal = calibration["x_cal"]
+                            flag_calibration = True
+                            break
+        if not flag_calibration:
+            print("Calibrating parameters...")
+            self.datafit, self.penalty, self.lmbd, self.x_cal = (
+                calibrate_parameters(
+                    self.config["dataset"]["datafit_name"],
+                    self.config["dataset"]["penalty_name"],
+                    self.A,
+                    self.y,
+                    self.x_true,
+                )
+            )
 
-                    self.datafit = eval(calibration["datafit_name"])(self.y)
-                    self.penalty = eval(calibration["penalty_name"])(
-                        **calibration["penalty_params"]
-                    )
-                    self.lmbd = calibration["lmbd"]
-                    lmbd_max = compute_lmbd_max(
-                        self.datafit, self.penalty, self.A
-                    )
-                    print("Calibration found")
-                    print(
-                        "  num nz: {}".format(sum(calibration["x_cal"] != 0.0))
-                    )
-                    print("  lratio: {}".format(self.lmbd / lmbd_max))
-                    for (
-                        param_name,
-                        param_value,
-                    ) in self.penalty.params_to_dict().items():
-                        print("  {}\t: {}".format(param_name, param_value))
-                    return
-
-        datafit, penalty, lmbd, x_cal = calibrate_parameters(
-            self.config["dataset"]["datafit_name"],
-            self.config["dataset"]["penalty_name"],
-            self.A,
-            self.y,
-            self.x_true,
-        )
-        lmbd_max = compute_lmbd_max(datafit, penalty, self.A)
-        print("  num nz: {}".format(sum(x_cal != 0.0)))
-        print("  lratio: {}".format(lmbd / lmbd_max))
-        for param_name, param_value in penalty.params_to_dict().items():
+        lmbd_max = compute_lmbd_max(self.datafit, self.penalty, self.A)
+        print("  num nz: {}".format(sum(self.x_cal != 0.0)))
+        print("  lratio: {}".format(self.lmbd / lmbd_max))
+        for param_name, param_value in self.penalty.params_to_dict().items():
             print("  {}\t: {}".format(param_name, param_value))
-        self.datafit = datafit
-        self.penalty = penalty
-        self.lmbd = lmbd
 
     def precompile(self):
         print("Precompiling datafit and penalty...")
