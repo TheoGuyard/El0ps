@@ -22,7 +22,9 @@ def test_solver():
     assert result.status == Status.OPTIMAL
 
     for optimizer_name in ["cplex", "gurobi", "mosek"]:
-        if check_available_solvers(_mip_optim_bindings[optimizer_name]["optimizer_name"]):
+        if check_available_solvers(
+            _mip_optim_bindings[optimizer_name]["optimizer_name"]
+        ):
             solver = MipSolver(optimizer_name=optimizer_name)
             result = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
             assert result.status == Status.OPTIMAL
