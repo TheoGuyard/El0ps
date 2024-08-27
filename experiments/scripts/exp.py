@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 from copy import deepcopy
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,7 +11,7 @@ def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
         "command": "perfprofile",
-        "walltime": "01:00:00",
+        "walltime": "01:30:00",
         "besteffort": True,
         "production": True,
         "setups": [],
@@ -26,8 +27,8 @@ def get_exp_perfprofile():
                 "supp_pos": "equispaced",
                 "supp_val": "unit",
                 "k": 5,
-                "m": 100,
-                "n": 250,
+                "m": 500,
+                "n": 1000,
                 "s": 10.0,
                 "normalize": True,
             },
@@ -42,10 +43,11 @@ def get_exp_perfprofile():
                 "mip[optimizer_name=cplex]",
                 "mip[optimizer_name=gurobi]",
                 "mip[optimizer_name=mosek]",
+                "oa",
                 "l0bnb",
             ],
             "solvers_opts": {
-                "time_limit": 3600.0,
+                "time_limit": 600.0,
                 "rel_tol": 1.0e-4,
                 "int_tol": 1.0e-8,
                 "verbose": False,
@@ -53,22 +55,22 @@ def get_exp_perfprofile():
         },
     }
 
-    for (matrix, k, m, n, s) in [
-        ("correlated(0.1)", 5, 100, 250, 10.0),
-        ("correlated(0.9)", 5, 100, 250, 10.0),
-        ("correlated(0.95)", 5, 100, 250, 10.0),
-    ]:
-        for penalty in ["Bigm", "L2norm"]:
-            setup = deepcopy(base_setup)
-            setup["dataset"]["dataset_opts"]["matrix"] = matrix
-            setup["dataset"]["dataset_opts"]["k"] = k
-            setup["dataset"]["dataset_opts"]["m"] = m
-            setup["dataset"]["dataset_opts"]["n"] = n
-            setup["dataset"]["dataset_opts"]["s"] = s
-            setup["dataset"]["penalty_name"] = penalty
-            exp["setups"].append(setup)
-
-    # exp["setups"].append(base_setup)
+    for c in 1.0 - np.logspace(0, -2, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["matrix"] = "correlated({})".format(c)
+        exp["setups"].append(setup)
+    for k in np.linspace(3, 7, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["k"] = int(k)
+        exp["setups"].append(setup)
+    for n in np.logspace(2, 4, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["n"] = int(np.round(n))
+        exp["setups"].append(setup)
+    for s in np.logspace(2, 0, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["s"] = s
+        exp["setups"].append(setup)
 
     return exp
 
@@ -126,9 +128,11 @@ def get_exp_regpath():
     ]:
         for solver_name in [
             "el0ps",
+            "el0ps[simpruning=False]",
             "mip[optimizer_name=cplex]",
             "mip[optimizer_name=gurobi]",
             "mip[optimizer_name=mosek]",
+            "oa",
             "l0bnb",
         ]:
             if can_handle_instance(solver_name, datafit_name, penalty_name):

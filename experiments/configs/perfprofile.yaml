@@ -24,6 +24,7 @@ solvers:
     - mip[optimizer_name=cplex]
     - mip[optimizer_name=gurobi]
     - mip[optimizer_name=mosek]
+    - oa
     - l0bnb
   solvers_opts:
     time_limit: 3600.
