@@ -1,3 +1,4 @@
+import pathlib
 import re
 import sys
 import time
@@ -13,8 +14,8 @@ from skglm.solvers import AndersonCD
 from typing import Union, get_type_hints
 from numpy.typing import NDArray
 from l0bnb import BNBTree
-from el0ps.datafits import BaseDatafit
-from el0ps.penalties import BasePenalty
+from el0ps.datafits import *
+from el0ps.penalties import *
 from el0ps.solvers import (
     BaseSolver,
     BnbSolver,
@@ -28,6 +29,11 @@ from el0ps.solvers import (
     BnbBranchingStrategy,
     BnbExplorationStrategy,
 )
+from el0ps.path import Path
+
+sys.path.append(pathlib.Path(__file__).parent.parent.absolute())
+from experiments.instances import calibrate_parameters
+
 
 
 class L0bnbSolver(BaseSolver):
@@ -76,6 +82,10 @@ class L0bnbSolver(BaseSolver):
             l0 = lmbd
             l2 = penalty.beta
             M = penalty.M
+        elif str(penalty) == "BoundsConstraint":
+            l0 = lmbd
+            l2 = 0.0
+            M = np.maximum(-np.min(penalty.x_lb), np.max(penalty.x_ub))
         else:
             raise NotImplementedError(
                 "`L0bnbSolver` does not support `{}` yet.".format(str(penalty))
@@ -131,8 +141,9 @@ class OmpPath:
     def __str__(self) -> str:
         return "OmpPath"
 
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
+    def fit(self, datafit_name, A, y):
+        assert datafit_name == "Leastsquares"
+        datafit = Leastsquares(y)
 
         fit_data = {
             "status": [],
@@ -145,9 +156,8 @@ class OmpPath:
         start_time = time.time()
 
         n = A.shape[1]
-        y = datafit.y
         s = []
-        r = y
+        r = np.copy(y)
         for _ in range(self.max_nnz):
             u = np.dot(A.T, r)
             i = np.argmax(np.abs(u))
@@ -187,8 +197,9 @@ class LassoPath:
     def __str__(self) -> str:
         return "LassoPath"
 
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
+    def fit(self, datafit_name, A, y):
+        assert datafit_name == "Leastsquares"
+        datafit = Leastsquares(y)
 
         fit_data = {
             "status": [],
@@ -197,8 +208,6 @@ class LassoPath:
             "datafit_value": [],
             "n_nnz": [],
         }
-
-        y = datafit.y
 
         lmbd_grid = np.logspace(
             np.log10(self.lmbd_max),
@@ -250,8 +259,9 @@ class EnetPath:
     def __str__(self) -> str:
         return "EnetPath"
 
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
+    def fit(self, datafit_name, A, y):
+        assert datafit_name == "Leastsquares"
+        datafit = Leastsquares(y)
 
         fit_data = {
             "status": [],
@@ -260,8 +270,6 @@ class EnetPath:
             "datafit_value": [],
             "n_nnz": [],
         }
-
-        y = datafit.y
 
         lmbd_grid = np.logspace(
             np.log10(self.lmbd_max),
@@ -393,8 +401,9 @@ class L05Path:
     def __str__(self) -> str:
         return "L05Path"
 
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
+    def fit(self, datafit_name, A, y):
+        assert datafit_name == "Leastsquares"
+        datafit = Leastsquares(y)
 
         fit_data = {
             "status": [],
@@ -403,8 +412,6 @@ class L05Path:
             "datafit_value": [],
             "n_nnz": [],
         }
-
-        y = datafit.y
 
         lmbd_grid = np.logspace(
             np.log10(self.lmbd_max),
@@ -460,8 +467,9 @@ class McpPath:
     def __str__(self) -> str:
         return "McpPath"
 
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
+    def fit(self, datafit_name, A, y):
+        assert datafit_name == "Leastsquares"
+        datafit = Leastsquares(y)
 
         fit_data = {
             "status": [],
@@ -470,8 +478,6 @@ class McpPath:
             "datafit_value": [],
             "n_nnz": [],
         }
-
-        y = datafit.y
 
         lmbd_grid = np.logspace(
             np.log10(self.lmbd_max),
@@ -603,8 +609,9 @@ class ScadPath:
     def __str__(self) -> str:
         return "ScadPath"
 
-    def fit(self, datafit, A):
-        assert str(datafit) == "Leastsquares"
+    def fit(self, datafit_name, A, y):
+        assert datafit_name == "Leastsquares"
+        datafit = Leastsquares(y)
 
         fit_data = {
             "status": [],
@@ -613,8 +620,6 @@ class ScadPath:
             "datafit_value": [],
             "n_nnz": [],
         }
-
-        y = datafit.y
 
         lmbd_grid = np.logspace(
             np.log10(self.lmbd_max),
@@ -659,6 +664,34 @@ class ScadPath:
             fit_data["n_nnz"].append(len(s))
 
         return fit_data
+
+
+class L0Path:
+
+    def __init__(
+        self,
+        penalty_name="BigmL2norm",
+        solver=BnbSolver(),
+        path_opts={}
+    ) -> None:
+        self.penalty_name = penalty_name
+        self.solver = solver
+        self.path_opts = path_opts
+
+    def __str__(self) -> str:
+        return "L0Path"
+
+    def fit(self, datafit_name, A, y):
+        datafit, penalty, _, _ = calibrate_parameters(
+            datafit_name,
+            self.penalty_name,
+            A,
+            y
+        )
+        path = Path(**self.path_opts)
+        result = path.fit(self.solver, datafit, penalty, A)
+        return result
+
 
 
 def extract_bnb_options(solver_name):
@@ -722,6 +755,25 @@ def extract_oa_options(solver_name):
     return {}
 
 
+def extract_l0bnb_options(solver_name):
+    option_types = get_type_hints(L0bnbSolver.__init__)
+    pattern = r"\[([^]]*)\]"
+    match = re.search(pattern, solver_name)
+    if match:
+        options_str = match.group(1)
+        if options_str:
+            option_pairs = options_str.split(",")
+            options_dict = {}
+            for pair in option_pairs:
+                k, v = pair.split("=")
+                if option_types[k] in [str, int, float]:
+                    options_dict[k] = option_types[k](v)
+                elif option_types[k] == bool:
+                    options_dict[k] = v in ["true", "True"]
+            return options_dict
+    return {}
+
+
 def get_solver(solver_name, options={}):
     if solver_name.startswith("el0ps"):
         return BnbSolver(**{**options, **extract_bnb_options(solver_name)})
@@ -729,62 +781,10 @@ def get_solver(solver_name, options={}):
         return MipSolver(**{**options, **extract_mip_options(solver_name)})
     elif solver_name.startswith("oa"):
         return OaSolver(**{**options, **extract_oa_options(solver_name)})
-    elif solver_name == "l0bnb":
-        return L0bnbSolver(**options)
+    elif solver_name.startswith("l0bnb"):
+        return L0bnbSolver(**{**options, **extract_l0bnb_options(solver_name)})
     else:
         raise ValueError("Unknown solver name {}".format(solver_name))
-
-
-def get_relaxed_path(solver_name, path_opts={}):
-    if solver_name == "Omp":
-        return OmpPath(max_nnz=path_opts["max_nnz"])
-    elif solver_name == "Lasso":
-        return LassoPath(
-            lmbd_max=path_opts["lmbd_max"],
-            lmbd_min=path_opts["lmbd_min"],
-            lmbd_num=path_opts["lmbd_num"],
-            lmbd_scaled=path_opts["lmbd_scaled"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    elif solver_name == "Enet":
-        return EnetPath(
-            lmbd_max=path_opts["lmbd_max"],
-            lmbd_min=path_opts["lmbd_min"],
-            lmbd_num=path_opts["lmbd_num"],
-            lmbd_scaled=path_opts["lmbd_scaled"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    elif solver_name == "L05":
-        return L05Path(
-            lmbd_max=path_opts["lmbd_max"],
-            lmbd_min=path_opts["lmbd_min"],
-            lmbd_num=path_opts["lmbd_num"],
-            lmbd_scaled=path_opts["lmbd_scaled"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    elif solver_name == "Mcp":
-        return McpPath(
-            lmbd_max=path_opts["lmbd_max"],
-            lmbd_min=path_opts["lmbd_min"],
-            lmbd_num=path_opts["lmbd_num"],
-            lmbd_scaled=path_opts["lmbd_scaled"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    elif solver_name == "Scad":
-        return ScadPath(
-            lmbd_max=path_opts["lmbd_max"],
-            lmbd_min=path_opts["lmbd_min"],
-            lmbd_num=path_opts["lmbd_num"],
-            lmbd_scaled=path_opts["lmbd_scaled"],
-            max_nnz=path_opts["max_nnz"],
-            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
-        )
-    else:
-        raise ValueError("Unknown solver name: {}".format(solver_name))
 
 
 def can_handle_instance(solver_name, datafit_name, penalty_name):
@@ -802,6 +802,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "Bigm",
                 "BigmL1norm",
                 "BigmL2norm",
+                "BoundsConstraint",
                 "L2norm",
                 "L1L2norm",
             ]
@@ -814,6 +815,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "Bigm",
                 "BigmL1norm",
                 "BigmL2norm",
+                "BoundsConstraint",
                 "L2norm",
                 "L1L2norm",
             ]
@@ -827,6 +829,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
                 "Bigm",
                 "BigmL1norm",
                 "BigmL2norm",
+                "BoundsConstraint",
                 "L2norm",
                 "L1L2norm",
             ]
@@ -841,7 +844,7 @@ def can_handle_instance(solver_name, datafit_name, penalty_name):
         handle_penalty = True
     elif solver_name == "l0bnb":
         handle_datafit = datafit_name in ["Leastsquares"]
-        handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "L2norm"]
+        handle_penalty = penalty_name in ["Bigm", "BigmL2norm", "BoundsConstraint", "L2norm"]
     else:
         raise ValueError("Unknown solver name {}".format(solver_name))
     return handle_datafit and handle_penalty
@@ -853,3 +856,75 @@ def can_handle_compilation(solver_name):
     elif solver_name.startswith("oa"):
         return True
     return False
+
+
+def get_path(method_name, path_opts={}):
+    if method_name == "Omp":
+        return OmpPath(max_nnz=path_opts["max_nnz"])
+    elif method_name == "Lasso":
+        return LassoPath(
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif method_name == "Enet":
+        return EnetPath(
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif method_name == "L05":
+        return L05Path(
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif method_name == "Mcp":
+        return McpPath(
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif method_name == "Scad":
+        return ScadPath(
+            lmbd_max=path_opts["lmbd_max"],
+            lmbd_min=path_opts["lmbd_min"],
+            lmbd_num=path_opts["lmbd_num"],
+            lmbd_scaled=path_opts["lmbd_scaled"],
+            max_nnz=path_opts["max_nnz"],
+            stop_if_not_optimal=path_opts["stop_if_not_optimal"],
+        )
+    elif method_name.startswith("L0"):
+        pattern = r"\[(.*)\]"
+        match = re.findall(pattern, method_name)
+        penalty_name = "BigmL2norm"
+        solver = BnbSolver()
+        if match:
+            options_str = match[0]
+            option_pairs = options_str.split(",")
+            for pair in option_pairs:
+                if pair.startswith("solver="):
+                    solver = get_solver(pair[len("solver="):])
+                elif pair.startswith("penalty_name"):
+                    _, v = pair.split("=")
+                    penalty_name = v
+                else:
+                    print("Unknown option: {}".format(pair))
+        return L0Path(
+            penalty_name=penalty_name, solver=solver, path_opts=path_opts,
+        )
+    else:
+        raise ValueError("Unknown solver name: {}".format(method_name))
+

@@ -1,0 +1,52 @@
+expname: screening
+
+base_opts: 
+  matrix      : correlated(0.9)
+  model       : linear
+  supp_pos    : equispaced
+  supp_val    : normal(0.,1.)
+  k           : 10
+  m           : 500
+  n           : 1000
+  s           : 10.0
+  normalize   : true
+  l1_ratio    : 1.
+  l2_ratio    : 1.
+variations:
+  supp_val:
+    - normal(0.,0.)
+    - normal(0.,1.)
+    - normal(0.,2.)
+  k:
+    - 5
+    - 10
+    - 50
+  m:
+    - 250
+    - 500
+    - 1000
+  n:
+    - 500
+    - 1000
+    - 2000
+  matrix: 
+    - correlated(0.5)
+    - correlated(0.9)
+    - correlated(0.95)
+  s:
+    - 100.
+    - 10.
+    - 1.
+  l1_ratio:
+    - 0.2
+    - 1.
+    - 5.
+  l2_ratio:
+    - 0.2
+    - 1.
+    - 5.
+radii_num: 100
+max_time: 60.0
+max_tol: 1.e+1
+min_tol: 1.e-12
+num_tol: 100

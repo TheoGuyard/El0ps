@@ -8,7 +8,7 @@ from scipy import sparse
 from scipy.fftpack import dct
 from ucimlrepo import fetch_ucirepo
 from el0ps.datafits import *  # noqa
-from el0ps.penalties import Bigm, BigmL1norm, BigmL2norm, L1norm, L2norm
+from el0ps.penalties import Bigm, BigmL1norm, BigmL2norm, BoundsConstraint, L1norm, L2norm
 
 
 def acc_score(x_true, x):
@@ -74,8 +74,12 @@ def synthetic_x(supp_pos, supp_val, k, n):
         raise ValueError(f"Unsupported supp_pos {supp_pos}")
     if supp_val == "unit":
         x[s] = np.sign(np.random.randn(k))
-    elif supp_val == "normal":
-        a = np.random.randn(k)
+    elif supp_val.startswith("normal"):
+        mean, std = supp_val[
+            supp_val.index("(") + 1 : supp_val.index(")")
+        ].split(",")
+        mean, std = float(mean), np.maximum(float(std), 1e-16)
+        a = np.random.normal(mean, std, k)
         x[s] = a + np.sign(a)
     elif supp_val == "expdecr":
         x[s] = np.exp(-np.arange(k))
@@ -149,6 +153,7 @@ def get_data_synthetic(
     s=10.0,
     normalize=False,
     seed=None,
+    **kwargs,
 ):
     """Generate synthetic data for sparse problems."""
     if seed is not None:
@@ -211,9 +216,7 @@ def get_data_hardcoded(dataset_name):
     return A, y, x_true
 
 
-def process_data(
-    datafit_name, penalty_name, A, y, x_true, center=False, normalize=False
-):
+def process_data(datafit_name, A, y, x_true, center=False, normalize=False):
     """Process the problem data."""
     if sparse.issparse(A):
         A = A.todense()
@@ -254,7 +257,6 @@ def get_data(dataset):
         raise ValueError(f"Unsupported dataset type {dataset['dataset_type']}")
     A, y, x_true = process_data(
         dataset["datafit_name"],
-        dataset["penalty_name"],
         A,
         y,
         x_true,
@@ -276,6 +278,7 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         "Bigm": "L0",
         "BigmL1norm": "L0L1",
         "BigmL2norm": "L0L2",
+        "BoundsConstraint": "L0",
         "L1norm": "L0L1",
         "L2norm": "L0L2",
     }
@@ -284,9 +287,6 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
     assert penalty_name in bindings.keys()
 
     m, n = A.shape
-
-    # Datafit instanciation
-    datafit = eval(datafit_name)(y)
 
     # Fit an approximate regularization path with L0Learn
     cvfit = l0learn.cvfit(
@@ -297,7 +297,7 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         intercept=False,
         num_gamma=1 if bindings[penalty_name] == "L0" else 20,
         gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e2,
-        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-2,
+        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
         num_folds=5,
     )
 
@@ -316,14 +316,18 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
             x = np.array(x.todense()).reshape(n)
             cv = cvfit.cv_means[i][j][0]
             f1 = 0.0 if x_true is None else f1_score(x_true, x)
-            if (f1 > best_f1) or (x_true is None):
+            if (f1 >= best_f1) or (x_true is None):
                 if cv < best_cv:
-                    best_M = 1.5 * np.max(np.abs(x))
+                    best_M = np.max(np.abs(x))
                     best_lmbda = lmbda
                     best_gamma = gamma
                     best_cv = cv
                     best_f1 = f1
                     best_x = np.copy(x)
+
+    
+    # Datafit instanciation
+    datafit = eval(datafit_name)(y)
 
     # Penalty instanciation
     if penalty_name == "Bigm":
@@ -332,6 +336,9 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         penalty = BigmL1norm(best_M, best_gamma)
     elif penalty_name == "BigmL2norm":
         penalty = BigmL2norm(best_M, best_gamma)
+    elif penalty_name == "BoundsConstraint":
+        bounds = best_M * np.ones(n)
+        penalty = BoundsConstraint(-bounds, bounds)
     elif penalty_name == "L1norm":
         penalty = L1norm(best_gamma)
     elif penalty_name == "L2norm":

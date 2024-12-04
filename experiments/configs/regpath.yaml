@@ -1,25 +1,28 @@
 expname: regpath
 
 dataset:
-  dataset_type: libsvm
+  dataset_type: hardcoded
   dataset_opts: 
-    dataset_name  : bodyfat
+    dataset_name  : riboflavin
   process_opts: 
     center        : true
     normalize     : true
   datafit_name: Leastsquares
-  penalty_name: BigmL2norm
+  penalty_name: Bigm
 
 solvers:
   solvers_name:
+    # - el0ps[peeling=True]
+    # - el0ps[simpruning=False,peeling=True]
     - el0ps
-    - mip[optimizer_name=cplex]
-    - mip[optimizer_name=gurobi]
-    - mip[optimizer_name=mosek]
-    - oa
-    - l0bnb
+    # - el0ps[simpruning=False]
+    # - mip[optimizer_name=cplex]
+    # - mip[optimizer_name=gurobi]
+    # - mip[optimizer_name=mosek]
+    # - oa
+    # - l0bnb
   solvers_opts:
-    time_limit: 3600.
+    time_limit: 60.
     rel_tol   : 1.e-4
     int_tol   : 1.e-8
     verbose   : false

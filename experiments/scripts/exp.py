@@ -4,14 +4,14 @@ import numpy as np
 from copy import deepcopy
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from solvers import can_handle_instance  # noqa
+from experiments.solvers import can_handle_instance
 
 
 def get_exp_perfprofile():
     exp = {
         "name": "perfprofile",
         "command": "perfprofile",
-        "walltime": "01:30:00",
+        "walltime": "01:45:00",
         "besteffort": True,
         "production": True,
         "setups": [],
@@ -25,7 +25,7 @@ def get_exp_perfprofile():
                 "matrix": "correlated(0.9)",
                 "model": "linear",
                 "supp_pos": "equispaced",
-                "supp_val": "unit",
+                "supp_val": "normal(0.,0.)",
                 "k": 5,
                 "m": 500,
                 "n": 1000,
@@ -34,12 +34,18 @@ def get_exp_perfprofile():
             },
             "process_opts": {"center": True, "normalize": True},
             "datafit_name": "Leastsquares",
-            "penalty_name": "Bigm",
+            "penalty_name": "BoundsConstraint",
+            "calibration_opts": {
+                "factor_lmbd": 1.,
+                "factor_penalty_params": {"x_lb": 1., "x_ub": 1.},
+            },
         },
         "solvers": {
             "solvers_name": [
-                "el0ps",
                 "el0ps[simpruning=False]",
+                "el0ps",
+                "el0ps[simpruning=False,peeling=True]",
+                "el0ps[peeling=True]",
                 "mip[optimizer_name=cplex]",
                 "mip[optimizer_name=gurobi]",
                 "mip[optimizer_name=mosek]",
@@ -47,7 +53,7 @@ def get_exp_perfprofile():
                 "l0bnb",
             ],
             "solvers_opts": {
-                "time_limit": 600.0,
+                "time_limit": 600.,
                 "rel_tol": 1.0e-4,
                 "int_tol": 1.0e-8,
                 "verbose": False,
@@ -63,13 +69,30 @@ def get_exp_perfprofile():
         setup = deepcopy(base_setup)
         setup["dataset"]["dataset_opts"]["k"] = int(k)
         exp["setups"].append(setup)
+    for m in np.logspace(2, 4, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["m"] = int(np.round(m))
+        exp["setups"].append(setup)
     for n in np.logspace(2, 4, 5):
         setup = deepcopy(base_setup)
         setup["dataset"]["dataset_opts"]["n"] = int(np.round(n))
         exp["setups"].append(setup)
-    for s in np.logspace(2, 0, 5):
+    for s in np.logspace(1, -1, 5):
         setup = deepcopy(base_setup)
-        setup["dataset"]["dataset_opts"]["s"] = s
+        setup["dataset"]["dataset_opts"]["s"] = float(s)
+        exp["setups"].append(setup)
+    for v in np.linspace(0, 4, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["dataset_opts"]["supp_val"] = f"normal(0.,{v})"
+        exp["setups"].append(setup)
+    for lmbd_factor in np.logspace(-1, 1, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["calibration_opts"]["factor_lmbd"] = float(lmbd_factor)
+        exp["setups"].append(setup)
+    for bigm_factor in np.linspace(1, 5, 5):
+        setup = deepcopy(base_setup)
+        setup["dataset"]["calibration_opts"]["factor_penalty_params"]["x_lb"] = float(bigm_factor)
+        setup["dataset"]["calibration_opts"]["factor_penalty_params"]["x_ub"] = float(bigm_factor)
         exp["setups"].append(setup)
 
     return exp
@@ -79,7 +102,7 @@ def get_exp_regpath():
     exp = {
         "name": "regpath",
         "command": "regpath",
-        "walltime": "05:00:00",
+        "walltime": "12:00:00",
         "besteffort": False,
         "production": True,
         "setups": [],
@@ -112,36 +135,35 @@ def get_exp_regpath():
         },
     }
 
-    for dataset_name, datafit_name, penalty_name in [
-        ("riboflavin", "Leastsquares", "BigmL1norm"),
-        ("riboflavin", "Leastsquares", "BigmL2norm"),
-        ("bctcga", "Leastsquares", "BigmL1norm"),
-        ("bctcga", "Leastsquares", "BigmL2norm"),
-        ("colon-cancer", "Logistic", "BigmL1norm"),
-        ("colon-cancer", "Logistic", "BigmL2norm"),
-        ("leukemia", "Logistic", "BigmL1norm"),
-        ("leukemia", "Logistic", "BigmL2norm"),
-        ("arcene", "Squaredhinge", "BigmL1norm"),
-        ("arcene", "Squaredhinge", "BigmL2norm"),
-        ("breast-cancer", "Squaredhinge", "BigmL1norm"),
-        ("breast-cancer", "Squaredhinge", "BigmL2norm"),
+    for (dataset_name, datafit_name) in [
+        ("riboflavin", "Leastsquares"),
+        ("bctcga", "Leastsquares"),
+        ("colon-cancer", "Logistic"),
+        ("leukemia", "Logistic"),
+        ("arcene", "Squaredhinge"),
+        ("breast-cancer", "Squaredhinge"),
     ]:
-        for solver_name in [
-            "el0ps",
-            "el0ps[simpruning=False]",
-            "mip[optimizer_name=cplex]",
-            "mip[optimizer_name=gurobi]",
-            "mip[optimizer_name=mosek]",
-            "oa",
-            "l0bnb",
-        ]:
-            if can_handle_instance(solver_name, datafit_name, penalty_name):
-                setup = deepcopy(base_setup)
-                setup["dataset"]["dataset_opts"]["dataset_name"] = dataset_name
-                setup["dataset"]["datafit_name"] = datafit_name
-                setup["dataset"]["penalty_name"] = penalty_name
-                setup["solvers"]["solvers_name"] = [solver_name]
-                exp["setups"].append(setup)
+        for penalty_name in ["BoundsConstraint"]:
+            for solver_name in [
+                "el0ps[peeling=True]",
+                "el0ps[simpruning=False,peeling=True]",
+                "el0ps",
+                "el0ps[simpruning=False]",
+                "mip[optimizer_name=cplex]",
+                "mip[optimizer_name=gurobi]",
+                "mip[optimizer_name=mosek]",
+                "oa",
+                "l0bnb",
+            ]:
+                if can_handle_instance(solver_name, datafit_name, penalty_name):
+                    setup = deepcopy(base_setup)
+                    setup["dataset"]["dataset_opts"]["dataset_name"] = dataset_name
+                    setup["dataset"]["datafit_name"] = datafit_name
+                    setup["dataset"]["penalty_name"] = penalty_name
+                    setup["solvers"]["solvers_name"] = [solver_name]
+                    exp["setups"].append(setup)
+
+    # exp["setups"].append(base_setup)
 
     return exp
 
@@ -202,6 +224,165 @@ def get_exp_statistics():
     exp["setups"].append(base_setup)
 
     return exp
+
+
+def get_exp_simpruning():
+    exp = {
+        "name": "simpruning",
+        "command": "simpruning",
+        "walltime": "00:30:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [],
+    }
+
+    base_setup = {
+        "expname": "simpruning",
+        "dataset": {
+            "dataset_type": "synthetic",
+            "dataset_opts": {
+                "matrix": "correlated(0.9)",
+                "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "normal(0.,0.)",
+                "k": 5,
+                "m": 500,
+                "n": 1000,
+                "s": 10.0,
+                "normalize": True,
+            },
+            "process_opts": {"center": True, "normalize": True},
+            "datafit_name": "Leastsquares",
+            "penalty_name": "Bigm",
+            "calibration_opts": {
+                "factor_lmbd": 1.,
+                "factor_penalty_params": {"M": 1.},
+            },
+        },
+        "solvers": {
+            "solvers_name": [
+                "el0ps",
+                "el0ps[simpruning=False]",
+            ],
+            "solvers_opts": {
+                "time_limit": 600.0,
+                "rel_tol": 1.0e-4,
+                "int_tol": 1.0e-8,
+                "verbose": False,
+                "trace": True,
+            },
+        },
+    }
+
+    
+    exp["setups"].append(base_setup)
+
+    return exp
+
+
+def get_exp_tightening():
+    exp = {
+        "name": "tightening",
+        "command": "tightening",
+        "walltime": "00:30:00",
+        "besteffort": True,
+        "production": True,
+        "setups": [],
+    }
+
+    base_setup = {
+        "expname": "tightening",
+        "dataset": {
+            "dataset_type": "synthetic",
+            "dataset_opts": {
+                "matrix": "correlated(0.9)",
+                "model": "linear",
+                "supp_pos": "equispaced",
+                "supp_val": "normal(0.,0.)",
+                "k": 5,
+                "m": 500,
+                "n": 1000,
+                "s": 10.0,
+                "normalize": True,
+            },
+            "process_opts": {"center": True, "normalize": True},
+            "datafit_name": "Leastsquares",
+            "penalty_name": "BoundsConstraint",
+            "calibration_opts": {
+                "factor_lmbd": 1.,
+                "factor_penalty_params": {"x_lb": 1., "x_ub": 1.},
+            },
+        },
+        "solvers": {
+            "solvers_name": [
+                "el0ps[peeling=True]",
+                "el0ps"
+            ],
+            "solvers_opts": {
+                "time_limit": 600.0,
+                "rel_tol": 1.0e-4,
+                "int_tol": 1.0e-8,
+                "verbose": False,
+                "trace": True,
+            },
+        },
+    }
+
+    for factor_penalty_params in [1., 2., 3.]:
+        setup = deepcopy(base_setup)
+        setup["dataset"]["calibration_opts"]["factor_penalty_params"]["x_lb"] = float(factor_penalty_params)
+        setup["dataset"]["calibration_opts"]["factor_penalty_params"]["x_ub"] = float(factor_penalty_params)
+        exp["setups"].append(setup)
+
+    return exp
+
+
+def get_exp_screening():
+    exp = {
+        "name": "screening",
+        "command": "screening",
+        "walltime": "02:00:00",
+        "besteffort": False,
+        "production": True,
+        "setups": [],
+    }
+
+    base_setup = {
+        "expname": "screening",
+        "base_opts": {
+            "matrix": "correlated(0.9)",
+            "model": "linear",
+            "supp_pos": "equispaced",
+            "supp_val": "normal(0.,1.)",
+            "k": 10,
+            "m": 500,
+            "n": 1000,
+            "s": 10.0,
+            "normalize": True,
+            "l1_ratio": 1.,
+            "l2_ratio": 1.,
+        },
+        "variations": {
+            "supp_val": ["normal(0.,0.)", "normal(0.,1.)", "normal(0.,2.)"],
+            "k": [5, 10, 50],
+            "m": [250, 500, 1000],
+            "n": [500, 1000, 2000],
+            "matrix": ["correlated(0.5)", "correlated(0.9)", "correlated(0.95)"],
+            "s": [100., 10., 1.],
+            "l1_ratio": [0.2, 1., 5.],
+            "l2_ratio": [0.2, 1., 5.],
+        },
+        "radii_num": 100,
+        "max_time": 60.0,
+        "max_tol": 1.e+1,
+        "min_tol": 1.e-12,
+        "num_tol": 100
+    }
+
+    exp["setups"].append(base_setup)
+
+    return exp
+
 
 
 def get_exp(exp_name):

@@ -24,7 +24,10 @@ run_path = script_dir.joinpath(run_file)
 
 
 experiments = [
-    get_exp(exp_name) for exp_name in ["perfprofile", "regpath", "statistics"]
+    get_exp(exp_name) for exp_name in [
+        "perfprofile", "regpath", "statistics", "simpruning", "tightening",
+        "screening"
+    ]
 ]
 
 
@@ -61,6 +64,7 @@ def oar_install():
         "module load conda",
         "conda activate el0ps",
         "pip install -q -e .[exp]",
+        "pip install -q -e .[mip]",
     ]
     for cmd_string in cmd_strings:
         subprocess.run(cmd_string, shell=True)

@@ -21,7 +21,7 @@ class OaOptions:
 
     Parameters
     ----------
-    optimizer_name: str = "gurobi"
+    optimizer_name: str = "mosek"
         Mixed-Integer Programming optimizer to use. Available options are
         "cplex", "gurobi", and "mosek".
     time_limit: float
@@ -219,7 +219,7 @@ class OaSolver(BaseSolver):
         elif self.rel_gap < self.options.rel_tol:
             self.status = Status.OPTIMAL
         return self.status == Status.RUNNING
-
+    
     def solve(
         self,
         datafit: Union[BaseDatafit, JitClassType],

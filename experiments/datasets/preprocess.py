@@ -45,7 +45,6 @@ def preprocess_dataset(dataset):
     print("Preprocessing dataset...")
     A, y, x_true = process_data(
         dataset["datafit_name"],
-        dataset["penalty_name"],
         A,
         y,
         x_true,
@@ -60,7 +59,10 @@ def calibrate_dataset(dataset):
     A, y, x_true, calibrations = load_dataset(dataset)
 
     for calibration in calibrations:
-        if calibration["dataset"] == dataset:
+        if (
+            str(calibration["datafit"]) == dataset["datafit_name"] and 
+            str(calibration["penalty"]) == dataset["penalty_name"]
+        ):
             print("Calibration found")
             return
 
@@ -74,7 +76,8 @@ def calibrate_dataset(dataset):
     )
     calibrations.append(
         {
-            "dataset": dataset,
+            "datafit_name": dataset["datafit_name"],
+            "penalty_name": dataset["penalty_name"],
             "datafit": datafit,
             "penalty": penalty,
             "lmbd": lmbd,
@@ -91,7 +94,12 @@ def reset_calibrations(dataset, all=False):
     if all:
         calibrations = []
     else:
-        calibrations = [c for c in calibrations if c["dataset"] != dataset]
+        calibrations = [
+            c for c in calibrations if (
+                str(c["datafit"]) != dataset["datafit_name"] or
+                str(c["penalty"]) != dataset["penalty_name"]
+            )
+        ]
     save_dataset(dataset, A, y, x_true, calibrations)
 
 
@@ -109,8 +117,8 @@ def display_calibrations(dataset):
         lmbd_max = compute_lmbd_max(datafit, penalty, A)
         print(
             "  {} / {}".format(
-                calibration["dataset"]["datafit_name"],
-                calibration["dataset"]["penalty_name"],
+                str(calibration["datafit"]),
+                str(calibration["penalty"]),
             )
         )
         print("    lratio: {:.2e}".format(lmbd / lmbd_max))
@@ -124,13 +132,13 @@ if __name__ == "__main__":
 
     dataset = {
         "dataset_type": "hardcoded",
-        "dataset_opts": {"dataset_name": "arcene"},
+        "dataset_opts": {"dataset_name": "riboflavin"},
         "process_opts": {"center": True, "normalize": True},
-        "datafit_name": "Squaredhinge",
-        "penalty_name": "BigmL1norm",
+        "datafit_name": "Leastsquares",
+        "penalty_name": "Bigm",
     }
 
-    # preprocess_dataset(dataset)
-    # reset_calibrations(dataset)
-    calibrate_dataset(dataset)
+    preprocess_dataset(dataset)
+    reset_calibrations(dataset, all=False)
+    # calibrate_dataset(dataset)
     display_calibrations(dataset)
