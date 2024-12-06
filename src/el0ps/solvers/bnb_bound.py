@@ -148,10 +148,9 @@ class ConvexRegfunc(BaseRegfunc):
         return dict(penalty=self.penalty)
 
     def value_scalar(self, i: int, lmbd: float, x: float) -> float:
-        if 0.0 <= x <= self.penalty.param_limit_pos_scalar(i, lmbd):
-            return self.penalty.param_slope_pos_scalar(i, lmbd) * x
-        elif 0.0 >= x >= self.penalty.param_limit_neg_scalar(i, lmbd):
-            return self.penalty.param_slope_neg_scalar(i, lmbd) * x
+        z = np.abs(x)
+        if z <= self.penalty.param_limit_scalar(i, lmbd):
+            return self.penalty.param_slope_scalar(i, lmbd) * z
         else:
             return lmbd + self.penalty.value_scalar(i, x)
 
@@ -159,35 +158,21 @@ class ConvexRegfunc(BaseRegfunc):
         return np.maximum(self.penalty.conjugate_scalar(i, x) - lmbd, 0.0)
 
     def prox_scalar(self, i: int, lmbd: float, x: float, eta: float) -> float:
-        sn = self.penalty.param_slope_neg_scalar(i, lmbd)
-        sp = self.penalty.param_slope_pos_scalar(i, lmbd)
-        if eta * sn <= x <= eta * sp:
+        z = np.abs(x)
+        s = self.penalty.param_slope_scalar(i, lmbd)
+        if z <= eta * s:
             return 0.0
-        elif (
-            eta * sn
-            > x
-            >= eta * sn + self.penalty.param_limit_neg_scalar(i, lmbd)
-        ):
-            return x - eta * sn
-        elif (
-            eta * sp
-            < x
-            <= eta * sp + self.penalty.param_limit_pos_scalar(i, lmbd)
-        ):
-            return x - eta * sp
+        elif z <= eta * s + self.penalty.param_limit_scalar(i, lmbd):
+            return x - np.sign(x) * eta * s
         else:
             return self.penalty.prox_scalar(i, x, eta)
 
     def subdiff_scalar(self, i: int, lmbd: float, x: float) -> ArrayLike:
         if x == 0.0:
-            sn = self.penalty.param_slope_neg_scalar(i, lmbd)
-            sp = self.penalty.param_slope_pos_scalar(i, lmbd)
-            return [-sn, sp]
-        elif 0 > x > self.penalty.param_limit_neg_scalar(i, lmbd):
-            s = self.penalty.param_slope_neg_scalar(i, lmbd)
-            return [s, s]
-        elif 0 < x < self.penalty.param_limit_pos_scalar(i, lmbd):
-            s = self.penalty.param_slope_pos_scalar(i, lmbd)
+            s = self.penalty.param_slope_scalar(i, lmbd)
+            return [-s, s]
+        elif np.abs(x) < self.penalty.param_limit_scalar(i, lmbd):
+            s = self.penalty.param_slope_scalar(i, lmbd)
             return [s, s]
         else:
             return self.penalty.subdiff_scalar(i, x)

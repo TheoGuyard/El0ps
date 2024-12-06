@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import SymmetricPenalty, MipPenalty
+from .base import BasePenalty, MipPenalty
 
 
-class L2norm(SymmetricPenalty, MipPenalty):
+class L2norm(BasePenalty, MipPenalty):
     r"""L2-norm penalty function.
 
     The function is defined as
