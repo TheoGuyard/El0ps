@@ -149,7 +149,9 @@ class ConvexRegfunc(BaseRegfunc):
 
     def value_scalar(self, i: int, lmbd: float, x: float) -> float:
         z = np.abs(x)
-        if z <= self.penalty.param_limit_scalar(i, lmbd):
+        if z == 0.:
+            return 0.
+        elif z <= self.penalty.param_limit_scalar(i, lmbd):
             return self.penalty.param_slope_scalar(i, lmbd) * z
         else:
             return lmbd + self.penalty.value_scalar(i, x)
@@ -263,7 +265,6 @@ class BnbBoundingSolver:
                 pv_old = pv
                 self.inner_loop(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     self.A,
                     lmbd,
@@ -276,7 +277,6 @@ class BnbBoundingSolver:
                 )
                 pv = self.compute_pv(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     lmbd,
                     x,
@@ -290,7 +290,6 @@ class BnbBoundingSolver:
                     v[Ws] = self.A[:, Ws].T @ u
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -315,7 +314,6 @@ class BnbBoundingSolver:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -335,7 +333,6 @@ class BnbBoundingSolver:
                 if np.isnan(dv):
                     dv = self.compute_dv(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -367,7 +364,6 @@ class BnbBoundingSolver:
                 if simpruning:
                     self.simpruning(
                         self.datafit,
-                        self.penalty,
                         self.regfunc,
                         self.A,
                         lmbd,
@@ -394,7 +390,6 @@ class BnbBoundingSolver:
             if np.isnan(dv):
                 dv = self.compute_dv(
                     self.datafit,
-                    self.penalty,
                     self.regfunc,
                     self.A,
                     lmbd,
@@ -410,7 +405,6 @@ class BnbBoundingSolver:
     @njit
     def inner_loop(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -428,7 +422,7 @@ class BnbBoundingSolver:
             if Sb[i]:
                 x[i] = regfunc.prox_scalar(i, lmbd, ci, stepsize[i])
             else:
-                x[i] = penalty.prox_scalar(i, ci, stepsize[i])
+                x[i] = regfunc.penalty.prox_scalar(i, ci, stepsize[i])
             if x[i] != xi:
                 w += (x[i] - xi) * ai
                 u[:] = -datafit.gradient(w)
@@ -457,7 +451,6 @@ class BnbBoundingSolver:
     @njit
     def compute_pv(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         lmbd: float,
         x: ArrayLike,
@@ -471,8 +464,6 @@ class BnbBoundingSolver:
         ----------
         datafit: BaseDatafit
             Datafit function.
-        penalty: BasePenalty
-            Penalty function.
         regfunc: BaseRegfunc
             Regularization function.
         lmbd: float
@@ -488,7 +479,7 @@ class BnbBoundingSolver:
         """
         pv = datafit.value(w)
         for i in np.flatnonzero(S1):
-            pv += penalty.value_scalar(i, x[i]) + lmbd
+            pv += regfunc.penalty.value_scalar(i, x[i]) + lmbd
         for i in np.flatnonzero(Sb):
             pv += regfunc.value_scalar(i, lmbd, x[i])
         return pv
@@ -497,7 +488,6 @@ class BnbBoundingSolver:
     @njit
     def compute_dv(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -512,8 +502,6 @@ class BnbBoundingSolver:
         ----------
         datafit: BaseDatafit
             Datafit function.
-        penalty: BasePenalty
-            Penalty function.
         regfunc: BaseRegfunc
             Regularization function.
         A: ArrayLike
@@ -532,7 +520,7 @@ class BnbBoundingSolver:
         dv = -datafit.conjugate(-u)
         for i in np.flatnonzero(S1):
             v[i] = np.dot(A[:, i], u)
-            dv -= penalty.conjugate_scalar(i, v[i]) - lmbd
+            dv -= regfunc.penalty.conjugate_scalar(i, v[i]) - lmbd
         for i in np.flatnonzero(Sb):
             v[i] = np.dot(A[:, i], u)
             dv -= regfunc.conjugate_scalar(i, lmbd, v[i])
@@ -556,7 +544,6 @@ class BnbBoundingSolver:
     @njit
     def simpruning(
         datafit: JitClassType,
-        penalty: JitClassType,
         regfunc: JitClassType,
         A: ArrayLike,
         lmbd: float,
@@ -573,26 +560,31 @@ class BnbBoundingSolver:
         Sb0: ArrayLike,
         Sbi: ArrayLike,
     ) -> None:
-        flag = False
-        for i in np.flatnonzero(Sb):
-            g = regfunc.conjugate_scalar(i, lmbd, v[i])
-            p = penalty.conjugate_scalar(i, v[i]) - lmbd
-            if dv + g - p > ub:
-                Sb[i] = False
-                S0[i] = True
-                Ws[i] = False
-                Sb0[i] = False
-                Sbi[i] = False
-                if x[i] != 0.0:
-                    w -= x[i] * A[:, i]
-                    x[i] = 0.0
-                    flag = True
-            elif dv + g > ub:
-                Sb[i] = False
-                S1[i] = True
-                Ws[i] = True
-                Sb0[i] = False
-                Sbi[i] = False
+        flag = True
+        while flag:
+            flag = False
+            for i in np.flatnonzero(Sb):
+                p = regfunc.penalty.conjugate_scalar(i, v[i]) - lmbd
+                pp = np.maximum(p, 0.0)
+                pn = np.maximum(-p, 0.0)
+                if dv + pn > ub:
+                    Sb[i] = False
+                    S0[i] = True
+                    Ws[i] = False
+                    Sb0[i] = False
+                    Sbi[i] = False
+                    if x[i] != 0.0:
+                        w -= x[i] * A[:, i]
+                        x[i] = 0.0
+                        flag = True
+                    dv += pp
+                elif dv + pp > ub:
+                    Sb[i] = False
+                    S1[i] = True
+                    Ws[i] = True
+                    Sb0[i] = False
+                    Sbi[i] = False
+                    dv += pn
         if flag:
             u[:] = -datafit.gradient(w)
 
