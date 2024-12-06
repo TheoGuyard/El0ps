@@ -7,7 +7,10 @@ from numpy.typing import ArrayLike
 
 
 class BasePenalty:
-    """Base class for penalty functions."""
+    """Base class for penalty functions. Penalty functions are assumed to be
+    proper, closed, convex, separable, even, coercive, non-negative and
+    minimized at 0.
+    """
 
     @abstractmethod
     def get_spec(self) -> tuple:
@@ -128,9 +131,13 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
-        """Maximum value of ``x`` such that the i-th splitting term of the
-        function is below ``lmbd``.
+    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+        """Value of
+
+        .. math:: sup_x { x in R | h^*_i(x) <= lmbd }
+
+        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
+        penalty function.
 
         Parameters
         ----------
@@ -148,64 +155,28 @@ class BasePenalty:
         ...
 
     @abstractmethod
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
-        """Minimum value of ``x`` such that the i-th splitting term of the
-        function is below ``lmbd``.
+    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+        """Value of
+
+        .. math:: sup_x { x in subdiff(h^*_i)(t) }
+
+        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
+        penalty function and :math:`t` is the value of
+        `self.param_slope_scalar(i, lmbd)`.
 
         Parameters
         ----------
         i: int
             Index of the splitting term.
         lmbd: float
-            Threshold value.
-
-        Returns
-        -------
-        value: float
-            The minimum value of ``x`` such that the function is below
-            ``lmbd``.
-        """
-        ...
-
-    @abstractmethod
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
-        """Maximum element of the subdifferential of the i-th splitting term
-        of the conjugate function at self.param_slope_pos_scalar(i, lmbd).
-
-        Parameters
-        ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Argument of the function `self.param_slope_pos_scalar`.
+            Argument of the function `self.param_slope_scalar`.
 
         Returns
         -------
         value: float
             The maximum element of the subdifferential of the i-th splitting
             term of the conjugate function at
-            self.param_slope_pos_scalar(i, lmbd).
-        """
-        ...
-
-    @abstractmethod
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
-        """Minimum element of the subdifferential of the i-th splitting term
-        of the conjugate function at self.param_slope_neg_scalar(i, lmbd).
-
-        Parameters
-        ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Argument of the function `self.param_slope_neg_scalar`.
-
-        Returns
-        -------
-        value: float
-            The minimum element of the subdifferential of the i-th splitting
-            term of the conjugate function at
-            self.param_slope_neg_scalar(i, lmbd).
+            self.param_slope_scalar(i, lmbd).
         """
         ...
 
@@ -300,62 +271,6 @@ class BasePenalty:
         for i, xi in enumerate(x):
             s[i] = self.conjugate_subdiff_scalar(i, xi)
         return s.sum()
-
-
-class SymmetricPenalty(BasePenalty):
-
-    @abstractmethod
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
-        """Maximum value of ``x`` such that the i-th splitting term of the
-        function is below ``lmbd``.
-
-        Parameters
-        ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Threshold value.
-
-        Returns
-        -------
-        value: float
-            The maximum value of ``x`` such that the function is below
-            ``lmbd``.
-        """
-        ...
-
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
-        return self.param_slope_scalar(i, lmbd)
-
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
-        return -self.param_slope_scalar(i, lmbd)
-
-    @abstractmethod
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
-        """Maximum element of the subdifferential of the i-th splitting term
-        of the conjugate function at self.param_slope_pos_scalar(i, lmbd).
-
-        Parameters
-        ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Argument of the function `self.param_slope_pos_scalar`.
-
-        Returns
-        -------
-        value: float
-            The maximum element of the subdifferential of the i-th splitting
-            term of the conjugate function at
-            self.param_slope_pos_scalar(i, lmbd).
-        """
-        ...
-
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
-        return self.param_limit_scalar(i, lmbd)
-
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
-        return -self.param_limit_scalar(i, lmbd)
 
 
 class MipPenalty:

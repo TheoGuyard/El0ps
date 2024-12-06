@@ -2,10 +2,10 @@ import numpy as np
 import pyomo.kernel as pmo
 from numpy.typing import ArrayLike
 from numba import float64
-from .base import SymmetricPenalty, MipPenalty
+from .base import BasePenalty, MipPenalty
 
 
-class BigmL1norm(SymmetricPenalty, MipPenalty):
+class BigmL1norm(BasePenalty, MipPenalty):
     r"""Big-M constraint plus L1-norm penalty function.
 
     The function is defined as

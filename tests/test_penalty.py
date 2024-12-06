@@ -10,10 +10,8 @@ from el0ps.penalties import (
     L1L2norm,
 )
 from el0ps.utils import (
-    compute_param_slope_pos_scalar,
-    compute_param_slope_neg_scalar,
-    compute_param_limit_pos_scalar,
-    compute_param_limit_neg_scalar,
+    compute_param_slope_scalar,
+    compute_param_limit_scalar,
 )
 
 n = 100
@@ -45,48 +43,23 @@ def test_instances(penalty):
             penalty.value_scalar(i, xi) + penalty.conjugate_scalar(i, ui)
             >= xi * ui - 1e-10
         )
-        slope_pos = penalty.param_slope_pos_scalar(i, lmbd)
-        slope_neg = penalty.param_slope_neg_scalar(i, lmbd)
-        limit_pos = penalty.param_limit_pos_scalar(i, lmbd)
-        limit_neg = penalty.param_limit_neg_scalar(i, lmbd)
-        slope_pos_approx = compute_param_slope_pos_scalar(
-            penalty, i, lmbd, tol=1e-8
-        )
-        slope_neg_approx = compute_param_slope_neg_scalar(
-            penalty, i, lmbd, tol=1e-8
-        )
-        limit_pos_approx = compute_param_limit_pos_scalar(penalty, i, lmbd)
-        limit_neg_approx = compute_param_limit_neg_scalar(penalty, i, lmbd)
-        assert slope_pos >= 0.0
-        assert slope_neg <= 0.0
-        assert limit_pos >= 0.0
-        assert limit_neg <= 0.0
-        assert slope_pos == pytest.approx(slope_pos_approx)
-        assert slope_neg == pytest.approx(slope_neg_approx)
-        assert limit_pos == pytest.approx(limit_pos_approx)
-        assert limit_neg == pytest.approx(limit_neg_approx)
-        if limit_pos < np.inf:
-            assert penalty.conjugate_scalar(i, slope_pos) == pytest.approx(
-                lmbd
-            )
+        slope = penalty.param_slope_scalar(i, lmbd)
+        limit = penalty.param_limit_scalar(i, lmbd)
+        slope_approx = compute_param_slope_scalar(penalty, i, lmbd, tol=1e-8)
+        limit_approx = compute_param_limit_scalar(penalty, i, lmbd)
+        assert slope >= 0.0
+        assert limit >= 0.0
+        assert slope == pytest.approx(slope_approx)
+        assert limit == pytest.approx(limit_approx)
+        if limit < np.inf:
+            assert penalty.conjugate_scalar(i, slope) == pytest.approx(lmbd)
             assert (
-                penalty.value_scalar(i, limit_pos)
-                + penalty.conjugate_scalar(i, slope_pos)
-                >= limit_pos * slope_pos - 1e-10
+                penalty.value_scalar(i, limit)
+                + penalty.conjugate_scalar(i, slope)
+                >= limit * slope - 1e-10
             )
         else:
-            assert penalty.conjugate_scalar(i, slope_pos) < lmbd
-        if limit_neg > -np.inf:
-            assert penalty.conjugate_scalar(i, slope_neg) == pytest.approx(
-                lmbd
-            )
-            assert (
-                penalty.value_scalar(i, limit_neg)
-                + penalty.conjugate_scalar(i, slope_neg)
-                >= limit_neg * slope_neg - 1e-10
-            )
-        else:
-            assert penalty.conjugate_scalar(i, slope_neg) < lmbd
+            assert penalty.conjugate_scalar(i, slope) < lmbd
         eta = np.random.rand()
         pi = penalty.prox_scalar(i, xi, eta)
         v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value_scalar(i, pi)
