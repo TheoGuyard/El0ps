@@ -23,6 +23,6 @@ jobs:
       - name: Coverage run
         run: coverage run -m pytest -v
       - name: Upload report
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

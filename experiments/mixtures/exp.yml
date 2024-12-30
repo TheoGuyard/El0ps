@@ -1,0 +1,32 @@
+dataset:
+  k: 2
+  m: 10
+  n: 10
+  r: 0.1
+  s: 2.
+  distrib_name: gauss-laplace
+  distrib_opts:
+    scale1: 1.
+    scale2: 1.
+
+solvers:
+  gurobi:
+    solver: mip
+    params:
+      optimizer_name: gurobi
+      time_limit: 60.
+      relative_gap: 1.e-4
+      verbose: false
+  el0ps:
+    solver: el0ps
+    params:
+      time_limit: 60.
+      relative_gap: 1.e-4
+      verbose: false
+  l0bnb:
+    solver: l0bnb
+    params:
+      time_limit: 60.
+      relative_gap: 1.e-4
+      verbose: false
+  
