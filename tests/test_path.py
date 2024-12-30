@@ -1,8 +1,8 @@
 import numpy as np
 
-from el0ps.datafits import Leastsquares
-from el0ps.penalties import Bigm
-from el0ps.solvers import BnbSolver, Status
+from el0ps.datafit import Leastsquares
+from el0ps.penalty import Bigm
+from el0ps.solver import BnbSolver, Status
 from el0ps.path import Path
 from .utils import make_regression
 

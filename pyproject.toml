@@ -4,13 +4,7 @@ description = "An Exact L0-Problem Solver"
 readme = "README.md"
 license = {file = "LICENSE", content-type = "text/markdown"}
 authors = [{name = "Théo Guyard", email = "guyard.theo@gmail.com"}]
-dependencies = [
-    "numpy>=1.22,<2.0",
-    "numba>=0.53",
-    "pyomo>=6.0",
-    "scikit-learn",
-    "scipy",
-]
+dependencies = ["mpi4py", "numpy", "numba", "pybnb", "pyomo", "scikit-learn"]
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
@@ -34,15 +28,12 @@ dev = [
     "wheel",
 ]
 exp = [
-    "libsvmdata",
+    "expflow @ git+https://github.com/TheoGuyard/ExpFlow",
+    "matplotlib",
     "l0bnb",
     "l0learn",
-    "matplotlib",
-    "openml",
-    "pandas",
     "pyyaml",
-    "skglm",
-    "ucimlrepo",
+    "scipy",
 ]
 mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 

@@ -37,9 +37,9 @@ Here is a simple example showing how to solve an instance of problem :math:`(\ma
 .. code-block:: python
 
     import numpy as np
-    from el0ps.datafits import Leastsquares
-    from el0ps.penalties import L2norm
-    from el0ps.solvers import BnbSolver
+    from el0ps.datafit import Leastsquares
+    from el0ps.penalty import L2norm
+    from el0ps.solver import BnbSolver
 
     # Generate sparse regression data
     np.random.seed(0)
@@ -96,7 +96,7 @@ They can be used similarly to any other estimator in the package pipeline as fol
     from sklearn.datasets import make_regression
     from sklearn.model_selection import train_test_split
     from sklearn.pipeline import Pipeline
-    from el0ps.estimators import L0Regressor
+    from el0ps.estimator import L0Regressor
 
     # Generate sparse regression data
     A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
