@@ -17,7 +17,7 @@ Check out the [documentation](https://theoguyard.github.io/El0ps/html/index.html
 
 ## Installation
 
-`el0ps` is available on [pypi](https://pypi.org>). The latest version of the package can be installed as
+`el0ps` is available on [pypi](https://pypi.org/project/el0ps). The latest version of the package can be installed as
 
 
 ```shell
