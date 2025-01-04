@@ -68,7 +68,7 @@ class MipSolver(BaseSolver):
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
         node_limit: int = sys.maxsize,
-        time_limit: float = np.inf,
+        time_limit: float = float(sys.maxsize),
         verbose: bool = False,
     ) -> None:
         self.optimizer_name = optimizer_name
@@ -87,7 +87,8 @@ class MipSolver(BaseSolver):
             optim = pyo.SolverFactory(bindings["optimizer_name"])
             optim.options[bindings["relative_gap"]] = self.relative_gap
             optim.options[bindings["absolute_gap"]] = self.absolute_gap
-            optim.options[bindings["node_limit"]] = self.node_limit
+            # Raises errors with cplex
+            # optim.options[bindings["node_limit"]] = self.node_limit
             optim.options[bindings["time_limit"]] = self.time_limit
             optim.options[bindings["verbose"]] = int(self.verbose)
         else:

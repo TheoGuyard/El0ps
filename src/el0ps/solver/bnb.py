@@ -574,6 +574,11 @@ class BnbSolver:
                 or relative_gap <= self.relative_gap
             ):
                 status = Status.OPTIMAL
+            if (
+                results.termination_condition
+                == pb.TerminationCondition.optimality
+            ):
+                status = Status.OPTIMAL
         elif results.solution_status == pb.SolutionStatus.feasible:
             if (
                 results.termination_condition

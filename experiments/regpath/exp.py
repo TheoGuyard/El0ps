@@ -1,11 +1,14 @@
 import argparse
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 import pathlib
+import pickle
 from exprun import Experiment, Runner
 from el0ps.compilation import CompilableClass, compiled_clone
 from el0ps.path import Path
+from el0ps.datafit import *  # noqa
+from el0ps.penalty import *  # noqa
 
 from experiments.solver import (
     get_solver,
@@ -13,22 +16,57 @@ from experiments.solver import (
     can_handle_compilation,
     precompile_solver,
 )
-from experiments.instance import calibrate_parameters
+from experiments.instance import calibrate_parameters, preprocess_data
 
 
-class Microscopy(Experiment):
+class Regpath(Experiment):
 
     def setup(self) -> None:
 
-        A = np.load(pathlib.Path(__file__).parent.joinpath("A.npy"))
-        y = np.load(pathlib.Path(__file__).parent.joinpath("y.npy"))
+        dataset_dir = pathlib.Path(__file__).parent.joinpath("datasets")
+        dataset_path = dataset_dir.joinpath(
+            self.config["dataset"]
+        ).with_suffix(".pkl")
+        with open(dataset_path, "rb") as dataset_file:
+            data = pickle.load(dataset_file)
+            A = data["A"]
+            y = data["y"]
 
-        datafit, penalty, lmbd, x_l0learn = calibrate_parameters(
-            "Leastsquares",
-            self.config["penalty"],
+        A, y, _ = preprocess_data(
             A,
             y,
+            None,
+            center=True,
+            normalize=True,
+            y_binary=self.config["datafit"] in ["Logistic", "Squaredhinge"],
         )
+
+        found = False
+        for calibration in data["calibrations"]:
+            if (
+                calibration["dataset"]["dataset_name"]
+                == self.config["dataset"]
+                and calibration["dataset"]["datafit_name"]
+                == self.config["datafit"]
+                and calibration["dataset"]["penalty_name"]
+                == self.config["penalty"]
+            ):
+
+                found = True
+                datafit = eval(self.config["datafit"])(y)
+                penalty = eval(self.config["penalty"])(
+                    **calibration["penalty_params"]
+                )
+                lmbd = calibration["lmbd"]
+                x_l0learn = calibration["x_cal"]
+                break
+        if not found:
+            datafit, penalty, lmbd, x_l0learn = calibrate_parameters(
+                self.config["datafit"],
+                self.config["penalty"],
+                A,
+                y,
+            )
 
         self.x_l0learn = x_l0learn
         self.datafit = datafit
@@ -143,7 +181,7 @@ class Microscopy(Experiment):
                         curves[stat_name][solver_name]
                     ) / max(curves[stat_name][solver_name])
 
-        _, axs = plt.subplots(1, len(curves), squeeze=False)
+        fig, axs = plt.subplots(1, len(curves), squeeze=False)
         for i, (stat_name, stat_curve) in enumerate(curves.items()):
             for solver_name, solver_curve in stat_curve.items():
                 if plot_opts[stat_name]["normalize"]:
@@ -163,21 +201,23 @@ class Microscopy(Experiment):
         table = {"lgrid": lgrid}
         for stat_name, stat_values in curves.items():
             for solver_name, solver_values in stat_values.items():
-                table[solver_name + "_" + stat_name] = solver_values
+                if (
+                    ("n_nnz" in stat_name)
+                    or ("objective_value" in stat_name)
+                    or ("datafit_value" in stat_name)
+                ):
+                    if "el0ps" in solver_name:
+                        table[stat_name] = solver_values
+                else:
+                    table[solver_name + "_" + stat_name] = solver_values
 
         return table
 
     def save_plot(self, table, save_dir):
-        name = "{}-{}={}-{}={:.2e}-{}={:.2e}-{}={:d}".format(
-            "microscopy",
-            "penalty",
+        name = "regpath-dataset={}-datafit={}-penalty={}".format(
+            self.config["dataset"],
+            self.config["datafit"],
             self.config["penalty"],
-            "lmbd_max",
-            self.config["path_opts"]["lmbd_max"],
-            "lmbd_min",
-            self.config["path_opts"]["lmbd_min"],
-            "lmbd_num",
-            self.config["path_opts"]["lmbd_num"],
         )
         df = pd.DataFrame(table)
         df.to_csv(
@@ -200,14 +240,14 @@ if __name__ == "__main__":
 
     if args.command == "run":
         runner.run(
-            Microscopy,
+            Regpath,
             args.config_path,
             args.result_dir,
             args.repeats,
         )
     elif args.command == "plot":
         runner.plot(
-            Microscopy,
+            Regpath,
             args.config_path,
             args.result_dir,
             args.save_dir,

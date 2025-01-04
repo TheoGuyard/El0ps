@@ -73,9 +73,13 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
             return [s, s]
 
     def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
+        if self.x_ub[i] == 0.0:
+            return np.inf
         return lmbd / self.x_ub[i]
 
     def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
+        if self.x_lb[i] == 0.0:
+            return -np.inf
         return lmbd / self.x_lb[i]
 
     def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:

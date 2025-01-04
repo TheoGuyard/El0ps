@@ -1,19 +1,24 @@
 import argparse
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import pathlib
+from numpy.typing import ArrayLike
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from scipy.special import erfc
-from expflow import Experiment, Runner
+from exprun import Experiment, Runner
 from el0ps.compilation import CompilableClass, compiled_clone
 from el0ps.datafit import Leastsquares
 from el0ps.penalty import (
-    L1norm,
+    BigmL1norm,
     L2norm,
     L1L2norm,
     Bounds,
-    PositiveL1norm,
+    BigmPositiveL1norm,
     PositiveL2norm,
 )
+from el0ps.solver import Status
 
 from experiments.solver import (
     get_solver,
@@ -68,10 +73,10 @@ class Mixtures(Experiment):
                 - 'uniform': Uniform distribution. Options to specify in
                 `distrib_opts` are 'low' and 'high'. See `np.random.uniform`
                 for more details.
-                - 'half-gaussian': Half-Gaussian distribution. The option to
+                - 'halfgaussian': Half-Gaussian distribution. The option to
                 specify in `distrib_opts` is 'scale'. See `np.random.normal`
                 for more details.
-                - 'half-laplace': Half-Laplace distribution. The option to
+                - 'halflaplace': Half-Laplace distribution. The option to
                 specify in `distrib_opts` is 'scale'. See `np.random.laplace`
                 for more details.
                 - 'gauss-laplace': Gaussian-Laplace distribution. The options
@@ -92,13 +97,13 @@ class Mixtures(Experiment):
         elif distrib_name == "laplace":
             u = np.random.laplace(0.0, distrib_opts["scale"])
         elif distrib_name == "uniform":
-            assert distrib_opts["low"] < 0.0 < distrib_opts["high"]
+            assert distrib_opts["low"] <= 0.0 <= distrib_opts["high"]
             u = np.random.uniform(distrib_opts["low"], distrib_opts["high"])
-        elif distrib_name == "half-gaussian":
+        elif distrib_name == "halfgaussian":
             u = np.abs(np.random.normal(0.0, distrib_opts["scale"]))
-        elif distrib_name == "half-laplace":
+        elif distrib_name == "halflaplace":
             u = np.abs(np.random.laplace(0.0, distrib_opts["scale"]))
-        elif distrib_name == "gauss-laplace":
+        elif distrib_name == "gausslaplace":
             theta = (distrib_opts["scale1"], distrib_opts["scale2"])
 
             def gauss_laplace_pdf(x, theta):
@@ -125,6 +130,7 @@ class Mixtures(Experiment):
 
     def calibrate_penalty(
         self,
+        x_true: ArrayLike,
         sigma: float,
         n: int,
         distrib_name: str = "gaussian",
@@ -132,21 +138,27 @@ class Mixtures(Experiment):
     ):
 
         if distrib_name == "gaussian":
-            penalty = L2norm(0.5 * sigma**2 / distrib_opts["scale"] ** 2)
+            penalty = L2norm(0.5 * (sigma / distrib_opts["scale"]) ** 2)
         elif distrib_name == "laplace":
-            penalty = L1norm(sigma**2 / distrib_opts["scale"])
+            penalty = BigmL1norm(
+                M=np.max(np.abs(x_true)),
+                alpha=sigma**2 / distrib_opts["scale"],
+            )
         elif distrib_name == "uniform":
             penalty = Bounds(
                 distrib_opts["low"] * np.ones(n),
                 distrib_opts["high"] * np.ones(n),
             )
-        elif distrib_name == "half-gaussian":
+        elif distrib_name == "halfgaussian":
             penalty = PositiveL2norm(
-                0.5 * sigma**2 / distrib_opts["scale"] ** 2
+                0.5 * (sigma / distrib_opts["scale"]) ** 2
             )
-        elif distrib_name == "half-laplace":
-            penalty = PositiveL1norm(sigma**2 / distrib_opts["scale"])
-        elif distrib_name == "gauss-laplace":
+        elif distrib_name == "halflaplace":
+            penalty = BigmPositiveL1norm(
+                M=np.max(np.abs(x_true)),
+                alpha=sigma**2 / distrib_opts["scale"],
+            )
+        elif distrib_name == "gausslaplace":
             penalty = L1L2norm(
                 sigma**2 / distrib_opts["scale1"],
                 0.5 * (sigma / distrib_opts["scale2"]) ** 2,
@@ -173,10 +185,9 @@ class Mixtures(Experiment):
 
         where
 
-        - :math:`x \in R^n` is the ground truth vector with i.i.d. entries set
-        as :math:`x_i = z_i * u_i` where :math:`z_i \sim Ber(k/n)` and
-        :math:`u_i` follows a distribution specified by `distrib_name` and
-        `distrib_opts`.
+        - :math:`x \in R^n` is the ground truth vector with k non-zero entries
+        evenly-spaced over the support and with amplitude drawn from the
+        distribution specified in `distrib_name` and `distrib_opts`.
 
         - :math:`A \in R^{m \times n}` is a design matrix with i.i.d. columns
         drawn as :math:`a_i \sim N(0,K)` where :math:`K_{ij} = r^{|i-j|}`.
@@ -214,23 +225,15 @@ class Mixtures(Experiment):
 
         # Ground truth
         x = np.zeros(n)
-        for i in range(n):
-            zi = np.random.binomial(1, k / n)
-            if zi == 0.0:
-                ui = 0.0
-            else:
-                ui = self.sample_distribution(distrib_name, distrib_opts)
-            x[i] = zi * ui
+        for i in np.linspace(0, n - 1, num=k, dtype=int):
+            x[i] = self.sample_distribution(distrib_name, distrib_opts)
 
         # Design matrix
-        if r == 0.0:
-            A = np.random.randn(m, n)
-        else:
-            M = np.zeros(n)
-            N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
-            N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
-            K = np.power(r, np.abs(N1 - N2))
-            A = np.random.multivariate_normal(M, K, size=m)
+        M = np.zeros(n)
+        N1 = np.repeat(np.arange(n).reshape(n, 1), n).reshape(n, n)
+        N2 = np.repeat(np.arange(n).reshape(1, n), n).reshape(n, n).T
+        K = np.power(r, np.abs(N1 - N2))
+        A = np.random.multivariate_normal(M, K, size=m)
         A /= np.linalg.norm(A, axis=0, ord=2)
 
         # Noise vector
@@ -241,7 +244,7 @@ class Mixtures(Experiment):
         # Observation vector
         y = w + e
 
-        return A, y, x, sigma
+        return A, y, x, np.sqrt(sigma)
 
     def setup(self) -> None:
 
@@ -249,6 +252,7 @@ class Mixtures(Experiment):
 
         datafit = Leastsquares(y)
         penalty = self.calibrate_penalty(
+            x_true,
             sigma,
             self.config["dataset"]["n"],
             self.config["dataset"]["distrib_name"],
@@ -311,27 +315,105 @@ class Mixtures(Experiment):
                 print("Skipping {}".format(solver_name))
                 result[solver_name] = None
 
-            if result[solver_name] is not None:
-                print(result[solver_name])
-                print(np.where(self.x_true != 0.0)[0])
-                print(np.where(result[solver_name].x != 0.0)[0])
-                print(self.x_true[np.where(self.x_true != 0.0)])
-                print(result[solver_name].x[np.where(self.x_true != 0.0)])
-
         return result
 
     def cleanup(self) -> None:
         pass
 
-    def plot(self, results: list[dict]) -> None:
-        raise NotImplementedError
+    def plot(self, results: list) -> None:
+
+        perfs = {}
+        for result in results:
+            for solver_name, solver_result in result.items():
+                if solver_name not in perfs:
+                    perfs[solver_name] = []
+                if solver_result is not None:
+                    if solver_result.status == Status.OPTIMAL:
+                        perfs[solver_name].append(solver_result.solve_time)
+
+        tgrid = np.logspace(
+            np.floor(
+                np.log10(
+                    np.nanmin(
+                        [
+                            np.nanmin(times) if len(times) else np.nan
+                            for times in perfs.values()
+                        ]
+                    )
+                )
+            ),
+            np.ceil(
+                np.log10(
+                    np.nanmax(
+                        [
+                            np.nanmax(times) if len(times) else np.nan
+                            for times in perfs.values()
+                        ]
+                    )
+                )
+            ),
+            100,
+        )
+        curves = {solver: [] for solver in perfs}
+
+        for solver_name, solver_times in perfs.items():
+            for t in tgrid:
+                count = sum(solver_time <= t for solver_time in solver_times)
+                curves[solver_name].append(count)
+
+        plt.figure(figsize=(10, 6))
+        for solver_name, solver_curve in curves.items():
+            plt.plot(tgrid, solver_curve, label=solver_name)
+
+        plt.xlabel("time")
+        plt.xscale("log")
+        plt.ylabel("instances solved")
+        plt.title(
+            "{} {}".format(
+                self.config["dataset"]["distrib_name"],
+                self.config["dataset"]["distrib_opts"],
+            )
+        )
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.7)
+        plt.tight_layout()
+        plt.show()
+
+        curves["tgrid"] = tgrid
+
+        return curves
+
+    def save_plot(self, curves, save_dir):
+
+        name = "{}-k={:d}-m={:d}-n={:d}-r={:.2f}-s={:.2f}-{}={}-{}".format(
+            "mixtures",
+            self.config["dataset"]["k"],
+            self.config["dataset"]["m"],
+            self.config["dataset"]["n"],
+            self.config["dataset"]["r"],
+            self.config["dataset"]["s"],
+            "distrib",
+            self.config["dataset"]["distrib_name"],
+            "-".join(
+                [
+                    f"{k}={v}"
+                    for k, v in self.config["dataset"]["distrib_opts"].items()
+                ]
+            ),
+        )
+        df = pd.DataFrame(curves)
+        df.to_csv(
+            pathlib.Path(save_dir).joinpath(name).with_suffix(".csv"),
+            index=False,
+        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("command", type=str, choices=["run", "plot"])
     parser.add_argument("--config_path", "-c", type=str)
-    parser.add_argument("--results_dir", "-r", type=str)
+    parser.add_argument("--result_dir", "-r", type=str)
+    parser.add_argument("--save_dir", "-s", type=str, default=None)
     parser.add_argument("--repeats", "-n", type=int, default=1)
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
@@ -339,8 +421,18 @@ if __name__ == "__main__":
     runner = Runner(verbose=args.verbose)
 
     if args.command == "run":
-        runner.run(Mixtures, args.config_path, args.results_dir, args.repeats)
+        runner.run(
+            Mixtures,
+            args.config_path,
+            args.result_dir,
+            args.repeats,
+        )
     elif args.command == "plot":
-        runner.plot(Mixtures, args.config_path, args.results_dir)
+        runner.plot(
+            Mixtures,
+            args.config_path,
+            args.result_dir,
+            args.save_dir,
+        )
     else:
         raise ValueError(f"Unknown command {args.command}.")

@@ -36,7 +36,7 @@ class OaSolver(BaseSolver):
         Inner solver tolerance.
     verbose: bool
         Whether to toggle solver verbosity.
-    trace: bool
+    keeptrace: bool
         Whether to store the solver trace.
     """
 
@@ -59,7 +59,7 @@ class OaSolver(BaseSolver):
         inner_iter_limit: int = sys.maxsize,
         inner_rel_tol: float = 1e-4,
         verbose: bool = False,
-        trace: bool = False,
+        keeptrace: bool = False,
     ) -> None:
         self.optimizer_name = optimizer_name
         self.relative_gap = relative_gap
@@ -69,7 +69,7 @@ class OaSolver(BaseSolver):
         self.inner_iter_limit = inner_iter_limit
         self.inner_rel_tol = inner_rel_tol
         self.verbose = verbose
-        self.trace = trace
+        self.keeptrace = keeptrace
 
     def __str__(self):
         return "OaSolver"
@@ -274,7 +274,7 @@ class OaSolver(BaseSolver):
             self.update_bounds(zk, vk, xk, fk)
             if self.verbose:
                 self.print_progress()
-            if self.trace:
+            if self.keeptrace:
                 self.update_trace()
 
         if self.verbose:

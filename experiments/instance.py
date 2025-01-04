@@ -14,7 +14,7 @@ def preprocess_data(
     center: bool = False,
     normalize: bool = False,
     y_binary: bool = False,
-) -> list[ArrayLike]:
+) -> list:
     """Pre-process problem data."""
     if sparse.issparse(A):
         A = A.todense()
@@ -77,9 +77,9 @@ def calibrate_parameters(datafit_name, penalty_name, A, y, x_true=None):
         bindings[datafit_name],
         bindings[penalty_name],
         intercept=False,
-        num_gamma=1 if bindings[penalty_name] == "L0" else 20,
-        gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e2,
-        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-2,
+        num_gamma=1 if bindings[penalty_name] == "L0" else 10,
+        gamma_max=0.0 if bindings[penalty_name] == "L0" else m * 1e-0,
+        gamma_min=0.0 if bindings[penalty_name] == "L0" else m * 1e-4,
         num_folds=5,
     )
 

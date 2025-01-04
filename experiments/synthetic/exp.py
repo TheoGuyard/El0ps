@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from expflow import Experiment, Runner
+from exprun import Experiment, Runner
 from el0ps.compilation import CompilableClass, compiled_clone
 
 from experiments.solver import (
@@ -162,7 +162,7 @@ class Synthetic(Experiment):
     def cleanup(self) -> None:
         pass
 
-    def plot(self, results: list[dict]) -> None:
+    def plot(self, results: list) -> None:
         raise NotImplementedError
 
 

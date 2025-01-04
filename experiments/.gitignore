@@ -1,10 +1,9 @@
 # experiments
-**/datasets/*.npy
-**/datasets/*.npz
 **/datasets/*.pkl
 **/results/*.pkl
 **/saves/*.yaml
 **/saves/*.csv
+**/saves/*.pkl
 experiments/scripts/**
 !experiments/scripts/oar.py
 !experiments/scripts/exp.py

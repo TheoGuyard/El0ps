@@ -300,19 +300,19 @@ class BasePenalty:
             s[i] = self.conjugate_subdiff_scalar(i, xi)
         return s.sum()
 
-    def param_slope_pos(self, lmbd: float, idx: list[int]) -> ArrayLike:
+    def param_slope_pos(self, lmbd: float, idx: list) -> ArrayLike:
         # TODO: documentation
         return np.array([self.param_slope_pos_scalar(i, lmbd) for i in idx])
 
-    def param_slope_neg(self, lmbd: float, idx: list[int]) -> ArrayLike:
+    def param_slope_neg(self, lmbd: float, idx: list) -> ArrayLike:
         # TODO: documentation
         return np.array([self.param_slope_neg_scalar(i, lmbd) for i in idx])
 
-    def param_limit_pos(self, lmbd: float, idx: list[int]) -> ArrayLike:
+    def param_limit_pos(self, lmbd: float, idx: list) -> ArrayLike:
         # TODO: documentation
         return np.array([self.param_limit_pos_scalar(i, lmbd) for i in idx])
 
-    def param_limit_neg(self, lmbd: float, idx: list[int]) -> ArrayLike:
+    def param_limit_neg(self, lmbd: float, idx: list) -> ArrayLike:
         # TODO: documentation
         return np.array([self.param_limit_neg_scalar(i, lmbd) for i in idx])
 

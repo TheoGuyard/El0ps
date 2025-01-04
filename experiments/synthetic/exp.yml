@@ -1,3 +1,5 @@
+expname: synthetic
+
 dataset:
   t: 0.
   k: 5

@@ -28,7 +28,7 @@ dev = [
     "wheel",
 ]
 exp = [
-    "expflow @ git+https://github.com/TheoGuyard/ExpFlow",
+    "exprun",
     "matplotlib",
     "l0bnb",
     "l0learn",
