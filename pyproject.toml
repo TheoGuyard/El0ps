@@ -11,6 +11,7 @@ dynamic = ["version"]
 version = {attr = "el0ps.__version__"}
 
 [project.optional-dependencies]
+mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 dev = [
     "black",
     "build",
@@ -27,15 +28,6 @@ dev = [
     "twine",
     "wheel",
 ]
-exp = [
-    "exprun",
-    "matplotlib",
-    "l0bnb",
-    "l0learn",
-    "pyyaml",
-    "scipy",
-]
-mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 
 [project.urls]
 "Homepage" = "https://github.com/TheoGuyard/El0ps"

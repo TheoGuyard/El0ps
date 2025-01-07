@@ -26,4 +26,3 @@ jobs:
       run: |
         flake8 src
         flake8 tests
-        flake8 experiments

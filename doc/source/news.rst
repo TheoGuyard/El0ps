@@ -11,7 +11,7 @@ Version 0.0.2
 * Compiled BnB bounding solver using `numba`
 * Add `mip` and `oa` solvers
 * Add unsymmetrical penalties
-* Make experiments cleaner using `exprun`
+* Remove experiments from this repo
 
 Version 0.0.1
 -------------
