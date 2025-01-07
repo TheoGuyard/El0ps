@@ -6,7 +6,6 @@ from el0ps.estimator import (
     L0L1L2Regressor,
     L0L1L2Classifier,
     L0L1L2SVC,
-    
 )
 from el0ps.penalty import L1L2norm
 from el0ps.solver import Status
