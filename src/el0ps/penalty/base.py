@@ -277,9 +277,9 @@ class BasePenalty:
         s: ArrayLike
             The subdifferential (interval) of the function at ``x``.
         """
-        s = np.zeros_like(x)
+        s = np.zeros((x.size, 2))
         for i, xi in enumerate(x):
-            s[i] = self.subdiff_scalar(i, xi)
+            s[i, :] = self.subdiff_scalar(i, xi)
         return s
 
     def conjugate_subdiff(self, x: ArrayLike) -> ArrayLike:
@@ -295,10 +295,10 @@ class BasePenalty:
         s: ArrayLike
             The subdifferential (interval) of the function conjugate at ``x``.
         """
-        s = np.zeros_like(x)
+        s = np.zeros((x.size, 2))
         for i, xi in enumerate(x):
-            s[i] = self.conjugate_subdiff_scalar(i, xi)
-        return s.sum()
+            s[i, :] = self.conjugate_subdiff_scalar(i, xi)
+        return s
 
     def param_slope_pos(self, lmbd: float, idx: list) -> ArrayLike:
         # TODO: documentation

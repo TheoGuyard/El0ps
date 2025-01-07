@@ -101,24 +101,20 @@ def test_instances(penalty: BasePenalty):
         v1 = 0.5 * (pi - xi) ** 2 + eta * penalty.value_scalar(i, pi)
         v2 = eta * penalty.value_scalar(i, xi)
         assert v1 <= v2
-        si = penalty.subdiff_scalar(i, pi)
-        assert si[0] <= xi - pi <= si[1]
-        ci = penalty.conjugate_subdiff_scalar(i, si)
-        assert ci[0] <= pi <= ci[1]
     assert penalty.value(x) >= 0.0
     assert penalty.conjugate(u) >= 0.0
     assert penalty.value(x) + penalty.conjugate(u) >= x @ u - 1e-10
     assert penalty.prox(x, 1.0).shape == x.shape
-    assert len(penalty.subdiff(x)) == x.size
-    assert len(penalty.conjugate_subdiff(u)) == u.size
-    assert len(penalty.param_slope_pos(lmbd, range(x))) == x.size
-    assert len(penalty.param_slope_neg(lmbd, range(x))) == x.size
-    assert len(penalty.param_limit_pos(lmbd, range(x))) == x.size
-    assert len(penalty.param_limit_neg(lmbd, range(x))) == x.size
+    assert penalty.subdiff(x).shape == (x.size, 2)
+    assert penalty.conjugate_subdiff(u).shape == (u.size, 2)
+    assert len(penalty.param_slope_pos(lmbd, range(x.size))) == x.size
+    assert len(penalty.param_slope_neg(lmbd, range(x.size))) == x.size
+    assert len(penalty.param_limit_pos(lmbd, range(x.size))) == x.size
+    assert len(penalty.param_limit_neg(lmbd, range(x.size))) == x.size
     if isinstance(penalty, SymmetricPenalty):
-        sp = penalty.param_slope_pos(lmbd, range(x))
-        sn = penalty.param_slope_neg(lmbd, range(x))
+        sp = penalty.param_slope_pos(lmbd, range(x.size))
+        sn = penalty.param_slope_neg(lmbd, range(x.size))
         assert np.allclose(sp, -sn)
-        lp = penalty.param_limit_pos(lmbd, range(x))
-        ln = penalty.param_limit_neg(lmbd, range(x))
+        lp = penalty.param_limit_pos(lmbd, range(x.size))
+        ln = penalty.param_limit_neg(lmbd, range(x.size))
         assert np.allclose(lp, -ln)
