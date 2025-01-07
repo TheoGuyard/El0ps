@@ -1,3 +1,7 @@
+[run]
+source = src/el0ps
+branch = True
+
 [report]
 exclude_lines =
     @abstractmethod
