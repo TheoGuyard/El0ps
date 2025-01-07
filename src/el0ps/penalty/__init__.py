@@ -1,6 +1,6 @@
 """Penalty functions."""
 
-from .base import BasePenalty, MipPenalty
+from .base import BasePenalty, MipPenalty, SymmetricPenalty
 from .bigm import Bigm
 from .bigml1norm import BigmL1norm
 from .bigml2norm import BigmL2norm
@@ -16,6 +16,7 @@ from .positivel2norm import PositiveL2norm
 __all__ = [
     "BasePenalty",
     "MipPenalty",
+    "SymmetricPenalty",
     "Bigm",
     "BigmL1norm",
     "BigmL2norm",

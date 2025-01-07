@@ -10,7 +10,6 @@ from .base import BaseL0Estimator, select_bigml1l2_penalty, _fit
 
 class BaseL0Classifier(BaseL0Estimator, ClassifierMixin):
     """Base class for L0-norm classifier estimators."""
-
     pass
 
 

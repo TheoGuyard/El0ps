@@ -2,7 +2,12 @@ import pytest
 import numpy as np
 from sklearn.utils.estimator_checks import check_estimator
 from el0ps.datafit import Leastsquares, Logistic, Squaredhinge
-from el0ps.estimator import L0L1L2Regressor, L0L1L2Classifier, L0L1L2SVC
+from el0ps.estimator import (
+    L0L1L2Regressor,
+    L0L1L2Classifier,
+    L0L1L2SVC,
+    
+)
 from el0ps.penalty import L1L2norm
 from el0ps.solver import Status
 from el0ps.utils import compute_lmbd_max
