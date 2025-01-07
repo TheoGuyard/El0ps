@@ -4,19 +4,14 @@ description = "An Exact L0-Problem Solver"
 readme = "README.md"
 license = {file = "LICENSE", content-type = "text/markdown"}
 authors = [{name = "Théo Guyard", email = "guyard.theo@gmail.com"}]
-dependencies = [
-    "numpy>=1.22,<2.0",
-    "numba>=0.53",
-    "pyomo>=6.0",
-    "scikit-learn",
-    "scipy",
-]
+dependencies = ["mpi4py", "numpy", "numba", "pybnb", "pyomo", "scikit-learn"]
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
 version = {attr = "el0ps.__version__"}
 
 [project.optional-dependencies]
+mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 dev = [
     "black",
     "build",
@@ -33,18 +28,6 @@ dev = [
     "twine",
     "wheel",
 ]
-exp = [
-    "libsvmdata",
-    "l0bnb",
-    "l0learn",
-    "matplotlib",
-    "openml",
-    "pandas",
-    "pyyaml",
-    "skglm",
-    "ucimlrepo",
-]
-mip = ["cplex", "docplex", "gurobipy", "Mosek"]
 
 [project.urls]
 "Homepage" = "https://github.com/TheoGuyard/El0ps"

@@ -1,18 +1,26 @@
 import sys
 import numpy as np
-from dataclasses import dataclass
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import ArrayLike
-from el0ps.utils import compiled_clone, compute_lmbd_max
-from el0ps.datafits import BaseDatafit
-from el0ps.penalties import BasePenalty
-from el0ps.solvers import BaseSolver, Result, Status, BnbSolver
+
+from el0ps.utils import compute_lmbd_max
+from el0ps.compilation import compiled_clone
+from el0ps.datafit import BaseDatafit
+from el0ps.penalty import BasePenalty
+from el0ps.solver import BaseSolver, Result, Status, BnbSolver
 
 
-@dataclass
-class PathOptions:
-    """:class:`.path.Path` options.
+class Path:
+    """Path fitting for L0-regularized problems.
+
+    The optimization problem considered is
+
+    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
+
+    where :math:`f` is a datafit term, :math:`h` is a penalty term and
+    :math:`\lambda` is the L0-norm weight. It is solved for a range of values
+    of the parameter :math:`\lambda`.
 
     Parameters
     ----------
@@ -38,65 +46,7 @@ class PathOptions:
         Toogle displays during path fitting.
     """  # noqa: W605
 
-    lmbd_max: float = 1e-0
-    lmbd_min: float = 1e-2
-    lmbd_num: int = 10
-    lmbd_scaled: bool = False
-    max_nnz: int = sys.maxsize
-    stop_if_not_optimal: bool = True
-    verbose: bool = True
-
-    def _validate_types(self):
-        for field_name, field_def in self.__dataclass_fields__.items():
-            actual_type = type(getattr(self, field_name))
-            if not issubclass(actual_type, field_def.type):
-                raise ValueError(
-                    "Expected '{}' for argument '{}', got '{}'.".format(
-                        field_def.type, field_name, actual_type
-                    )
-                )
-
-    def __post_init__(self):
-        self._validate_types()
-        if not 0.0 <= self.lmbd_min <= self.lmbd_max:
-            raise ValueError(
-                "Parameters must satisfy `0 <= lmbd_min <= lmbd_max`."
-            )
-        if not self.lmbd_num >= 0.0:
-            raise ValueError("Parameters `lmbd_num` must be positive.")
-        if self.lmbd_scaled and self.lmbd_max > 1:
-            raise ValueError(
-                "Parameters must satisfy `lmbd_max<=1` if `lmbd_scaled=True`."
-            )
-        if not self.max_nnz >= 0.0:
-            raise ValueError("Parameters max_nnz must be positive.")
-
-
-class Path:
-    """Path fitting for L0-regularized problems.
-
-    The optimization problem considered is
-
-    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
-
-    where :math:`f` is a datafit term, :math:`h` is a penalty term and
-    :math:`\lambda` is the L0-norm weight. It is solved for a range of values
-    of the parameter :math:`\lambda`.
-
-    Parameters
-    ----------
-    kwargs: dict
-        Path options passed to :class:`.path.PathOptions`.
-
-    Attributes
-    ----------
-    options: PathOptions
-        Path options.
-    fit_data: dict
-        Path fitting data.
-    """  # noqa: W605
-
-    _path_hstr = "   lmbda   status     time    nodes  obj. val  los. val  pen. val  n-zero"  # noqa: E501
+    _path_hstr = "  lambda   status     time    nodes  obj. val  los. val  pen. val  n-zero"  # noqa: E501
     _path_fstr = (
         "{:>7.2e}  {:>7}  {:>7.2f}  {:>7}  {:>7.2e}  {:>7.2e}  {:>7.2e} {:>7}"
     )
@@ -105,7 +55,6 @@ class Path:
         "status",
         "solve_time",
         "iter_count",
-        "rel_gap",
         "x",
         "objective_value",
         "datafit_value",
@@ -113,8 +62,23 @@ class Path:
         "n_nnz",
     ]
 
-    def __init__(self, **kwargs) -> None:
-        self.options = PathOptions(**kwargs)
+    def __init__(
+        self,
+        lmbd_max: float = 1e-0,
+        lmbd_min: float = 1e-2,
+        lmbd_num: int = 10,
+        lmbd_scaled: bool = True,
+        max_nnz: int = sys.maxsize,
+        stop_if_not_optimal: bool = True,
+        verbose: bool = True,
+    ) -> None:
+        self.lmbd_max = lmbd_max
+        self.lmbd_min = lmbd_min
+        self.lmbd_num = lmbd_num
+        self.lmbd_scaled = lmbd_scaled
+        self.max_nnz = max_nnz
+        self.stop_if_not_optimal = stop_if_not_optimal
+        self.verbose = verbose
         self.fit_data = {k: [] for k in self._path_keys}
 
     def display_path_head(self) -> None:
@@ -144,11 +108,11 @@ class Path:
 
     def can_continue(self) -> bool:
         if (
-            self.options.stop_if_not_optimal
+            self.stop_if_not_optimal
             and not self.fit_data["status"][-1] == Status.OPTIMAL
         ):
             return False
-        if self.fit_data["n_nnz"][-1] > self.options.max_nnz:
+        if self.fit_data["n_nnz"][-1] > self.max_nnz:
             return False
         return True
 
@@ -167,6 +131,8 @@ class Path:
                 self.fit_data[k].append(datafit.value(A @ results.x))
             elif k == "penalty_value":
                 self.fit_data[k].append(penalty.value(results.x))
+            elif k == "n_nnz":
+                self.fit_data[k].append(np.flatnonzero(results.x).size)
             else:
                 self.fit_data[k].append(getattr(results, k))
 
@@ -199,32 +165,32 @@ class Path:
                 datafit = compiled_clone(datafit)
             if isinstance(penalty, BasePenalty):
                 penalty = compiled_clone(penalty)
-            if not A.flags.f_contiguous:
-                A = np.array(A, order="F")
-            solver.options.bounding_skip_setup = True
+        if not A.flags.f_contiguous:
+            A = np.array(A, order="F")
 
-        if self.options.verbose:
+        if self.verbose:
             self.display_path_head()
 
         lmbd_grid = np.logspace(
-            np.log10(self.options.lmbd_max),
-            np.log10(self.options.lmbd_min),
-            self.options.lmbd_num,
+            np.log10(self.lmbd_max),
+            np.log10(self.lmbd_min),
+            self.lmbd_num,
         )
-        if self.options.lmbd_scaled:
-            lmbd_grid *= compute_lmbd_max(datafit, penalty, A)
+        if self.lmbd_scaled:
+            lmbd_max = compute_lmbd_max(datafit, penalty, A)
+            lmbd_grid *= lmbd_max
         x_init = np.zeros(A.shape[1])
 
         for lmbd in lmbd_grid:
             results = solver.solve(datafit, penalty, A, lmbd, x_init)
             x_init = np.copy(results.x)
             self.fill_fit_data(datafit, penalty, A, lmbd, results)
-            if self.options.verbose:
+            if self.verbose:
                 self.display_path_info()
             if not self.can_continue():
                 break
 
-        if self.options.verbose:
+        if self.verbose:
             self.display_path_foot()
 
         return self.fit_data

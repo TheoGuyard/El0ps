@@ -8,7 +8,7 @@ Estimators
 ==========
 
 
-.. currentmodule:: el0ps.estimators
+.. currentmodule:: el0ps.estimator
 
 .. autosummary::
     :toctree: generated/
@@ -30,15 +30,14 @@ Estimators
 Datafits
 ========
 
-.. currentmodule:: el0ps.datafits
+.. currentmodule:: el0ps.datafit
 
 .. autosummary::
     :toctree: generated/
 
     BaseDatafit
-    SmoothDatafit
     MipDatafit
-    Kullbackleibler
+    KullbackLeibler
     Leastsquares
     Logcosh
     Logistic
@@ -49,13 +48,12 @@ Penalties
 =========
 
 
-.. currentmodule:: el0ps.penalties
+.. currentmodule:: el0ps.penalty
 
 .. autosummary::
     :toctree: generated/
 
     BasePenalty
-    SymmetricPenalty
     MipPenalty
     Bigm
     BigmL1norm
@@ -68,7 +66,7 @@ Penalties
 Solvers
 =======
 
-.. currentmodule:: el0ps.solvers
+.. currentmodule:: el0ps.solver
 
 .. autosummary::
     :toctree: generated/
@@ -77,9 +75,8 @@ Solvers
     Result
     BaseSolver
     BnbSolver
-    BnbOptions
     MipSolver
-    MipOptions
+    OaSolver
 
 Path
 ====
@@ -104,5 +101,3 @@ Utils
     compute_lmbd_max
     compute_param_slope_scalar
     compute_param_limit_scalar
-    compute_param_maxdom_scalar
-    compute_param_maxval_scalar

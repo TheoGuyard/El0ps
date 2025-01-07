@@ -16,6 +16,8 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python }}
+    - name: Set up MPI
+      uses: mpi4py/setup-mpi@v1
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -24,4 +26,3 @@ jobs:
       run: |
         flake8 src
         flake8 tests
-        flake8 experiments

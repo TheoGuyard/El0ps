@@ -1,15 +1,15 @@
 import numpy as np
 from pyomo.opt.base.solvers import check_available_solvers
-from el0ps.datafits import Leastsquares
-from el0ps.penalties import Bigm
+from el0ps.datafit import Leastsquares
+from el0ps.penalty import Bigm
 from el0ps.utils import compute_lmbd_max
-from el0ps.solvers import Status, BnbSolver, MipSolver, OaSolver
-from el0ps.solvers.mip import _mip_optim_bindings
+from el0ps.solver import Status, BnbSolver, MipSolver, OaSolver
+from el0ps.solver.mip import _mip_optim_bindings
 from .utils import make_regression
 
 
 def test_solver():
-    A, y, x_true = make_regression(3, 30, 50)
+    A, y, x_true = make_regression(3, 15, 20)
     M = 1.5 * np.max(np.abs(x_true))
 
     datafit = Leastsquares(y)

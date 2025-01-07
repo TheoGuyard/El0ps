@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from el0ps.datafits import (
+from el0ps.datafit import (
     BaseDatafit,
-    SmoothDatafit,
-    Kullbackleibler,
+    KullbackLeibler,
     Leastsquares,
     Logcosh,
     Logistic,
@@ -15,9 +14,8 @@ m = 100
 y = np.random.randn(m)
 x = np.random.randn(m)
 u = np.random.randn(m)
-base_datafits = [BaseDatafit, SmoothDatafit]
 datafits = [
-    Kullbackleibler(np.abs(y)),
+    KullbackLeibler(np.abs(y)),
     Leastsquares(y),
     Logcosh(y),
     Logistic(2.0 * (y > 0.0) - 1.0),
@@ -26,12 +24,11 @@ datafits = [
 
 
 @pytest.mark.parametrize("datafit", datafits)
-def test_instances(datafit):
+def test_instances(datafit: BaseDatafit):
     assert isinstance(datafit.__str__(), str)
     assert datafit.value(x) + datafit.conjugate(u) >= np.dot(x, u)
-    if isinstance(datafit, SmoothDatafit):
-        assert datafit.L >= 0.0
-        assert datafit.gradient(x).shape == x.shape
-        assert datafit.value(x) >= datafit.value(u) + np.dot(
-            datafit.gradient(u), x - u
-        )
+    assert datafit.gradient_lipschitz_constant() >= 0.0
+    assert datafit.gradient(x).shape == x.shape
+    assert datafit.value(x) >= datafit.value(u) + np.dot(
+        datafit.gradient(u), x - u
+    )
