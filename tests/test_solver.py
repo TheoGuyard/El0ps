@@ -9,7 +9,7 @@ from .utils import make_regression
 
 
 def test_solver():
-    A, y, x_true = make_regression(3, 30, 50)
+    A, y, x_true = make_regression(3, 15, 20)
     M = 1.5 * np.max(np.abs(x_true))
 
     datafit = Leastsquares(y)

@@ -23,7 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -U .[dev]
       - name: Coverage run
-        run: coverage run --source=src/el0ps -m pytest -v
+        run: coverage run -m pytest -v
       - name: Upload report
         uses: codecov/codecov-action@v5
         with:

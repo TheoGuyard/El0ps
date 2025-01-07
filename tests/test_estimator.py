@@ -8,7 +8,7 @@ from el0ps.solver import Status
 from el0ps.utils import compute_lmbd_max
 from .utils import make_classification, make_regression, make_svc
 
-k, m, n = 3, 50, 50
+k, m, n = 3, 15, 20
 lmbd_factor = 0.1
 alpha = 0.2
 beta = 0.3
