@@ -3,7 +3,7 @@ name = "el0ps"
 description = "An Exact L0-Problem Solver"
 readme = "README.md"
 license = {file = "LICENSE", content-type = "text/markdown"}
-authors = [{name = "Théo Guyard", email = "guyard.theo@gmail.com"}]
+authors = [{name = "Théo Guyard", email = "theo.guyard.job@gmail.com"}]
 dependencies = ["mpi4py", "numpy", "numba", "pybnb", "pyomo", "scikit-learn"]
 dynamic = ["version"]
 
