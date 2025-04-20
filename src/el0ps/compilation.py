@@ -6,6 +6,7 @@ from numba.experimental import jitclass
 
 
 class CompilableClass:
+    """Template for classes that can be compiled with Numba."""
 
     @abstractmethod
     def get_spec(self) -> tuple:
@@ -20,19 +21,22 @@ class CompilableClass:
 
     @abstractmethod
     def params_to_dict(self) -> dict:
-        """Get the parameters to initialize an instance of the class.
+        """Returns the parameters name and value used to initialize the class
+        instance.
 
         Returns
         -------
         dict_of_params: dict
-            The parameters to instantiate an object of the class.
+            The parameters name and value used to initialize the class
+            instance.
         """
         ...
 
 
 @lru_cache()
 def compiled_clone(instance: CompilableClass):
-    """Compile a class instance to a ``jitclass``. Credits: ``skglm`` package.
+    """Compile a class instance to a ``jitclass``. This function is inspired
+    from a similar one in the ``skglm`` package.
 
     Parameters
     ----------
