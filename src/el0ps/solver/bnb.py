@@ -559,6 +559,10 @@ class BnbSolver:
 
         self.bound_solver = compiled_clone(BoundSolver(**kwargs))
 
+    @property
+    def accept_jitclass(self) -> bool:
+        return True
+
     def package_results(self, problem, results):
 
         status = Status.UNKNOWN

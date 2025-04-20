@@ -13,8 +13,13 @@ def test_path():
 
     datafit = Leastsquares(y)
     penalty = Bigm(M)
-    solver = BnbSolver()
+    solver = BnbSolver(verbose=False)
 
-    path = Path(lmbd_max=1e-0, lmbd_min=1e-1, lmbd_num=10, lmbd_scaled=True)
+    path = Path(
+        lmbd_max=1e-0,
+        lmbd_min=1e-1,
+        lmbd_num=10,
+        lmbd_normalized=True
+    )
     fit = path.fit(solver, datafit, penalty, A)
-    assert np.all(status == Status.OPTIMAL for status in fit["status"])
+    assert np.all(result.status == Status.OPTIMAL for _, result in fit.items())

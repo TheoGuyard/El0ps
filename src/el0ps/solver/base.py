@@ -89,11 +89,17 @@ class BaseSolver:
 
     The optimization problem solved is
 
-    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
+    .. math:: \min f(Ax) + \lambda \|x\|_0 + h(x)
 
     where :math:`f` is a datafit term, :math:`h` is a penalty term and
     :math:`\lambda` is the L0-norm weight.
     """  # noqa: W605
+
+    @property
+    def accept_jitclass(self) -> bool:
+        """Check if the solver accepts jitclass. This method can be overridden
+        in derived classes to provide a more specific implementation."""
+        return False
 
     @abstractmethod
     def solve(
@@ -103,7 +109,7 @@ class BaseSolver:
         A: ArrayLike,
         lmbd: float,
         x_init: Union[ArrayLike, None] = None,
-    ):
+    ) -> Result:
         r"""Solve an L0-regularized problem.
 
         Parameters
