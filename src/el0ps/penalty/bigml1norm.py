@@ -1,22 +1,19 @@
 import numpy as np
 import pyomo.kernel as pmo
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
-
-from .base import SymmetricPenalty, MipPenalty
+from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class BigmL1norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    r"""Big-M constraint plus L1-norm penalty function.
+    """Big-M plus L1-norm penalty function expressed as 
 
-    The function is defined as
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    .. math:: h(x) = \alpha \|x\|_1 + \mathbb{I}(\|x\|_{\infty} \leq M)
-
-    where :math:`\mathbb{I}(\cdot)` is the convex indicator function,
-    :math:`\alpha > 0` and :math:`M > 0`.
+    where ``hi(xi) = alpha * |xi|`` if ``|xi| <= M`` and ``hi(xi) = inf``
+    otherwise for some ``M > 0`` and ``alpha > 0``.
 
     Parameters
     ----------
@@ -43,18 +40,18 @@ class BigmL1norm(CompilableClass, SymmetricPenalty, MipPenalty):
     def params_to_dict(self) -> dict:
         return dict(M=self.M, alpha=self.alpha)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         xabs = np.abs(x)
         return self.alpha * xabs if xabs <= self.M else np.inf
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return self.M * np.maximum(np.abs(x) - self.alpha, 0.0)
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         v = np.abs(x) - eta * self.alpha
         return np.sign(x) * np.maximum(np.minimum(v, self.M), 0.0)
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if x == 0.0:
             return [-self.alpha, self.alpha]
         elif np.abs(x) < self.M:
@@ -66,7 +63,7 @@ class BigmL1norm(CompilableClass, SymmetricPenalty, MipPenalty):
         else:
             return [np.nan, np.nan]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if np.abs(x) < self.alpha:
             return [0.0, 0.0]
         elif x == self.alpha:
@@ -77,12 +74,15 @@ class BigmL1norm(CompilableClass, SymmetricPenalty, MipPenalty):
             s = np.sign(x) * self.M
             return [s, s]
 
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         return (lmbd / self.M) + self.alpha
 
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit(self, i: int, lmbd: float) -> float:
         return self.M
-
+    
+    def param_bndry(self, i, lmbd):
+        return np.inf
+    
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
 
         model.g1_var = pmo.variable_dict()

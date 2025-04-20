@@ -1,22 +1,19 @@
 import numpy as np
 import pyomo.kernel as pmo
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
-
-from .base import SymmetricPenalty, MipPenalty
+from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
-    r"""Big-M penalty function.
+    """Big-M penalty function expressed as 
 
-    The function is defined as
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    .. math:: h(x) = \text{Indicator}(\|x\|_{\infty} \leq M)
-
-    where :math:`\text{Indicator}(\cdot)` is the convex indicator function and
-    :math:`M > 0`.
+    where ``hi(xi) = 0`` if ``|xi| <= M`` and ``hi(xi) = inf`` otherwise for
+    some ``M > 0``.
 
     Parameters
     ----------
@@ -37,16 +34,16 @@ class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
     def params_to_dict(self) -> dict:
         return dict(M=self.M)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return 0.0 if np.abs(x) <= self.M else np.inf
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return self.M * np.abs(x)
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.M), -self.M)
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if np.abs(x) < self.M:
             return [0.0, 0.0]
         elif x == -self.M:
@@ -56,18 +53,21 @@ class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
         else:
             return [np.nan, np.nan]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if x == 0.0:
             return [-self.M, self.M]
         else:
             s = np.sign(x) * self.M
             return [s, s]
 
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         return lmbd / self.M
 
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit(self, i: int, lmbd: float) -> float:
         return self.M
+    
+    def param_bndry(self, i, lmbd):
+        return np.inf
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         model.gpos_con = pmo.constraint_dict()

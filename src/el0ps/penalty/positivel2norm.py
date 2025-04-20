@@ -1,6 +1,6 @@
 import numpy as np
 import pyomo.kernel as pmo
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
@@ -9,18 +9,16 @@ from .base import BasePenalty, MipPenalty
 
 
 class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
-    r"""Positive L2-norm penalty function.
+    """Positive L2-norm penalty function expressed as 
 
-    The function is defined as
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    .. math:: h(x) = \beta \|x\|_2^2 + \text{Indicator}(x \geq 0)
-
-    where :math:`\ beta > 0` and :math:`\text{Indicator}(\cdot)` is the convex
-    indicator function.
+    where ``hi(xi) = beta * xi^2`` if ``xi >= 0.`` and ``hi(xi) = inf``
+    otherwise for some ``beta > 0``.
 
     Parameters
     ----------
-    beta: float, positive
+    beta: float
         L2-norm weight.
     """
 
@@ -37,16 +35,16 @@ class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
     def params_to_dict(self) -> dict:
         return dict(beta=self.beta)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return self.beta * x**2 if x >= 0.0 else np.inf
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return np.maximum(x, 0.0) ** 2 / (4.0 * self.beta)
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return np.maximum(x, 0.0) / (1.0 + 2.0 * self.beta * eta)
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if x == 0.0:
             return [-np.inf, 0.0]
         elif x > 0.0:
@@ -55,7 +53,7 @@ class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
         else:
             return [np.nan, np.nan]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if x > 0.0:
             s = x / (2.0 * self.beta)
             return [s, s]
@@ -63,17 +61,23 @@ class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
             s = 0.0
             return [s, s]
 
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope_pos(self, i: int, lmbd: float) -> float:
         return 2.0 * np.sqrt(lmbd * self.beta)
 
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope_neg(self, i: int, lmbd: float) -> float:
         return -np.inf
 
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit_pos(self, i: int, lmbd: float) -> float:
         return np.sqrt(lmbd / self.beta)
 
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit_neg(self, i: int, lmbd: float) -> float:
         return 0.0
+    
+    def param_bndry_pos(self, i, lmbd):
+        return 2.0 * np.sqrt(lmbd * self.beta)
+    
+    def param_bndry_neg(self, i, lmbd):
+        return -np.inf
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         model.g1_var = pmo.variable_dict()

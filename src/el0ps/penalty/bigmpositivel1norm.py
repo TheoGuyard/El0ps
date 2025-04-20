@@ -1,27 +1,25 @@
 import numpy as np
-from numpy.typing import ArrayLike
+import pyomo.kernel as pmo
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
+from el0ps.penalty.base import BasePenalty, MipPenalty
 
-from .base import BasePenalty
 
+class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
+    """Positive big-M plus L1-norm penalty function expressed as 
 
-class BigmPositiveL1norm(CompilableClass, BasePenalty):
-    r"""Positive L1-norm penalty function with Big-M constraint.
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    The function is defined as
-
-    .. math:: h(x) = \alpha \|x\|_1 + \text{Indicator}(0 \leq x \leq M)
-
-    where :math:`\alpha > 0`, :math:`\M > 0`, and
-    :math:`\text{Indicator}(\cdot)` is the convex indicator function.
+    where ``hi(x) = alpha * xi`` if ``0 <= xi <= M`` and ``h_i(xi) = inf``
+    otherwise for some ``M > 0`` and ``alpha > 0``.
 
     Parameters
     ----------
-    M: float, positive
+    M: float
         Big-M value.
-    alpha: float, positive
+    alpha: float
         L1-norm weight.
     """
 
@@ -42,16 +40,16 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty):
     def params_to_dict(self) -> dict:
         return dict(M=self.M, alpha=self.alpha)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return self.alpha * x if (x >= 0.0) and (x <= self.M) else np.inf
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return self.M * np.maximum(x - self.alpha, 0.0)
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return np.maximum(0.0, np.minimum(x - eta * self.alpha, self.M))
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if x == 0.0:
             return [-np.inf, self.alpha]
         elif 0.0 < x < self.M:
@@ -62,7 +60,7 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty):
         else:
             return [np.nan, np.nan]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if x < self.alpha:
             return [0.0, 0.0]
         elif x == self.alpha:
@@ -71,14 +69,45 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty):
             s = np.sign(x) * self.M
             return [s, s]
 
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope_pos(self, i: int, lmbd: float) -> float:
         return (lmbd / self.M) + self.alpha
 
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope_neg(self, i: int, lmbd: float) -> float:
         return -np.inf
 
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit_pos(self, i: int, lmbd: float) -> float:
         return self.M
 
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit_neg(self, i: int, lmbd: float) -> float:
         return 0.0
+    
+    def param_bndry_pos(self, i: int, lmbd: float) -> float:
+        return np.inf
+    
+    def param_bndry_neg(self, i: int, lmbd: float) -> float:
+        return -np.inf
+
+    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+
+        model.g1_var = pmo.variable_dict()
+        for i in model.N:
+            model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
+
+        model.gpos_con = pmo.constraint_dict()
+        model.gneg_con = pmo.constraint_dict()
+        model.g1pos_con = pmo.constraint_dict()
+        model.g1neg_con = pmo.constraint_dict()
+        for i in model.N:
+            model.gpos_con[i] = pmo.constraint(
+                model.x[i] <= self.M * model.z[i]
+            )
+            model.gneg_con[i] = pmo.constraint(model.x[i] >= 0)
+            model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
+            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= 0.)
+        model.g_con = pmo.constraint(
+            model.g
+            >= (
+                lmbd * sum(model.z[i] for i in model.N)
+                + self.alpha * sum(model.g1_var[i] for i in model.N)
+            )
+        )

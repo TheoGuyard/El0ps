@@ -1,27 +1,25 @@
 import numpy as np
 import pyomo.kernel as pmo
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
-
-from .base import SymmetricPenalty, MipPenalty
+from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    r"""L1L2-norm penalty function.
+    """L1L2-norm penalty function expressed as 
 
-    The function is defined as
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    .. math:: h(x) = \alpha \|x\|_1 + \beta \|x\|_2^2
-
-    where :math:`\alpha > 0` and :math:`\beta > 0`.
+    where ``hi(xi) = alpha * |xi| + beta * xi^2`` for some ``alpha > 0`` and
+    ``beta > 0``.
 
     Parameters
     ----------
-    alpha: float, positive
+    alpha: float
         L1-norm weight.
-    beta: float, positive
+    beta: float
         L2-norm weight.
     """
 
@@ -42,24 +40,24 @@ class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
     def params_to_dict(self) -> dict:
         return dict(alpha=self.alpha, beta=self.beta)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return self.alpha * np.abs(x) + self.beta * x**2
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return np.maximum(np.abs(x) - self.alpha, 0.0) ** 2 / (4.0 * self.beta)
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         v = np.sign(x) / (1.0 + 2.0 * eta * self.beta)
         return v * np.maximum(np.abs(x) - eta * self.alpha, 0.0)
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if x == 0:
             return [-self.alpha, self.alpha]
         else:
             s = self.alpha * np.sign(x) + 2.0 * self.beta * x
             return [s, s]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if np.abs(x) < self.alpha:
             return [0.0, 0.0]
         elif x == -self.alpha:
@@ -70,11 +68,14 @@ class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
             s = (x - self.alpha * np.sign(x)) / (2.0 * self.beta)
             return [s, s]
 
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         return self.alpha + np.sqrt(4.0 * self.beta * lmbd)
 
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit(self, i: int, lmbd: float) -> float:
         return np.sqrt(lmbd / self.beta)
+    
+    def param_bndry(self, i, lmbd):
+        return (self.alpha + 2.0 * self.beta) * np.sqrt(lmbd / self.beta)
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
 

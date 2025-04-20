@@ -1,32 +1,30 @@
 import numpy as np
 import pyomo.kernel as pmo
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
-
-from .base import BasePenalty, MipPenalty
+from el0ps.penalty.base import BasePenalty, MipPenalty
 
 
 class Bounds(CompilableClass, BasePenalty, MipPenalty):
-    r"""Indicator of bounds penalty function.
+    """Bound constraint penalty function expressed as 
 
-    The function is defined as
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    .. math:: h(x) = \text{Indicator}(x_lb \leq x \leq x_ub)
-
-    where :math:`\text{Indicator}(\cdot)` is the convex indicator function,
-    :math:`x_{lb} \in R_-^n`, and :math:`x_{ub} \in R_+^n`.
+    where ``hi(xi) = 0`` if ``x_lb[i] <= xi <= x_ub[i]`` and ``hi(xi) = inf``
+    otherwise for vectors ``x_lb <= 0`` and ``x_ub >= 0`` of lower and upper
+    bounds.
 
     Parameters
     ----------
-    x_lb: ArrayLike
+    x_lb: NDArray
         Vector or lower bounds.
-    x_ub: ArrayLike
+    x_ub: NDArray
         Vector of upper bounds.
     """
 
-    def __init__(self, x_lb: ArrayLike, x_ub: ArrayLike) -> None:
+    def __init__(self, x_lb: NDArray, x_ub: NDArray) -> None:
         self.x_lb = x_lb
         self.x_ub = x_ub
 
@@ -40,19 +38,19 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
     def params_to_dict(self) -> dict:
         return dict(x_lb=self.x_lb, x_ub=self.x_ub)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return 0.0 if (self.x_lb[i] <= x <= self.x_ub[i]) else np.inf
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         if x >= 0.0:
             return self.x_ub[i] * x
         else:
             return self.x_lb[i] * x
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return np.maximum(np.minimum(x, self.x_ub[i]), self.x_lb[i])
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if self.x_lb[i] < x < self.x_ub[i]:
             return [0.0, 0.0]
         elif x == self.x_lb[i]:
@@ -62,7 +60,7 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
         else:
             return [np.nan, np.nan]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if x == 0.0:
             return [self.x_lb[i], self.x_ub[i]]
         elif x > 0.0:
@@ -72,21 +70,27 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
             s = self.x_lb[i]
             return [s, s]
 
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope_pos(self, i: int, lmbd: float) -> float:
         if self.x_ub[i] == 0.0:
             return np.inf
         return lmbd / self.x_ub[i]
 
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope_neg(self, i: int, lmbd: float) -> float:
         if self.x_lb[i] == 0.0:
             return -np.inf
         return lmbd / self.x_lb[i]
 
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit_pos(self, i: int, lmbd: float) -> float:
         return self.x_ub[i]
 
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit_neg(self, i: int, lmbd: float) -> float:
         return self.x_lb[i]
+    
+    def param_bndry_pos(self, i, lmbd):
+        return np.inf
+    
+    def param_bndry_neg(self, i, lmbd):
+        return -np.inf
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         model.gpos_con = pmo.constraint_dict()

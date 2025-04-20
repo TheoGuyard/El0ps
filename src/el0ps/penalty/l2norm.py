@@ -1,25 +1,22 @@
 import numpy as np
 import pyomo.kernel as pmo
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
-
-from .base import SymmetricPenalty, MipPenalty
+from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    r"""L2-norm penalty function.
+    """L2-norm penalty function expressed as 
 
-    The function is defined as
+    ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
-    .. math:: h(x) = \beta \|x\|_2^2
-
-    where :math:`\beta > 0`.
+    where ``hi(xi) = beta * xi^2`` for some ``beta > 0``.
 
     Parameters
     ----------
-    beta: float, positive
+    beta: float
         L2-norm weight.
     """
 
@@ -36,28 +33,31 @@ class L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
     def params_to_dict(self) -> dict:
         return dict(beta=self.beta)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return self.beta * x**2
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return x**2 / (4.0 * self.beta)
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return x / (1.0 + 2.0 * self.beta * eta)
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         s = 2.0 * self.beta * x
         return [s, s]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         s = x / (2.0 * self.beta)
         return [s, s]
 
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         return 2.0 * np.sqrt(lmbd * self.beta)
 
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit(self, i: int, lmbd: float) -> float:
         return np.sqrt(lmbd / self.beta)
+    
+    def param_bndry(self, i, lmbd):
+        return 2.0 * np.sqrt(lmbd * self.beta)
 
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
         model.g1_var = pmo.variable_dict()
