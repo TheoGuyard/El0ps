@@ -14,7 +14,7 @@ from el0ps.solver import BaseSolver, Result, Status
 class Path:
     """Regularization path fitting for L0-regularized problems expressed as
 
-        `min_{x in R^n} f(Ax) + lmbd * |x|_0 + h(x)`
+        `min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)`
 
     where `f` is a datafit function, `A` is a matrix, `h` is a penalty
     function, and `lmbd` is a positive scalar. The path fitting consists of

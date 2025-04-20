@@ -1,31 +1,21 @@
 """Base classes for L0-norm regression estimators."""
 
 import numpy as np
-from numpy.typing import ArrayLike
 from sklearn.base import RegressorMixin
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import Leastsquares
-from .base import BaseL0Estimator, select_bigml1l2_penalty, _fit
+from .base import L0Estimator
+from .utils import select_bigml1l2_penalty
 
 
-class BaseL0Regressor(BaseL0Estimator, RegressorMixin):
-    """Base class for L0-norm regression estimators."""
+class L0L1L2Regressor(L0Estimator, RegressorMixin):
+    """Scikit-learn-compatible `LinearModel` regression estimator corresponding
+    to a solution of L0-regularized problems expressed as
 
-    pass
+        `min_{||w||_{infty} <= M} 0.5 * ||Xw - y||_2^2 + lmbd * ||w||_0 + alpha * ||w||_1 + beta * ||w||_2^2`
 
-
-class L0L1L2Regressor(BaseL0Regressor):
-    r"""Sparse regressor with L0L1L2-norm regularization and Big-M constraint.
-
-    The optimization problem solved is
-
-    .. math::
-        \min        & \ \ \textstyle \frac{1}{2}\|y-Xw\|_2^2 + \lambda \|w\|_0 + \alpha \|w\|_1 + \beta \|w\|_2^2 \\
-        \text{s.t.} & \ \ \|w\|_{\infty} \leq M
-
-    where :math:`\alpha \geq 0`, :math:`\beta \geq 0` and :math:`M > 0`.
-    Setting :math:`alpha=0`, :math:`beta=0` or :math:`M=\infty` is allowed, but
-    not simulteanously.
+    where `alpha >= 0`, `beta >= 0` and `M > 0`. Setting `alpha = 0`,
+    `beta = 0` or `M = infty` is allowed, but not simultaneously.
 
 
     Parameters
@@ -53,20 +43,14 @@ class L0L1L2Regressor(BaseL0Regressor):
         fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
-        super().__init__(lmbd, fit_intercept, solver)
-        self.alpha = alpha
-        self.beta = beta
-        self.M = M
-
-    def fit(self, X: ArrayLike, y: ArrayLike):
-        datafit = Leastsquares(y)
-        penalty = select_bigml1l2_penalty(self.alpha, self.beta, self.M)
-        return _fit(self, datafit, penalty, X, self.lmbd, self.solver)
+        datafit = Leastsquares(np.zeros(0))
+        penalty = select_bigml1l2_penalty(alpha, beta, M)
+        super().__init__(datafit, penalty, lmbd, fit_intercept, solver)
 
 
 class L0Regressor(L0L1L2Regressor):
     """Substitute for :class:`.estimators.L0L1L2Regressor` with parameters
-    ``alpha=0`` and ``beta=0``."""
+    `alpha=0` and `beta=0`."""
 
     def __init__(
         self,
@@ -80,7 +64,7 @@ class L0Regressor(L0L1L2Regressor):
 
 class L0L1Regressor(L0L1L2Regressor):
     """Substitute for :class:`.estimators.L0L1L2Regressor` with parameter
-    ``beta=0``."""
+    `beta=0`."""
 
     def __init__(
         self,
@@ -94,8 +78,8 @@ class L0L1Regressor(L0L1L2Regressor):
 
 
 class L0L2Regressor(L0L1L2Regressor):
-    """Substitute for :class:`.estimators.L0L1L2Regressor` with parameter
-    ``alpha=0``."""
+    """Substitute for :class:`.estimators.L0L1L2Regressor` with parameters
+    `alpha=0`."""
 
     def __init__(
         self,

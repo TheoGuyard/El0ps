@@ -1,30 +1,21 @@
 """Base classes for L0-norm classifier estimators."""
 
 import numpy as np
-from numpy.typing import ArrayLike
 from sklearn.base import ClassifierMixin
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import Logistic
-from .base import BaseL0Estimator, select_bigml1l2_penalty, _fit
+from .base import L0Estimator
+from .utils import select_bigml1l2_penalty
 
 
-class BaseL0Classifier(BaseL0Estimator, ClassifierMixin):
-    """Base class for L0-norm classifier estimators."""
-    pass
+class L0L1L2Classifier(L0Estimator, ClassifierMixin):
+    """Scikit-learn-compatible `LinearModel` classifier estimator
+    corresponding to a solution of L0-regularized problems expressed as
 
+        `min_{||w||_{infty} <= M} 0.5 * sum(log(1 + exp(-(Xw * y)))) + lmbd * ||w||_0 + alpha * ||w||_1 + beta * ||w||_2^2`
 
-class L0L1L2Classifier(BaseL0Classifier):
-    r"""Sparse classifier with L0L1L2-norm regularization.
-
-    The optimization problem solved is
-
-    .. math::
-        \min        & \ \ \textstyle\sum_j(\log(1 + \exp(-y_j * X_j^{\top}w)) + \lambda \|w\|_0 + \alpha \|w\|_1 + \beta \|w\|_2^2 \\
-        \text{s.t.} & \ \ \|w\|_{\infty} \leq M
-
-    where :math:`\alpha \geq 0`, :math:`\beta \geq 0` and :math:`M > 0`.
-    Setting :math:`alpha=0`, :math:`beta=0` or :math:`M=\infty` is allowed, but
-    not simulteanously.
+    where `alpha >= 0`, `beta >= 0` and `M > 0`. Setting `alpha = 0`,
+    `beta = 0` or `M = infty` is allowed, but not simultaneously.
 
 
     Parameters
@@ -52,20 +43,14 @@ class L0L1L2Classifier(BaseL0Classifier):
         fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
-        super().__init__(lmbd, fit_intercept, solver)
-        self.alpha = alpha
-        self.beta = beta
-        self.M = M
-
-    def fit(self, X: ArrayLike, y: ArrayLike):
-        datafit = Logistic(y)
-        penalty = select_bigml1l2_penalty(self.alpha, self.beta, self.M)
-        return _fit(self, datafit, penalty, X, self.lmbd, self.solver)
+        datafit = Logistic(np.zeros(0))
+        penalty = select_bigml1l2_penalty(alpha, beta, M)
+        super().__init__(datafit, penalty, lmbd, fit_intercept, solver)
 
 
 class L0Classifier(L0L1L2Classifier):
     """Substitute for :class:`.estimators.L0L1L2Classifier` with parameters
-    ``alpha=0`` and ``beta=0``."""
+    `alpha=0` and `beta=0`."""
 
     def __init__(
         self,
@@ -79,7 +64,7 @@ class L0Classifier(L0L1L2Classifier):
 
 class L0L1Classifier(L0L1L2Classifier):
     """Substitute for :class:`.estimators.L0L1L2Classifier` with parameter
-    ``beta=0``."""
+    `beta=0`."""
 
     def __init__(
         self,
@@ -94,7 +79,7 @@ class L0L1Classifier(L0L1L2Classifier):
 
 class L0L2Classifier(L0L1L2Classifier):
     """Substitute for :class:`.estimators.L0L1L2Classifier` with parameter
-    ``alpha=0``."""
+    `alpha=0`."""
 
     def __init__(
         self,
