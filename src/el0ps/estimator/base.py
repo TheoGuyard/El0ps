@@ -1,99 +1,58 @@
 import numpy as np
-from abc import abstractmethod
 from numpy.typing import ArrayLike
-from sklearn.base import ClassifierMixin, _fit_context
+from sklearn.base import ClassifierMixin
 from sklearn.multiclass import check_classification_targets
 from sklearn.linear_model._base import LinearModel
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.validation import validate_data
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import BaseDatafit
-from el0ps.penalty import (
-    BasePenalty,
-    Bigm,
-    BigmL1norm,
-    BigmL2norm,
-    L1L2norm,
-    L1norm,
-    L2norm,
-)
+from el0ps.penalty import BasePenalty
 
 
-def _fit(
-    estimator,
-    datafit: BaseDatafit,
-    penalty: BasePenalty,
-    X: ArrayLike,
-    lmbd: float,
-    solver: BaseSolver,
-    skip_validate_data: bool = False,
-):
-    if not skip_validate_data:
-        if isinstance(estimator, ClassifierMixin):
-            check_classification_targets(datafit.y)
-            enc = LabelEncoder()
-            datafit.y = enc.fit_transform(datafit.y)
-            datafit.y = 2.0 * datafit.y - 1.0
-            if len(enc.classes_) > 2:
-                raise ValueError("Only binary classification is supported")
-            estimator.classes_ = np.unique(datafit.y)
-        else:
-            estimator.classes_ = None
-        check_X_params = dict(dtype=np.float64, order="F")
-        check_y_params = dict(dtype=np.float64, order="F", ensure_2d=False)
-        X, datafit.y = estimator._validate_data(
-            X, datafit.y, validate_separately=(check_X_params, check_y_params)
-        )
-        assert datafit.y.ndim == 1
+class L0Estimator(LinearModel):
+    """Scikit-learn-compatible `LinearModel` estimators corresponding to
+    solutions of L0-regularized problems expressed as
 
-    # Initialize estimator.coef_
-    if not hasattr(estimator, "coef_"):
-        estimator.coef_ = None
-    if estimator.coef_ is None:
-        estimator.coef_ = np.zeros(X.shape[1])
+        `min_{w in R^n} f(Xw) + lmbd * ||w||_0 + h(w)`
 
-    # Initialize estimator.intercept_
-    if not hasattr(estimator, "intercept_"):
-        estimator.intercept_ = None
-    if estimator.intercept_ is None:
-        estimator.intercept_ = 0.0
+    where `f` is a datafit function, `X` is a matrix, `h` is a penalty
+    function, and `lmbd` is a positive scalar.
 
-    # Solve the estimator optimization problem
-    result = solver.solve(datafit, penalty, X, lmbd, x_init=estimator.coef_)
-
-    # Recover the results
-    estimator.is_fitted_ = True
-    estimator.fit_result_ = result
-    estimator.coef_ = np.copy(result.x)
-    estimator.n_iter_ = result.iter_count
-    # TODO: Recover intercept when supported
-
-    return estimator
-
-
-class BaseL0Estimator(LinearModel):
-    """Base class for L0-norm estimators.
-
-    The optimization problem solved is
-
-    .. math:: \min f(Xw) + \lambda \|w\|_0 + h(w)
-
-    where :math:`f` is a datafit term, :math:`h` is a penalty term and
-    :math:`lmbd` is the L0-norm weight. The derived classes implement how
-    the datafit and penalty terms are defined.
-    """  # noqa: W605
+    Parameters
+    ----------
+    datafit: BaseDatafit
+        Datafit function.
+    penalty: BasePenalty
+        Penalty function.
+    lmbd: float
+        L0-norm weight.
+    fit_intercept: bool, default=False
+        Whether to fit an intercept term.
+    solver: BaseSolver, default=BnbSolver()
+        Solver for the estimator associated problem.
+    """
 
     def __init__(
         self,
-        lmbd: float = 1.0,
+        datafit: BaseDatafit,
+        penalty: BasePenalty,
+        lmbd: float,
         fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ) -> None:
 
         if fit_intercept:
             raise NotImplementedError("Fit intercept not implemented yet")
-        if lmbd <= 0.0:
-            raise ValueError("Parameter `lmbd` must be non-negative")
 
+        if not hasattr(datafit, "y"):
+            raise ValueError(
+                "The datafit object must have an attribute `y` to be used in "
+                "an `L0Estimator`."
+            )
+
+        self.datafit = datafit
+        self.penalty = penalty
         self.lmbd = lmbd
         self.fit_intercept = fit_intercept
         self.solver = solver
@@ -103,40 +62,56 @@ class BaseL0Estimator(LinearModel):
         self.intercept_ = None
         self.n_iter_ = None
 
-    @_fit_context(prefer_skip_nested_validation=True)
-    @abstractmethod
     def fit(self, X: ArrayLike, y: ArrayLike):
-        """Fit the estimator.
 
-        Parameters
-        ----------
-        X : ArrayLike, shape (n_samples, n_features)
-            Data matrix.
-
-        y : ArrayLike, shape (n_samples,)
-            Target vector.
-        """
-        ...
-
-
-def select_bigml1l2_penalty(
-    alpha: float = 0.0, beta: float = 0.0, M: float = np.inf
-):
-    if alpha == 0.0 and beta == 0.0 and M != np.inf:
-        penalty = Bigm(M)
-    elif alpha != 0.0 and beta == 0.0 and M == np.inf:
-        penalty = L1norm(alpha)
-    elif alpha != 0.0 and beta == 0.0 and M != np.inf:
-        penalty = BigmL1norm(M, alpha)
-    elif alpha == 0.0 and beta != 0.0 and M == np.inf:
-        penalty = L2norm(beta)
-    elif alpha == 0.0 and beta != 0.0 and M != np.inf:
-        penalty = BigmL2norm(M, beta)
-    elif alpha != 0.0 and beta != 0.0 and M == np.inf:
-        penalty = L1L2norm(alpha, beta)
-    else:
-        raise ValueError(
-            "Setting `alpha=0`, `beta=0` and `M=np.inf` simulteanously is not "
-            "allowed."
+        # Sanity checks
+        if isinstance(self, ClassifierMixin):
+            check_classification_targets(y)
+            enc = LabelEncoder()
+            y = enc.fit_transform(y)
+            y = 2.0 * y - 1.0
+            if len(enc.classes_) > 2:
+                raise ValueError("Only binary classification is supported.")
+            self.classes_ = np.unique(y)
+        else:
+            self.classes_ = None
+        check_X_params = dict(dtype=np.float64, order="F")
+        check_y_params = dict(dtype=np.float64, order="F", ensure_2d=False)
+        X, y = validate_data(
+            self, X, y, validate_separately=(check_X_params, check_y_params)
         )
-    return penalty
+        assert y.ndim == 1
+
+        # Initialize estimator.coef_
+        if self.coef_ is None:
+            self.coef_ = np.zeros(X.shape[1])
+
+        # Initialize estimator.intercept_
+        if self.intercept_ is None:
+            self.intercept_ = 0.0
+
+        # Update datafit target vector
+        y_old = np.copy(self.datafit.y)
+        self.datafit.y = y
+
+        # Solve the estimator optimization problem
+        result = self.solver.solve(
+            self.datafit,
+            self.penalty,
+            X,
+            self.lmbd,
+            x_init=self.coef_
+        )
+
+        # Reset the datafit target vector
+        self.datafit.y = y_old
+
+        # Recover the results
+        self.is_fitted_ = True
+        self.fit_result_ = result
+        self.coef_ = np.copy(result.x)
+        self.n_iter_ = result.iter_count
+        # TODO: Recover intercept when supported
+        self.intercept_ = 0.0
+
+        return self
