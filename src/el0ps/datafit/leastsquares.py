@@ -1,27 +1,26 @@
 import numpy as np
 import pyomo.kernel as pmo
 from numba import float64
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 from el0ps.compilation import CompilableClass
-
-from .base import BaseDatafit, MipDatafit
+from el0ps.datafit.base import BaseDatafit, MipDatafit
 
 
 class Leastsquares(CompilableClass, BaseDatafit, MipDatafit):
-    r"""Least-squares datafit function.
+    """Least-squares datafit function defined as
 
-    The function is defined as
+    ``f(w) = sum_{i=1,...,m} 0.5 * (yi - wi)^2``
 
-    .. math:: f(x) = \frac{1}{2} ||y - x||_2^2
+    where ``y in R^m`` is a vector.
 
     Parameters
     ----------
-    y: ArrayLike
+    y : NDArray
         Data vector.
     """
 
-    def __init__(self, y: ArrayLike) -> None:
+    def __init__(self, y: NDArray) -> None:
         self.y = y
         self.L = 1.0
 
@@ -35,14 +34,14 @@ class Leastsquares(CompilableClass, BaseDatafit, MipDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: ArrayLike) -> float:
+    def value(self, x: NDArray) -> float:
         v = x - self.y
         return 0.5 * np.dot(v, v)
 
-    def conjugate(self, x: ArrayLike) -> float:
+    def conjugate(self, x: NDArray) -> float:
         return 0.5 * np.dot(x, x) + np.dot(x, self.y)
 
-    def gradient(self, x: ArrayLike) -> ArrayLike:
+    def gradient(self, x: NDArray) -> NDArray:
         return x - self.y
 
     def gradient_lipschitz_constant(self) -> float:

@@ -1,29 +1,27 @@
 import numpy as np
 from numba import float64
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from el0ps.compilation import CompilableClass
 
-from .base import BaseDatafit
+from el0ps.datafit.base import BaseDatafit
 
 
 class KullbackLeibler(CompilableClass, BaseDatafit):
-    r"""Kullback-Leibler datafit function.
+    """Kullback-Leibler datafit function defined as
 
-    The function is defined as
+    ``f(w) = sum_{i=1,...,m} yi * log(yi / (wi + e)) + (wi + e) - yi``
 
-    .. math:: f(w) = y^T (\log(\frac{y}{w + e}) + (w + e) - y)
-
-    where :math:`e > 0` is a smoothing parameter.
+    where ``y in R^m`` is a vector and ``e > 0`` is a smoothing parameter.
 
     Parameters
     ----------
-    y: ArrayLike
+    y : NDArray
         Data vector.
-    e: float = 1e-8
-        Positive smoothing parameter.
-    """  # noqa: E501
+    e : float = 1e-8
+        Smoothing parameter.
+    """
 
-    def __init__(self, y: ArrayLike, e: float = 1e-8) -> None:
+    def __init__(self, y: NDArray, e: float = 1e-8) -> None:
         self.y = y
         self.e = e
         self.L = np.max(y) / e**2
@@ -44,18 +42,18 @@ class KullbackLeibler(CompilableClass, BaseDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y, e=self.e)
 
-    def value(self, w: ArrayLike) -> float:
+    def value(self, w: NDArray) -> float:
         z = np.maximum(w, 0.0) + self.e
         return np.sum(self.y * np.log(self.y / z) + z - self.y)
 
-    def conjugate(self, w: ArrayLike) -> float:
+    def conjugate(self, w: NDArray) -> float:
         u = w
         v = 1.0 - u
         if np.any(v <= 0.0):
             return np.inf
         return np.sum(self.y * (self.log_yy - np.log(v)) - self.e * u)
 
-    def gradient(self, w: ArrayLike) -> ArrayLike:
+    def gradient(self, w: NDArray) -> NDArray:
         z = np.maximum(w, 0.0) + self.e
         return 1.0 - self.y / z
 

@@ -11,8 +11,8 @@ class BasePenalty:
      
     ``h(x) = sum_{i = 1,...,n} h_i(x_i)``
 
-    where each splitting term ``h_i`` is proper, closed, convex, coercive,
-    non-negative and minimized at 0.
+    where each splitting term ``h_i`` is proper, lower-semicontinuous, convex,
+    coercive, non-negative and minimized at 0.
     """
 
     @abstractmethod
@@ -21,14 +21,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
+        x : float
             Value at which the splitting term is evaluated.
 
         Returns
         -------
-        value: float
+        value : float
             The value of the i-th splitting term of the function at ``x``.
         """
         ...
@@ -40,14 +40,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
+        x : float
             Value at which the convex conjugate is evaluated.
 
         Returns
         -------
-        value: float
+        value : float
             The value of the convex conjugate.
         """
         ...
@@ -59,16 +59,16 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
+        x : float
             Value at which the proximal operator is evaluated.
-        eta: float, positive
+        eta : float, positive
             Multiplicative weight.
 
         Returns
         -------
-        value: float
+        value : float
             The value of the proximity operator.
         """
         ...
@@ -80,14 +80,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
+        x : float
             Value at which the subdifferential is evaluated.
 
         Returns
         -------
-        value: NDArray
+        value : NDArray
             1D-array of size 2 containing the lower and upper bounds of the
             interval corresponding to the subdifferential.
         """
@@ -100,14 +100,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
+        x : float
             Value at which the subdifferential of the conjugate is evaluated.
 
         Returns
         -------
-        value: NDArray
+        value : NDArray
             1D-array of size 2 containing the lower and upper bounds of the
             interval corresponding to the conjugate subdifferential.
         """
@@ -119,14 +119,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the set definition.
-        lmbd: float
+        lmbd : float
             Threshold value in the set definition.
 
         Returns
         -------
-        value: float
+        value : float
             The supremum of the set.
         """
         ...
@@ -137,14 +137,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the set definition.
-        lmbd: float
+        lmbd : float
             Threshold value in the set definition.
 
         Returns
         -------
-        value: float
+        value : float
             The infimum of the set.
         """
         ...
@@ -155,14 +155,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the definition of ``tau``.
-        lmbd: float
+        lmbd : float
             Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
+        value : float
             The supremum of the set.
         """
         s = self.conjugate_subdiff(i, self.param_slope_pos(i, lmbd))
@@ -174,14 +174,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the definition of ``tau``.
-        lmbd: float
+        lmbd : float
             Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
+        value : float
             The infimum of the set.
         """
         s = self.conjugate_subdiff(i, self.param_slope_neg(i, lmbd))
@@ -193,14 +193,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the definition of ``tau``.
-        lmbd: float
+        lmbd : float
             Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
+        value : float
             The supremum of the set.
         """
         tau = self.param_limit_pos(i, lmbd)
@@ -212,14 +212,14 @@ class BasePenalty:
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the definition of ``tau``.
-        lmbd: float
+        lmbd : float
             Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
+        value : float
             The supremum of the set.
         """
         tau = self.param_limit_neg(i, lmbd)
@@ -238,14 +238,14 @@ class SymmetricPenalty(BasePenalty):
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term in the set definition.
-        lmbd: float
+        lmbd : float
             Threshold value in the set definition.
 
         Returns
         -------
-        value: float
+        value : float
             The supremum of the set.
         """
         ...
@@ -296,9 +296,9 @@ class MipPenalty:
 
         Parameters
         ----------
-        model: pmo.block
+        model : pmo.block
             The pyomo kernel model.
-        lmbd: float
+        lmbd : float
             The scalar parameter involved in the expressions to be modeled.
         """
         ...
@@ -317,15 +317,15 @@ def compute_param_slope_pos(
 
     Parameters
     ----------
-    penalty: BasePenalty
+    penalty : BasePenalty
         The penalty function.
-    i: int
+    i : int
         Parameter involved in the ``penalty.param_slope_pos`` function.
-    lmbd: float
+    lmbd : float
         Parameter involved in the ``penalty.param_slope_pos`` function.
-    tol: float = 1e-4
+    tol : float = 1e-4
         Bisection approximation tolerance.
-    maxit: int = 100
+    maxit : int = 100
         Maximum number of bisection iterations.
     """
     a = 0.0
@@ -360,15 +360,15 @@ def compute_param_slope_neg(
 
     Parameters
     ----------
-    penalty: BasePenalty
+    penalty : BasePenalty
         The penalty function.
-    i: int
+    i : int
         Parameter involved in the ``penalty.param_slope_neg`` function.
-    lmbd: float
+    lmbd : float
         Parameter involved in the ``penalty.param_slope_neg`` function.
-    tol: float = 1e-4
+    tol : float = 1e-4
         Bisection approximation tolerance.
-    maxit: int = 100
+    maxit : int = 100
         Maximum number of bisection iterations.
     """
     a = -1.0

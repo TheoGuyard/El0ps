@@ -2,59 +2,57 @@
 
 import pyomo.kernel as pmo
 from abc import abstractmethod
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 
 class BaseDatafit:
-    """Base class for datafit functions. The function takes a real vector as
-    input and returns an extended-real value in ]-infty,+infty]. It is assumed
-    to be proper, lower semicontinuous, convex, and differentiable with a
-    Lipschitz-continuous gradient."""
+    """Base class for datafit functions, assumed proper, lower-semicontinuous,
+    convex, and differentiable with a Lipschitz-continuous gradient."""
 
     @abstractmethod
-    def value(self, x: ArrayLike) -> float:
+    def value(self, x: NDArray) -> float:
         """Value of the function at ``x``.
 
         Parameters
         ----------
-        x: ArrayLike
+        x : NDArray
             Vector at which the function is evaluated.
 
         Returns
         -------
-        value: float
+        value : float
             The function value at ``x``.
         """
         ...
 
     @abstractmethod
-    def conjugate(self, x: ArrayLike) -> float:
-        """Value of the conjugate of the function at ``x``.
+    def conjugate(self, x: NDArray) -> float:
+        """Value of the convex conjugate of the function at ``x``.
 
         Parameters
         ----------
-        x: ArrayLike
+        x : NDArray
             Vector at which the conjugate is evaluated.
 
         Returns
         -------
-        value: float
+        value : float
             The conjugate value at ``x``.
         """
         ...
 
     @abstractmethod
-    def gradient(self, x: ArrayLike) -> ArrayLike:
+    def gradient(self, x: NDArray) -> NDArray:
         """Value of gradient at ``x``.
 
         Parameters
         ----------
-        x: ArrayLike
+        x : NDArray
             Vector at which the gradient is evaluated.
 
         Returns
         -------
-        g: ArrayLike
+        value : NDArray
             The gradient at ``x``.
         """
         ...
@@ -65,7 +63,7 @@ class BaseDatafit:
 
         Returns
         -------
-        L: float
+        value : float
             The Lipschitz constant of the gradient.
         """
         ...
@@ -76,14 +74,16 @@ class MipDatafit:
 
     @abstractmethod
     def bind_model(self, model: pmo.block) -> None:
-        """Bind the datafit function into a pyomo kernel model. The model
-        should contain a scalar and unconstrained variable `model.f` as well as
-        a variable `model.w` with size `model.M`. The `bind_model` function
-        binds the epigraph formulation `model.f >= self.value(model.w)`.
+        """In a pyomo model containing a real scalar variable `model.f` and a
+        real vector variable `model.w` of size `model.M`, bind the relation
 
-        Arguments
-        ---------
-        model: pmo.block
-            The pyomo mixed-integer programming model (kernel model).
+        ``model.f >= self.value(model.w)``
+
+        using ``pyomo`` expressions.
+
+        Parameters
+        ----------
+        model : pmo.block
+            The pyomo kernel model.
         """
         ...
