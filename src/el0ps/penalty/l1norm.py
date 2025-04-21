@@ -7,7 +7,7 @@ from el0ps.penalty.base import SymmetricPenalty
 
 
 class L1norm(CompilableClass, SymmetricPenalty):
-    """L1-norm penalty function expressed as 
+    """L1-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -63,6 +63,6 @@ class L1norm(CompilableClass, SymmetricPenalty):
 
     def param_limit(self, i: int, lmbd: float) -> float:
         return np.inf
-    
+
     def param_bndry(self, i, lmbd):
         return np.inf

@@ -1,23 +1,24 @@
 El0ps
 =====
-*-An Exact L0-Problem Solver-*
+*Exact L0-Problem Solver*
 
 [![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://theoguyard.github.io/El0ps/html/index.html)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/release/python-390/)
 [![PyPI version](https://badge.fury.io/py/el0ps.svg)](https://pypi.org/project/el0ps/)
-<!-- [![codecov](https://codecov.io/github/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/github/TheoGuyard/El0ps) -->
+[![codecov](https://codecov.io/github/TheoGuyard/El0ps/graph/badge.svg?token=H2IA4O67X6)](https://codecov.io/github/TheoGuyard/El0ps)
 [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE)
 
-``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
-It also implements [scikit-learn](https://scikit-learn.org>) compatible estimators involving these problems.
-You can use some already-made problem instances or **customize your own** based on several templates and utilities.
+``el0ps`` is a Python package providing several utilities to handle **L0-regularized** optimization problems. It includes
+- A **flexible** framework with built-in instances and the possibility to define custom ones,
+- A **state-of-the-art** solver based on a specialized Branch-and-Bound algorithm,
+- A **[scikit-learn](https://scikit-learn.org>)** compatible interface providing linear model estimators based on L0-regularized optimization problems.
 
 Check out the [documentation](https://theoguyard.github.io/El0ps/html/index.html) for a starting tour of the package.
 
 ## Installation
 
-`el0ps` is available on [pypi](https://pypi.org/project/el0ps). The latest version of the package can be installed as
+`el0ps` is available on [pypi](https://pypi.org/project/el0ps) and its latest version can be installed as follows:
 
 
 ```shell
@@ -26,50 +27,56 @@ pip install el0ps
 
 ## Quick start
 
-``el0ps`` addresses optimization problems expressed as
+``el0ps`` addresses L0-regularized optimization problems expressed as
 
-$$\tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
+$$\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
 
-where $f(\cdot)$ is a **datafit** function, $h(\cdot)$ is a **penalty** function, $\mathbf{A} \in \mathbb{R}^{m \times n}$ is a matrix and $\lambda>0$ is an hyperparameter.
-The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for [scikit-learn](https://scikit-learn.org>) estimators and other utilities.
+for some matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ and parameter $\lambda>0$.
+These problems aim at minimizing a trade off between a datafit function $f$ modelling the application at hand and the L0-norm which counts the number of non-zeros in its argument to promote sparse solutions.
+The additional penalty function $h$ can be used to enforce other desirable properties on the solutions and is involved in the construction of efficient solution methods.
 
-### Create and solve problem instances
 
-An instance of problem $(\mathcal{P})$ can be created and solved as simply as follows.
+### Creating and solving problem instances
+
+An instance of L0-regularized problem can be created and solved using few lines of code.
+The following example illustrates how to use built-in utilities provided by `el0ps` to instantiate an solve a problem.
 
 ```python
-import numpy as np
+from sklearn.datasets import make_regression
 from el0ps.datafit import Leastsquares
 from el0ps.penalty import L2norm
 from el0ps.solver import BnbSolver
 
-# Generate sparse regression data
-np.random.seed(0)
-x = np.zeros(100)
-s = np.random.randint(100, size=5)
-x[s] = 1.
-A = np.random.randn(50, 100)
-A /= np.linalg.norm(A, ord=2)
-y = A @ x
-e = np.random.randn(50)
-e *= np.sqrt((y @ y) / (10. * (e @ e)))
-y += e
+# Generate sparse regression data using sklearn
+A, y = make_regression(n_samples=30, n_features=50, n_informative=5)
 
-# Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
+# Instantiate a least-squares loss f(w) = 0.5 * ||y - w||_2^2
 datafit = Leastsquares(y)
 
-# Instantiate the function h(x) = beta * ||x||_2^2
+# Instantiate an L2-norm penalty h(x) = beta * ||x||_2^2
 penalty = L2norm(beta=0.1)
 
-# Solve the problem with el0ps' Branch-and-Bound solver
+# Set the L0-regularization weight
+lmbd = 10.0
+
+# Solve the corresponding problem with el0ps' solver
 solver = BnbSolver()
-result = solver.solve(datafit, penalty, A, lmbd=0.01)
+result = solver.solve(datafit, penalty, A, lmbd)
+
+# Displays of result
+>>> Result
+>>>   Status     : optimal
+>>>   Solve time : 0.045835 seconds
+>>>   Iter count : 583
+>>>   Objective  : 707.432177
+>>>   Non-zeros  : 5
 ```
 
-You can pass various options to the solver and once the problem is solved, you can recover different quantities such as the solver status, the solution or the optimal value of the problem from the ``result`` variable.
-
+Various options can be passed to the `BnbSolver` class to tune its behavior. The problem solution can be recovered from the `result.x` attribute. Several other statistics on the solution process are also available in the `result` object.
 
 ### Fitting regularization paths
+
+`el0ps` also provides a convenient pipeline to fit regularization paths, that is, solve an L0-regularized problem over a grid of parameter $\lambda$.
 
 You can also fit a regularization path where problem $(\mathcal{P})$ is solved over a grid of $\lambda$.
 Fitting a path with `lmbd_num` different values of this parameter logarithmically spaced from some `lmbd_max` to some `lmbd_min` can be simply done as follows.

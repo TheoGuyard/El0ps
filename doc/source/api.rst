@@ -13,6 +13,7 @@ Estimators
 .. autosummary::
     :toctree: generated/
 
+    L0Estimator
     L0Classifier
     L0L1Classifier
     L0L2Classifier
@@ -47,14 +48,16 @@ Datafits
 Penalties
 =========
 
-
 .. currentmodule:: el0ps.penalty
 
 .. autosummary::
     :toctree: generated/
 
     BasePenalty
+    SymmetricPenalty
     MipPenalty
+    compute_param_slope_scalar
+    compute_param_limit_scalar
     Bigm
     BigmL1norm
     BigmL2norm
@@ -99,5 +102,3 @@ Utils
     :toctree: generated/
 
     compute_lmbd_max
-    compute_param_slope_scalar
-    compute_param_limit_scalar

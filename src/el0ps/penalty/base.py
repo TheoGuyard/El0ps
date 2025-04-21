@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 
 class BasePenalty:
     """Base class for penalty defined as separable functions expressed as
-     
+
     ``h(x) = sum_{i = 1,...,n} h_i(x_i)``
 
     where each splitting term ``h_i`` is proper, lower-semicontinuous, convex,
@@ -259,20 +259,20 @@ class SymmetricPenalty(BasePenalty):
     def param_limit(self, i: int, lmbd: float) -> float:
         s = self.conjugate_subdiff(i, self.param_slope(i, lmbd))
         return np.inf if np.all(np.isnan(s)) else s[1]
-    
+
     def param_limit_pos(self, i, lmbd):
         return self.param_limit(i, lmbd)
-    
+
     def param_limit_neg(self, i, lmbd):
         return -self.param_limit(i, lmbd)
-    
+
     def param_bndry(self, i: int, lmbd: float) -> float:
         tau = self.param_limit(i, lmbd)
         return np.inf if tau < np.inf else self.subdiff(i, tau)[1]
-    
+
     def param_bndry_pos(self, i: int, lmbd: float) -> float:
         return self.param_bndry(i, lmbd)
-    
+
     def param_bndry_neg(self, i: int, lmbd: float) -> float:
         return -self.param_bndry(i, lmbd)
 
@@ -287,7 +287,7 @@ class MipPenalty:
         variable `model.z` of size `model.N`, bind the relations
 
         ``model.g >= lmbd * sum(model.z) + self.value(model.x)``
-    
+
         and
 
         ``model.z[i] = 0 ==> model.x[i] = 0 for all i in model.N``
@@ -388,4 +388,3 @@ def compute_param_slope_neg(
         else:
             b = c
     return c
-

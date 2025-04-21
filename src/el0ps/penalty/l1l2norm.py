@@ -8,7 +8,7 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """L1L2-norm penalty function expressed as 
+    """L1L2-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -73,7 +73,7 @@ class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
 
     def param_limit(self, i: int, lmbd: float) -> float:
         return np.sqrt(lmbd / self.beta)
-    
+
     def param_bndry(self, i, lmbd):
         return (self.alpha + 2.0 * self.beta) * np.sqrt(lmbd / self.beta)
 

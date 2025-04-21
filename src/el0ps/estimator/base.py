@@ -96,11 +96,7 @@ class L0Estimator(LinearModel):
 
         # Solve the estimator optimization problem
         result = self.solver.solve(
-            self.datafit,
-            self.penalty,
-            X,
-            self.lmbd,
-            x_init=self.coef_
+            self.datafit, self.penalty, X, self.lmbd, x_init=self.coef_
         )
 
         # Reset the datafit target vector

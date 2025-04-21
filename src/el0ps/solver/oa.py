@@ -7,7 +7,10 @@ import sys
 from time import time
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
+from pyomo.opt import OptSolver
+
+from el0ps.compilation import CompilableClass, compiled_clone
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 from el0ps.solver import BaseSolver, Result, Status
@@ -15,28 +18,38 @@ from el0ps.solver.mip import _mip_optim_bindings
 
 
 class OaSolver(BaseSolver):
-    """Outer Approximation solver for L0-regularized problems.
+    """Outer Approximation solver for L0-regularized problems expressed as
+
+    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+
+    where ``f`` is a datafit function, ``A`` is a matrix, ``lmbd`` is a
+    positive scalar, and ``h`` is a penalty function. This method is based on
+    the work presented in "A unified approach to mixed-integer optimization
+    problems with logical constraints" by D. Bertsimas et al. To use this
+    solver, the optimizer specified in the `optimizer_name` parameter must be
+    installed and accessible by ``pyomo`` (https://github.com/Pyomo) which is
+    the underlying library used to model the outer problem.
 
     Parameters
     ----------
     optimizer_name: str = "gurobi"
-        Mixed-Integer Programming optimizer to use. Available options are
-        "cplex", "gurobi", and "mosek".
-    relative_gap: float
-        Relative Mixed-Integer Programming tolerance.
-    absolute_gap: float
-        Absolute Mixed-Integer Programming tolerance.
-    time_limit: float
-        Outer-Approximation solver time limit in seconds.
-    iter_limit: float
-        Outer-Approximation solver iteration limit.
-    inner_iter_limit: float
-        Inner solver iteration limit.
-    inner_rel_tol: float
-        Inner solver tolerance.
-    verbose: bool
+        Mixed-Integer Programming optimizer to use in the outer step. Available
+        options are "cplex", "gurobi", and "mosek".
+    relative_gap: float, default=1e-8
+        Relative tolerance on the objective value.
+    absolute_gap: float, default=0.0
+        Absolute tolerance on the objective value.
+    time_limit: float, default=sys.maxsize
+        Limit in second on the solving time.
+    iter_limit: float, default=sys.maxsize
+        Limit on the number of outer-approximation steps performed.
+    inner_iter_limit: float, default=sys.maxsize
+        Maximum number of iterations for the inner steps optimization solver.
+    inner_rel_tol: float, default=1e-8
+        Relative tolerance on the objective value for the inner steps.
+    verbose: bool, default=False
         Whether to toggle solver verbosity.
-    keeptrace: bool
+    keeptrace: bool, default=False
         Whether to store the solver trace.
     """
 
@@ -57,7 +70,7 @@ class OaSolver(BaseSolver):
         time_limit: float = float(sys.maxsize),
         iter_limit: int = sys.maxsize,
         inner_iter_limit: int = sys.maxsize,
-        inner_rel_tol: float = 1e-4,
+        inner_rel_tol: float = 1e-8,
         verbose: bool = False,
         keeptrace: bool = False,
     ) -> None:
@@ -74,7 +87,7 @@ class OaSolver(BaseSolver):
     def __str__(self):
         return "OaSolver"
 
-    def initialize_optimizer(self):
+    def initialize_optimizer(self) -> OptSolver:
         if self.optimizer_name in _mip_optim_bindings:
             bindings = _mip_optim_bindings[self.optimizer_name]
             optim = pyo.SolverFactory(bindings["optimizer_name"])
@@ -109,9 +122,7 @@ class OaSolver(BaseSolver):
         model.t_con = pmo.constraint_dict()
         return model
 
-    def add_cut(
-        self, optim, model, z: ArrayLike, f: float, g: ArrayLike
-    ) -> None:
+    def add_cut(self, optim, model, z: NDArray, f: float, g: NDArray) -> None:
         self.cuts_count += 1
         model.t_con[self.cuts_count] = pmo.constraint(
             model.t >= f + sum(g[i] * (model.z[i] - z[i]) for i in model.N)
@@ -143,19 +154,19 @@ class OaSolver(BaseSolver):
                 ai = self.A[:, i]
                 xi = x[i]
                 ci = xi + self.stepsize[i] * np.dot(ai, u)
-                x[i] = self.penalty.prox_scalar(i, ci, self.stepsize[i])
+                x[i] = self.penalty.prox(i, ci, self.stepsize[i])
                 if x[i] != xi:
                     w += (x[i] - xi) * ai
                     u[:] = -self.datafit.gradient(w)
-            pv = self.datafit.value(w) + self.penalty.value(x)
+            pv = self.datafit.value(w) + sum(
+                self.penalty.value(xi) for xi in x
+            )
             rtol = np.abs(pv - pv_old) / (np.abs(pv) + 1e-10)
             if rtol < self.inner_rel_tol:
                 break
 
         v = self.A.T @ u
-        g = np.array(
-            [self.penalty.conjugate_scalar(i, vi) for i, vi in enumerate(v)]
-        )
+        g = np.array([self.penalty.conjugate(i, vi) for i, vi in enumerate(v)])
         dv = -self.datafit.conjugate(-u) - np.dot(z, g)
         self.timer_inner += time() - start_time_inner
 
@@ -225,12 +236,39 @@ class OaSolver(BaseSolver):
 
     def solve(
         self,
-        datafit: Union[BaseDatafit, JitClassType],
-        penalty: Union[BasePenalty, JitClassType],
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, CompilableClass, JitClassType],
+        penalty: Union[BasePenalty, CompilableClass, JitClassType],
+        A: NDArray,
         lmbd: float,
-        x_init: Union[ArrayLike, None] = None,
+        x_init: Union[NDArray, None] = None,
     ):
+        """Solve an L0-regularized problem.
+
+        Parameters
+        ----------
+        datafit: Union[BaseDatafit, JitClassType]
+            Problem datafit function. If not already JIT-compiled the solver
+            automatically compiles if it derives from the
+            :class:`el0ps.compilation.CompilableClass`.
+        penalty: Union[BaseDatafit, JitClassType]
+            Problem penalty function. If not already JIT-compiled the solver
+            automatically compiles if it derives from the
+            :class:`el0ps.compilation.CompilableClass`.
+        A: NDArray
+            Problem matrix.
+        lmbd: float
+            Problem L0-norm weight parameter.
+        x_init: Union[NDArray, None], default=None
+            Initial point for the solver. If `None`, the solver initializes it
+            to the all-zero vector.
+        """
+
+        if isinstance(datafit, CompilableClass):
+            if not isinstance(datafit, JitClassType):
+                datafit = compiled_clone(datafit)
+        if isinstance(penalty, CompilableClass):
+            if not isinstance(penalty, JitClassType):
+                penalty = compiled_clone(penalty)
 
         self.datafit = datafit
         self.penalty = penalty
@@ -246,7 +284,7 @@ class OaSolver(BaseSolver):
         self.upper_bound = (
             self.datafit.value(self.A @ self.x)
             + self.lmbd * np.linalg.norm(self.x, 0)
-            + self.penalty.value(self.x)
+            + sum(self.penalty.value(xi) for xi in self.x)
         )
         self.lower_bound = -np.inf
         self.trace = {k: [] for k in self._trace_keys}

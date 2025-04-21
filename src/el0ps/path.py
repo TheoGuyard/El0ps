@@ -13,9 +13,9 @@ from el0ps.utils import compute_lmbd_max
 
 class Path:
     """Regularization path fitting for L0-regularized problems expressed as
-    
+
     ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
-    
+
     where ``f`` is a datafit function, ``A`` is a matrix, ``h`` is a penalty
     function, and ``lmbd`` is a positive scalar. The path fitting consists of
     solving the problem over a range of values of parameter ``lmbd``.
@@ -87,15 +87,11 @@ class Path:
             lmbd_grid = np.array(self.lmbds)
         elif self.lmbd_scale == "log":
             lmbd_grid = np.logspace(
-                np.log10(self.lmbd_max),
-                np.log10(self.lmbd_min),
-                self.lmbd_num
+                np.log10(self.lmbd_max), np.log10(self.lmbd_min), self.lmbd_num
             )
         elif self.lmbd_scale == "lin":
             lmbd_grid = np.linspace(
-                self.lmbd_max,
-                self.lmbd_min,
-                self.lmbd_num
+                self.lmbd_max, self.lmbd_min, self.lmbd_num
             )
         else:
             raise ValueError(
@@ -123,7 +119,7 @@ class Path:
 
     def _display_path_info(self, lmbd: float, result: Result) -> None:
         print(
-          "  {:>10.2f}  {:>10}  {:>10.4f}  {:>10.2f}  {:>10d}".format(
+            "  {:>10.2f}  {:>10}  {:>10.4f}  {:>10.2f}  {:>10d}".format(
                 lmbd,
                 result.status,
                 result.solve_time,
@@ -146,6 +142,8 @@ class Path:
 
         Parameters
         ----------
+        solver: BaseSolver
+            Solver to use for the path fitting.
         datafit: BaseDatafit
             Problem datafit function.
         penalty: BasePenalty

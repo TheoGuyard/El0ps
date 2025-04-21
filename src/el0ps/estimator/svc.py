@@ -44,6 +44,10 @@ class L0L1L2SVC(L0Estimator, ClassifierMixin):
         fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
+        self.lmbd = lmbd
+        self.alpha = alpha
+        self.beta = beta
+        self.M = M
         datafit = Squaredhinge(np.zeros(0))
         penalty = select_bigml1l2_penalty(alpha, beta, M)
         super().__init__(datafit, penalty, lmbd, fit_intercept, solver)

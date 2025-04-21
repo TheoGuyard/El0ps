@@ -24,7 +24,7 @@ datafits = [
 
 
 @pytest.mark.parametrize("datafit", datafits)
-def test_instances(datafit: BaseDatafit):
+def test_datafit(datafit: BaseDatafit):
     assert isinstance(datafit.__str__(), str)
     assert datafit.value(x) + datafit.conjugate(u) >= np.dot(x, u)
     assert datafit.gradient_lipschitz_constant() >= 0.0

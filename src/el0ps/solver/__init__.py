@@ -1,4 +1,4 @@
-"""Solvers for L0-penalized problems."""
+"""L0-penalized problem solvers."""
 
 from .base import BaseSolver, Result, Status
 from .bnb import BnbSolver

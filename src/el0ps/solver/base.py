@@ -3,8 +3,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from typing import Union
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
@@ -58,7 +57,7 @@ class Result:
         Solve time in seconds.
     iter_count: int
         Iteration count.
-    x: ArrayLike
+    x: NDArray
         Problem solution.
     objective_value: float
         Objective value.
@@ -69,7 +68,7 @@ class Result:
     status: Status
     solve_time: float
     iter_count: int
-    x: ArrayLike
+    x: NDArray
     objective_value: float
     trace: Union[dict, None]
 
@@ -85,45 +84,44 @@ class Result:
 
 
 class BaseSolver:
-    """Base class for L0-regularized problem solvers.
+    """Base class for solvers of L0-regularized problem of the form
 
-    The optimization problem solved is
+    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
 
-    .. math:: \min f(Ax) + \lambda \|x\|_0 + h(x)
-
-    where :math:`f` is a datafit term, :math:`h` is a penalty term and
-    :math:`\lambda` is the L0-norm weight.
-    """  # noqa: W605
+    where ``f`` is a datafit function, ``A`` is a matrix, ``lmbd`` is a
+    positive scalar, and ``h`` is a penalty function.
+    """
 
     @property
     def accept_jitclass(self) -> bool:
-        """Check if the solver accepts jitclass. This method can be overridden
-        in derived classes to provide a more specific implementation."""
+        """Return whether if the solver accepts jitclass for the datafit and
+        penalty function. This method can be overridden in derived classes to
+        provide a more specific implementation."""
         return False
 
     @abstractmethod
     def solve(
         self,
-        datafit: Union[BaseDatafit, JitClassType],
-        penalty: Union[BasePenalty, JitClassType],
-        A: ArrayLike,
+        datafit: BaseDatafit,
+        penalty: BasePenalty,
+        A: NDArray,
         lmbd: float,
-        x_init: Union[ArrayLike, None] = None,
+        x_init: Union[NDArray, None] = None,
     ) -> Result:
         r"""Solve an L0-regularized problem.
 
         Parameters
         ----------
-        datafit: Union[BaseDatafit, JitClassType]
-            Data-fitting function, can be compiled as a jitclass.
-        penalty: Union[BasePenalty, JitClassType]
-            Penalty function, can be compiled as a jitclass.
-        A: ArrayLike
-            Linear operator.
+        datafit: BaseDatafit
+            Problem datafit function.
+        penalty: BasePenalty
+            Problem penalty function.
+        A: NDArray
+            Problem matrix.
         lmbd: float, positive
-            L0-norm weight.
-        x_init: Union[ArrayLike, None] = None
-            Stating point.
+            Problem L0-norm weight.
+        x_init: Union[NDArray, None] = None
+            Stating point for the solver.
 
         Returns
         -------

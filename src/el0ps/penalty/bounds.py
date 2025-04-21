@@ -8,7 +8,7 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 
 class Bounds(CompilableClass, BasePenalty, MipPenalty):
-    """Bound constraint penalty function expressed as 
+    """Bound constraint penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -85,10 +85,10 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
 
     def param_limit_neg(self, i: int, lmbd: float) -> float:
         return self.x_lb[i]
-    
+
     def param_bndry_pos(self, i, lmbd):
         return np.inf
-    
+
     def param_bndry_neg(self, i, lmbd):
         return -np.inf
 

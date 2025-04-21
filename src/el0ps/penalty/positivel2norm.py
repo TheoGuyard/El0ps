@@ -9,7 +9,7 @@ from .base import BasePenalty, MipPenalty
 
 
 class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
-    """Positive L2-norm penalty function expressed as 
+    """Positive L2-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -72,10 +72,10 @@ class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
 
     def param_limit_neg(self, i: int, lmbd: float) -> float:
         return 0.0
-    
+
     def param_bndry_pos(self, i, lmbd):
         return 2.0 * np.sqrt(lmbd * self.beta)
-    
+
     def param_bndry_neg(self, i, lmbd):
         return -np.inf
 

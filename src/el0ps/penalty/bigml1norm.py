@@ -8,7 +8,7 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class BigmL1norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """Big-M plus L1-norm penalty function expressed as 
+    """Big-M plus L1-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -79,10 +79,10 @@ class BigmL1norm(CompilableClass, SymmetricPenalty, MipPenalty):
 
     def param_limit(self, i: int, lmbd: float) -> float:
         return self.M
-    
+
     def param_bndry(self, i, lmbd):
         return np.inf
-    
+
     def bind_model(self, model: pmo.block, lmbd: float) -> None:
 
         model.g1_var = pmo.variable_dict()

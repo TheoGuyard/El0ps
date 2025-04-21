@@ -1,4 +1,4 @@
-"""Solvers for L0-penalized problems."""
+"""Scikit-learn-compatible estimators stemming from L0-regularized problems."""
 
 from .base import L0Estimator
 from .classifier import (

@@ -8,7 +8,7 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class BigmL2norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """Big-M plus L2-norm penalty function expressed as 
+    """Big-M plus L2-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 

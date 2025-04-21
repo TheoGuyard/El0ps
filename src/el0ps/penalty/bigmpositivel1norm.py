@@ -8,7 +8,7 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 
 class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
-    """Positive big-M plus L1-norm penalty function expressed as 
+    """Positive big-M plus L1-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -80,10 +80,10 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
 
     def param_limit_neg(self, i: int, lmbd: float) -> float:
         return 0.0
-    
+
     def param_bndry_pos(self, i: int, lmbd: float) -> float:
         return np.inf
-    
+
     def param_bndry_neg(self, i: int, lmbd: float) -> float:
         return -np.inf
 
@@ -103,7 +103,7 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
             )
             model.gneg_con[i] = pmo.constraint(model.x[i] >= 0)
             model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
-            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= 0.)
+            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= 0.0)
         model.g_con = pmo.constraint(
             model.g
             >= (

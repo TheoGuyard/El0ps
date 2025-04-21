@@ -8,7 +8,7 @@ from .base import BasePenalty
 
 
 class PositiveL1norm(CompilableClass, BasePenalty):
-    """Positive L1-norm penalty function expressed as 
+    """Positive L1-norm penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -74,6 +74,6 @@ class PositiveL1norm(CompilableClass, BasePenalty):
 
     def param_bndry_pos(self, i, lmbd):
         return self.alpha
-    
+
     def param_bndry_neg(self, i, lmbd):
         return -np.inf

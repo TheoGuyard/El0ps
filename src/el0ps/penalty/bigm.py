@@ -8,7 +8,7 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """Big-M penalty function expressed as 
+    """Big-M penalty function expressed as
 
     ``h(x) = sum_{i = 1,...,n} hi(xi)``
 
@@ -65,7 +65,7 @@ class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
 
     def param_limit(self, i: int, lmbd: float) -> float:
         return self.M
-    
+
     def param_bndry(self, i, lmbd):
         return np.inf
 
