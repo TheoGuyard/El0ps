@@ -1,11 +1,12 @@
 """Base classes for L0-norm regression estimators."""
 
 import numpy as np
-from sklearn.base import RegressorMixin
+from sklearn.linear_model._base import RegressorMixin
+
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import Leastsquares
-from .base import L0Estimator
-from .utils import select_bigml1l2_penalty
+from el0ps.estimator.base import L0Estimator
+from el0ps.estimator.utils import select_bigml1l2_penalty
 
 
 class L0L1L2Regressor(L0Estimator, RegressorMixin):

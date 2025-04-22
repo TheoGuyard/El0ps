@@ -15,11 +15,14 @@ y = np.random.randn(m)
 x = np.random.randn(m)
 u = np.random.randn(m)
 datafits = [
-    KullbackLeibler(np.abs(y)),
-    Leastsquares(y),
-    Logcosh(y),
-    Logistic(2.0 * (y > 0.0) - 1.0),
-    Squaredhinge(2.0 * (y > 0.0) - 1.0),
+    pytest.param(datafit, id=f"{datafit.__class__.__name__}")
+    for datafit in [
+        KullbackLeibler(np.abs(y)),
+        Leastsquares(y),
+        Logcosh(y),
+        Logistic(2.0 * (y > 0.0) - 1.0),
+        Squaredhinge(2.0 * (y > 0.0) - 1.0),
+    ]
 ]
 
 

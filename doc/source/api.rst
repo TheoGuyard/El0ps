@@ -56,14 +56,19 @@ Penalties
     BasePenalty
     SymmetricPenalty
     MipPenalty
-    compute_param_slope_scalar
-    compute_param_limit_scalar
     Bigm
     BigmL1norm
     BigmL2norm
+    BigmPositiveL1norm
+    BigmPositiveL2norm
+    Bounds
     L1norm
     L2norm
     L1L2norm
+    PositiveL1norm
+    PositiveL2norm
+    compute_param_slope_pos
+    compute_param_slope_neg
 
 
 Solvers
@@ -81,6 +86,17 @@ Solvers
     MipSolver
     OaSolver
 
+Compilation
+===========
+
+.. currentmodule:: el0ps.compilation
+
+.. autosummary::
+    :toctree: generated/
+
+    CompilableClass
+    compiled_clone
+
 Path
 ====
 
@@ -90,7 +106,6 @@ Path
     :toctree: generated/
 
     Path
-    PathOptions
 
 
 Utils

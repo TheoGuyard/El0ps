@@ -3,27 +3,39 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-=========
-``el0ps``
-=========
+=================================
+El0ps: An Exact L0-Problem Solver
+=================================
 
-*-- An Exact L0-Problem Solver --*
+-----------------
 
---------
 
-``el0ps`` is a Python package providing **generic** and **efficient** solvers and utilities to handle **L0-norm** problems.
-It also implements `scikit-learn <https://scikit-learn.org>`_ compatible estimators involving these problems.
-You can use some already-made problem instances or **customize your own** based on several templates and utilities.
+``el0ps`` is a Python package providing utilities to handle **L0-regularized** problems expressed as
 
-.. tip::
+.. math::
 
-   Get a quick tour of the package with the :ref:`Getting started<getting_started>` page.
+   \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+appearing in several applications.
+These problems aim at minimizing a trade-off between a data-fidelity function :math:`f` composed with a matrix :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` and the L0-norm which counts the number of non-zeros in its argument to promote sparse solutions.
+The additional penalty function :math:`h` can be used to enforce other desirable properties on the solutions and is involved in the construction of efficient solution methods.
+The package includes:
+
+- A **flexible** framework with built-in problem instances and the possibility to define custom ones,
+
+- A **state-of-the-art** solver based on a specialized Branch-and-Bound algorithm,
+
+- An **interface** to `scikit-learn <https://scikit-learn.org>`_ providing linear model estimators based on L0-regularized problems.
+
+.. important::
+
+   Get a quick tour of the package with the :ref:`getting_started` page.
 
 
 Installation
 ------------
 
-``el0ps`` is available on `pypi <https://pypi.org>`_. The latest version of the package can be installed as
+``el0ps`` is available on `pypi <https://pypi.org>`_. The latest version of the package can be installed as follows:
 
 .. prompt:: shell $
 
@@ -32,10 +44,9 @@ Installation
 Contribute
 ----------
 
-``el0ps`` is still in its early stages of development.
 Feel free to contribute by report any bug on the `issue <https://github.com/TheoGuyard/El0ps/issues>`_ page or by opening a `pull request <https://github.com/TheoGuyard/El0ps/pulls>`_.
 Any feedback or contribution is welcome.
-Check out the :ref:`Contribution<contribute>` page for more information.
+Check out the :ref:`contribute` page for more information.
 
 
 Cite
@@ -69,14 +80,15 @@ Please cite it as follows:
 .. |License| image:: https://img.shields.io/badge/License-AGPL--v3-red.svg
    :target: https://github.com/benchopt/benchopt/blob/main/LICENSE
 
+
 .. toctree::
    :maxdepth: 1
    :hidden:
    :includehidden:
 
    getting_started.rst
-   ingredients.rst
    custom.rst
+   examples/examples.rst
    api.rst
    contribute.rst
    news.rst

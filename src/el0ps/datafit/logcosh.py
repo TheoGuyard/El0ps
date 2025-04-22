@@ -7,11 +7,10 @@ from el0ps.datafit.base import BaseDatafit
 
 
 class Logcosh(CompilableClass, BaseDatafit):
-    r"""Logcosh datafit function defined as
-
-    ``f(w) = sum_{i=1,...,m} log(cosh(yi - wi))``
-
-    where ``y in R^m`` is a vector.
+    """Logcosh datafit function.
+     
+    The function is defined as ``f(w) = sum_{i=1,...,m} log(cosh(yi - wi))``
+    where ``y in R^m``.
 
     Parameters
     ----------
@@ -33,18 +32,18 @@ class Logcosh(CompilableClass, BaseDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: NDArray) -> float:
-        return np.sum(np.log(np.cosh(x - self.y)))
+    def value(self, w: NDArray) -> float:
+        return np.sum(np.log(np.cosh(w - self.y)))
 
-    def conjugate(self, x: NDArray) -> float:
-        if np.max(np.abs(x)) > 1.0:
+    def conjugate(self, w: NDArray) -> float:
+        if np.max(np.abs(w)) > 1.0:
             return np.inf
         else:
-            z = np.arctanh(x) + self.y
-        return np.sum(z * x) - np.sum(np.log(np.cosh(z - self.y)))
+            z = np.arctanh(w) + self.y
+        return np.sum(z * w) - np.sum(np.log(np.cosh(z - self.y)))
 
-    def gradient(self, x: NDArray) -> NDArray:
-        return np.tanh(x - self.y)
+    def gradient(self, w: NDArray) -> NDArray:
+        return np.tanh(w - self.y)
 
     def gradient_lipschitz_constant(self) -> float:
         return self.L

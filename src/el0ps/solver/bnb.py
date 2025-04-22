@@ -628,7 +628,7 @@ class BnbSolver:
         node_limit: int = sys.maxsize,
         queue_limit: int = sys.maxsize,
         queue_strategy: str = "bound",
-        verbose: bool = True,
+        verbose: bool = False,
         **kwargs,
     ):
         self.solver = pb.Solver()

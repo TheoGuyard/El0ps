@@ -1,14 +1,15 @@
 """Base classes for L0-norm classifier estimators."""
 
 import numpy as np
-from sklearn.base import ClassifierMixin
+from sklearn.linear_model._base import LinearClassifierMixin
+
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import Squaredhinge
-from .base import L0Estimator
-from .utils import select_bigml1l2_penalty
+from el0ps.estimator.base import L0Estimator
+from el0ps.estimator.utils import select_bigml1l2_penalty
 
 
-class L0L1L2SVC(L0Estimator, ClassifierMixin):
+class L0L1L2SVC(L0Estimator, LinearClassifierMixin):
     """Scikit-learn-compatible `LinearModel` Support Vector Classifier
     estimator corresponding to a solution of L0-regularized problems expressed
     as

@@ -8,11 +8,10 @@ from el0ps.datafit.base import BaseDatafit, MipDatafit
 
 
 class Squaredhinge(CompilableClass, BaseDatafit, MipDatafit):
-    """Squared-hinge datafit function defined as
-
-    ``f(w) = sum_{i=1,...,m} max(1 - yi * wi, 0)^2``
-
-    where ``y in R^m`` is a vector.
+    """Squared-hinge datafit function.
+     
+    The function is defined as ``f(w) = sum_{i=1,...,m} max(1 - yi * wi, 0)^2``
+    where ``y in R^m``.
 
     Parameters
     ----------
@@ -34,16 +33,16 @@ class Squaredhinge(CompilableClass, BaseDatafit, MipDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: NDArray) -> float:
-        v = np.maximum(1.0 - self.y * x, 0.0)
+    def value(self, w: NDArray) -> float:
+        v = np.maximum(1.0 - self.y * w, 0.0)
         return np.dot(v, v)
 
-    def conjugate(self, x: NDArray) -> float:
-        v = np.maximum(-0.5 * (self.y * x), 0.0)
-        return 0.5 * np.dot(x, x) + np.dot(self.y, x) - np.dot(v, v)
+    def conjugate(self, w: NDArray) -> float:
+        v = np.maximum(-0.5 * (self.y * w), 0.0)
+        return 0.5 * np.dot(w, w) + np.dot(self.y, w) - np.dot(v, v)
 
-    def gradient(self, x: NDArray) -> NDArray:
-        return -2.0 * self.y * np.maximum(1.0 - self.y * x, 0.0)
+    def gradient(self, w: NDArray) -> NDArray:
+        return -2.0 * self.y * np.maximum(1.0 - self.y * w, 0.0)
 
     def gradient_lipschitz_constant(self) -> float:
         return self.L

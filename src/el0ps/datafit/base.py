@@ -6,54 +6,55 @@ from numpy.typing import NDArray
 
 
 class BaseDatafit:
-    """Base class for datafit functions, assumed proper, lower-semicontinuous,
-    convex, and differentiable with a Lipschitz-continuous gradient."""
+    """Base class for datafit functions. These functions are assumed proper,
+    lower-semicontinuous, convex, and differentiable with a
+    Lipschitz-continuous gradient."""
 
     @abstractmethod
-    def value(self, x: NDArray) -> float:
-        """Value of the function at ``x``.
+    def value(self, w: NDArray) -> float:
+        """Value of the function at ``w``.
 
         Parameters
         ----------
-        x : NDArray
+        w : NDArray
             Vector at which the function is evaluated.
 
         Returns
         -------
         value : float
-            The function value at ``x``.
+            The function value at ``w``.
         """
         ...
 
     @abstractmethod
-    def conjugate(self, x: NDArray) -> float:
-        """Value of the convex conjugate of the function at ``x``.
+    def conjugate(self, w: NDArray) -> float:
+        """Value of the convex conjugate of the function at ``w``.
 
         Parameters
         ----------
-        x : NDArray
+        w : NDArray
             Vector at which the conjugate is evaluated.
 
         Returns
         -------
         value : float
-            The conjugate value at ``x``.
+            The conjugate value at ``w``.
         """
         ...
 
     @abstractmethod
-    def gradient(self, x: NDArray) -> NDArray:
-        """Value of gradient at ``x``.
+    def gradient(self, w: NDArray) -> NDArray:
+        """Value of gradient at ``w``.
 
         Parameters
         ----------
-        x : NDArray
+        w : NDArray
             Vector at which the gradient is evaluated.
 
         Returns
         -------
         value : NDArray
-            The gradient at ``x``.
+            The gradient at ``w``.
         """
         ...
 
@@ -74,8 +75,8 @@ class MipDatafit:
 
     @abstractmethod
     def bind_model(self, model: pmo.block) -> None:
-        """In a pyomo model containing a real scalar variable `model.f` and a
-        real vector variable `model.w` of size `model.M`, bind the relation
+        """In a pyomo model containing a real scalar variable ``model.f`` and a
+        real vector variable ``model.w`` of size ``model.M``, bind the relation
 
         ``model.f >= self.value(model.w)``
 

@@ -9,6 +9,7 @@ from el0ps.penalty import (
     BigmL1norm,
     BigmL2norm,
     BigmPositiveL1norm,
+    BigmPositiveL2norm,
     Bounds,
     L1norm,
     L2norm,
@@ -27,16 +28,20 @@ bigm = np.linalg.norm(x, np.inf)
 alpha = np.random.rand()
 beta = np.random.rand()
 penalties = [
-    Bigm(bigm),
-    BigmL1norm(bigm, alpha),
-    BigmL2norm(bigm, alpha),
-    BigmPositiveL1norm(bigm, alpha),
-    Bounds(-2 * np.ones(n), 2 * np.ones(n)),
-    L1norm(alpha),
-    L2norm(alpha),
-    L1L2norm(alpha, beta),
-    PositiveL1norm(alpha),
-    PositiveL2norm(beta),
+    pytest.param(penalty, id=f"{penalty.__class__.__name__}")
+    for penalty in [
+        Bigm(bigm),
+        BigmL1norm(bigm, alpha),
+        BigmL2norm(bigm, alpha),
+        BigmPositiveL1norm(bigm, alpha),
+        BigmPositiveL2norm(bigm, beta),
+        Bounds(-2 * np.ones(n), 2 * np.ones(n)),
+        L1norm(alpha),
+        L2norm(alpha),
+        L1L2norm(alpha, beta),
+        PositiveL1norm(alpha),
+        PositiveL2norm(beta),
+    ]
 ]
 
 

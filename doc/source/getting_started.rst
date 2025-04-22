@@ -4,116 +4,107 @@
 Getting started
 ===============
 
-This page provides a quick starting guide to ``el0ps``.
-
-What's in the box
------------------
-
-``el0ps`` addresses optimization problems expressed as
+``el0ps`` provides utilities to handle L0-regularized problems expressed as
 
 .. math::
 
-   \tag{$\mathcal{P}$}\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+   \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
-where :math:`f(\cdot)` is a `datafit` function, :math:`h(\cdot)` is a `penalty` function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`\|\cdot\|_0` is the so-called :math:`\ell_0`-norm defined for all :math:`\mathbf{x} \in \mathbb{R}^n` as
+where :math:`f` is a datafit function, :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`\lambda > 0` is a parameter, :math:`\|\cdot\|_0` counts the number of non-zero entries in its input, and :math:`h` is a penalty function.
+This section explains how to instantiate a problem, solve it, construct regularization paths, and integrate ``el0ps`` with the `scikit-learn <https://scikit-learn.org>`_ pipeline ecosystem.
 
-.. math:: \|\mathbf{x}\|_0 = \mathrm{card}(\{i \in 1,\dots,n \mid x_i \neq 0\})
+Instantiating a problem
+-----------------------
 
-and :math:`\lambda>0` is an hyperparameter.
-The package provides efficient solvers for this family of problems, methods to fit regularization paths, bindings for `scikit-learn <https://scikit-learn.org>`_ estimators and other utilities.
-Check out the :ref:`Ingredients<ingredients>` page for more details.
+To define a problem instance, the package provides built-in datafit function :math:`f` and penalty function :math:`h`.
+Moreover, any `numpy <https://numpy.org>`_-compatible object for the matrix :math:`\mathbf{A}` and standard float for the parameter :math:`\lambda` can be used.
+The example below illustrates how to instantiate the components of an L0-regularized problem with a least-squares datafit and an L2-norm penalty.
 
-.. tip::
+.. code-block:: python
 
-    ``el0ps`` comes with already-made datafits and penalties. It is also designed to be modular and allows users to define their own.
-    Check out the :ref:`User-defined problems<custom>` page for more details.
+    from sklearn.datasets import make_regression
+    from el0ps.datafit import Leastsquares
+    from el0ps.penalty import L2norm
 
+    # Generate sparse regression data using scikit-learn
+    A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
+
+    datafit = Leastsquares(y)   # datafit function f(Ax) = (1/2) * ||y - Ax||_2^2
+    penalty = L2norm(beta=0.1)  # penalty function h(x) = beta * ||x||_2^2
+    lmbd = 0.01                 # L0-norm weight
+
+All the built-in datafit and penalty functions are listed in the :ref:`api_references` page.
+Besides, custom ones can also be defined by users based on template classes to better suit application needs. 
+Check-out the :ref:`custom` page for more details.
 
 Solving a problem
 -----------------
 
-Here is a simple example showing how to solve an instance of problem :math:`(\mathcal{P})` with a least-squares datafit and an :math:`\ell_2`-norm penalty function.
+.. currentmodule:: el0ps.solver
+
+With all problem components defined, the resulting L0-regularized problem can be solved using one of the solvers included in the package.  
+This can be done as simply as in the following example.
 
 .. code-block:: python
 
-    import numpy as np
-    from el0ps.datafit import Leastsquares
-    from el0ps.penalty import L2norm
     from el0ps.solver import BnbSolver
 
-    # Generate sparse regression data
-    np.random.seed(0)
-    x = np.zeros(100)
-    s = np.random.randint(100, size=5)
-    x[s] = 1.
-    A = np.random.randn(50, 100)
-    A /= np.linalg.norm(A, ord=2)
-    y = A @ x
-    e = np.random.randn(50)
-    e *= np.sqrt((y @ y) / (10. * (e @ e)))
-    y += e
-
-    # Instantiate the function f(Ax) = (1/2) * ||y - Ax||_2^2
-    datafit = Leastsquares(y)
-
-    # Instantiate the function h(x) = beta * ||x||_2^2
-    penalty = L2norm(beta=0.1)
-    
-    # Solve the problem with el0ps' Branch-and-Bound solver
     solver = BnbSolver()
-    result = solver.solve(datafit, penalty, A, lmbd=0.01)
+    result = solver.solve(datafit, penalty, A, lmbd)
 
-You can pass various options to the solver (see the :class:`.solvers.BnbOptions` documentation).
-Once the problem is solved, you can recover different quantities such as the solver status, the solution or the optimal value of the problem from the ``result`` variable (see the :class:`.solvers.Result` documentation).
+The :class:`BnbSolver` class accepts various options to control its behavior and stopping criteria.  
+Its ``solve`` method returns a :class:`Result` object containing the solution and useful information on the solving process.
+Alternative solvers are also available.
+Check-out the :ref:`api_references` for more details.
 
+Constructing regularization paths
+---------------------------------
 
-Fitting regularization paths
-----------------------------
+.. currentmodule:: el0ps.path
 
-You can also fit a regularization path where problem :math:`(\mathcal{P})` is solved over a grid of :math:`\lambda`.
-Fitting a path with ``lmbd_num`` different values of this parameter logarithmically spaced from some ``lmbd_max`` to some ``lmbd_min`` can be simply done as follows.
+A common task when working with L0-regularized problems is the construction of regularization paths, that is, the compilation of the problem solutions for multiple values of parameter :math:`\lambda`.  
+The package provides a dedicated utility to automate this process as follows.
 
 .. code-block:: python
 
     from el0ps.path import Path
 
-    path = Path(lmbd_max=1e-0, lmbd_min=1e-2, lmbd_num=20)
-    data = path.fit(solver, datafit, penalty, A)
+    lmbds = [0.1, 0.01, 0.001]
+    path = Path(lmbds=lmbds)
+    results = path.fit(solver, datafit, penalty, A)
 
-Once the path is fitted, you can recover different statistics ``data`` variable such as the number of non-zeros in the solution, the datafit value or the solution time.
-Various other options can be passed to the :class:`.Path` class (see the :class:`.path.Path` documentation).
-An option of interest is the ``lmbd_scaled`` which is ``False`` by default.
-When setting ``lmbd_scaled=True``, the values of the parameter :math:`\lambda` are scaled so that the first solution constructed in the path when ``lmbd=lmbd_max`` correponds to the all-zero vector. 
+This code builds a regularization path for all values of :math:`\lambda` in ``[0.1, 0.01, 0.001]``.  
+Options of the :class:`Path` class also allow to automatically constrict a suitable parameter grid.  
+The ``fit`` method returns a dictionary mapping each value of :math:`\lambda` to its corresponding result object.
 
 Scikit-Learn estimators
 -----------------------
 
-``el0ps`` also provides `scikit-learn <https://scikit-learn.org>`_ compatible estimators based on problem :math:`(\mathcal{P})`.
-They can be used similarly to any other estimator in the package pipeline as follows.
+The package also offers `linear model <https://scikit-learn.org/stable/modules/linear_model.html#linear-model>`_ estimators correspond to solutions of L0-regularized problems.  
+These estimators are fully compatible with the `scikit-learn <https://scikit-learn.org>`_ ecosystem.
+They can be used as follows.
 
 .. code-block:: python
 
-    from sklearn.datasets import make_regression
-    from sklearn.model_selection import train_test_split
-    from sklearn.pipeline import Pipeline
-    from el0ps.estimator import L0Regressor
+    from el0ps.estimator import L0L2Regressor
 
-    # Generate sparse regression data
-    A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
+    # Estimator corresponding to a solution of the L0-regularized problem
+    # min_{x in R^n} (1/2) ||y - Ax||_2^2 + lmbd ||x||_0 + beta ||x||_2^2
+    estimator = L0L2Regressor(lmbd=0.1, beta=0.01)
     
     # Split training and testing sets
     A_train, A_test, y_train, y_test = train_test_split(A, y)
 
-    # Initialize a regerssor with L0-norm regularization with Big-M constraint
-    estimator = L0Regressor(lmbd=0.1, M=1.)
-
-    # Fit and score the estimator manually ...
+    # Standard fit/score workflow of scikit-learn
     estimator.fit(A_train, y_train)
     estimator.score(A_test, y_test)
 
-    # ... or in a pipeline
-    pipeline = Pipeline([('estimator', estimator)])
-    pipeline.fit(A_train, y_train)
-    pipeline.score(A_test, y_test)
+    # Standard hyperparameter tuning pipeline of scikit-learn
+    params = {'lmbd': [0.1, 1.], 'beta': [0.1, 1.]}
+    grid_search_cv = GridSearchCV(reg, params)
+    grid_search_cv.fit(A, y)
+    best_params = grid_search_cv.best_params_
 
-Like datafit and penalty functions, you can customize your own estimators.
+All the built-in estimators are listed in the :ref:`api_references` page.
+Besides, custom ones can also be defined by users based on template classes to better suit application needs. 
+Check-out the :ref:`custom` page for more details.

@@ -4,8 +4,7 @@
 Contribute
 ==========
 
-``el0ps`` is still in its early stages of development.
-Any feedback or contribution is welcome.
+Any feedback or contribution to ``el0ps`` is welcome.
 
 **Bug report**
     Altough unit tests are in place, there might be some bugs.

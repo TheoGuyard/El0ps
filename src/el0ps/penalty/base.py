@@ -113,7 +113,6 @@ class BasePenalty:
         """
         ...
 
-    @abstractmethod
     def param_slope_pos(self, i: int, lmbd: float) -> float:
         """Supremum of the set ``{x in R | self.conjugate(i, x) <= lmbd}``.
 
@@ -129,9 +128,8 @@ class BasePenalty:
         value : float
             The supremum of the set.
         """
-        ...
+        return compute_param_slope_pos(self, i, lmbd)
 
-    @abstractmethod
     def param_slope_neg(self, i: int, lmbd: float) -> float:
         """Infimum of the set ``{x in R | self.conjugate(i, x) <= lmbd}``.
 
@@ -147,7 +145,7 @@ class BasePenalty:
         value : float
             The infimum of the set.
         """
-        ...
+        return compute_param_slope_neg(self, i, lmbd)
 
     def param_limit_pos(self, i: int, lmbd: float) -> float:
         """Supremum of the set ``self.conjugate_subdiff(i, tau)`` where

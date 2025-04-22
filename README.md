@@ -1,6 +1,5 @@
-El0ps
+El0ps: An Exact L0-Problem Solver
 =====
-*Exact L0-Problem Solver*
 
 [![Documentation](https://img.shields.io/badge/documentation-latest-blue)](https://theoguyard.github.io/El0ps/html/index.html)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/release/python-390/)
@@ -9,8 +8,16 @@ El0ps
 [![Test Status](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml/badge.svg)](https://github.com/TheoGuyard/el0ps/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/License-AGPL--v3-red.svg)](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE)
 
-``el0ps`` is a Python package providing several utilities to handle **L0-regularized** optimization problems. It includes
-- A **flexible** framework with built-in instances and the possibility to define custom ones,
+``el0ps`` is a Python package providing utilities to handle **L0-regularized** optimization problems expressed as
+
+$$\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
+
+appearing in several applications.
+These problems aim at minimizing a trade off between a data-fidelity function $f$ composed with a matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ and the L0-norm which counts the number of non-zeros in its argument to promote sparse solutions.
+The additional penalty function $h$ can be used to enforce other desirable properties on the solutions and is involved in the construction of efficient solution methods.
+
+The package includes
+- A **flexible** framework with built-in problem instances and the possibility to define custom ones,
 - A **state-of-the-art** solver based on a specialized Branch-and-Bound algorithm,
 - A **[scikit-learn](https://scikit-learn.org>)** compatible interface providing linear model estimators based on L0-regularized optimization problems.
 
@@ -27,13 +34,7 @@ pip install el0ps
 
 ## Quick start
 
-``el0ps`` addresses L0-regularized optimization problems expressed as
-
-$$\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
-
-for some matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ and parameter $\lambda>0$.
-These problems aim at minimizing a trade off between a datafit function $f$ modelling the application at hand and the L0-norm which counts the number of non-zeros in its argument to promote sparse solutions.
-The additional penalty function $h$ can be used to enforce other desirable properties on the solutions and is involved in the construction of efficient solution methods.
+``el0ps`` addresses L0-regularized optimization problems 
 
 
 ### Creating and solving problem instances

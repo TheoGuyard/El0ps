@@ -1,16 +1,17 @@
 import numpy as np
 from numpy.typing import ArrayLike
-from sklearn.base import ClassifierMixin
 from sklearn.multiclass import check_classification_targets
-from sklearn.linear_model._base import LinearModel
+from sklearn.base import BaseEstimator
+from sklearn.linear_model._base import LinearModel, LinearClassifierMixin
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import validate_data
+
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 
 
-class L0Estimator(LinearModel):
+class L0Estimator(LinearModel, BaseEstimator):
     """Scikit-learn-compatible `LinearModel` estimators corresponding to
     solutions of L0-regularized problems expressed as
 
@@ -65,7 +66,7 @@ class L0Estimator(LinearModel):
     def fit(self, X: ArrayLike, y: ArrayLike):
 
         # Sanity checks
-        if isinstance(self, ClassifierMixin):
+        if isinstance(self, LinearClassifierMixin):
             check_classification_targets(y)
             enc = LabelEncoder()
             y = enc.fit_transform(y)

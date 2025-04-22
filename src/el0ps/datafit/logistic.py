@@ -8,11 +8,10 @@ from el0ps.datafit.base import BaseDatafit, MipDatafit
 
 
 class Logistic(CompilableClass, BaseDatafit, MipDatafit):
-    """Logistic datafit function defined as
-
-    ``f(w) = sum_{i=1,...,m} log(1 + exp(-yi * wi))``
-
-    where ``y in R^m`` is a vector.
+    """Logistic datafit function.
+     
+    The function is defined as
+    ``f(w) = sum_{i=1,...,m} log(1 + exp(-yi * wi))`` where ``y in R^m``.
 
     Parameters
     ----------
@@ -34,18 +33,18 @@ class Logistic(CompilableClass, BaseDatafit, MipDatafit):
     def params_to_dict(self) -> dict:
         return dict(y=self.y)
 
-    def value(self, x: NDArray) -> float:
-        return np.sum(np.log(1.0 + np.exp(-self.y * x)))
+    def value(self, w: NDArray) -> float:
+        return np.sum(np.log(1.0 + np.exp(-self.y * w)))
 
-    def conjugate(self, x: NDArray) -> float:
-        c = -(x * self.y)
+    def conjugate(self, w: NDArray) -> float:
+        c = -(w * self.y)
         if not np.all((0.0 < c) & (c < 1.0)):
             return np.inf
         r = 1.0 - c
         return np.dot(c, np.log(c)) + np.dot(r, np.log(r))
 
-    def gradient(self, x: NDArray) -> NDArray:
-        return -self.y / (1.0 + np.exp(self.y * x))
+    def gradient(self, w: NDArray) -> NDArray:
+        return -self.y / (1.0 + np.exp(self.y * w))
 
     def gradient_lipschitz_constant(self) -> float:
         return self.L
