@@ -19,7 +19,7 @@ The additional penalty function $h$ can be used to enforce other desirable prope
 The package includes
 - A **flexible** framework with built-in problem instances and the possibility to define custom ones,
 - A **state-of-the-art** solver based on a specialized Branch-and-Bound algorithm,
-- A **[scikit-learn](https://scikit-learn.org>)** compatible interface providing linear model estimators based on L0-regularized optimization problems.
+- A **[scikit-learn](https://scikit-learn.org>)** compatible interface providing linear model estimators based on L0-regularized problems.
 
 Check out the [documentation](https://theoguyard.github.io/El0ps/html/index.html) for a starting tour of the package.
 
