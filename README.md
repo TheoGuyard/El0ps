@@ -10,7 +10,7 @@ El0ps: An Exact L0-Problem Solver
 
 ``el0ps`` is a Python package providing utilities to handle **L0-regularized** optimization problems expressed as
 
-$$\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
+$$\textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{A}\mathbf{x}) + \lambda\|\|\mathbf{x}\|\|_0 + h(\mathbf{x})$$
 
 appearing in several applications.
 These problems aim at minimizing a trade off between a data-fidelity function $f$ composed with a matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ and the L0-norm which counts the number of non-zeros in its argument to promote sparse solutions.
