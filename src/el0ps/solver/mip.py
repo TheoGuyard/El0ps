@@ -4,7 +4,7 @@ import numpy as np
 import pyomo.environ as pyo
 import pyomo.kernel as pmo
 import sys
-from typing import Union
+from typing import Optional
 from numpy.typing import NDArray
 from pyomo.opt import OptSolver
 from pyomo.opt import SolverResults
@@ -68,11 +68,11 @@ class MipSolver(BaseSolver):
         Relative tolerance on the objective value.
     absolute_gap: float, default=0.0
         Absolute tolerance on the objective value.
-    time_limit: float | None, default=None
+    time_limit: float, default=None
         Limit in second on the solving time.
-    node_limit: int | None, default=None
+    node_limit: int, default=None
         Limit on the number of nodes explored by the MIP solver.
-    queue_limit: int | None, default=None
+    queue_limit: int, default=None
         Limit on the number of nodes in the queue in the MIP solver.
     verbose: bool, default=False
         Whether to toggle solver verbosity.
@@ -83,9 +83,9 @@ class MipSolver(BaseSolver):
         optimizer_name: str = "gurobi",
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        time_limit: float | None = None,
-        node_limit: int | None = None,
-        queue_limit: int | None = None,
+        time_limit: Optional[float] = None,
+        node_limit: Optional[int] = None,
+        queue_limit: Optional[int] = None,
         verbose: bool = False,
     ) -> None:
         self.optimizer_name = optimizer_name
@@ -194,7 +194,7 @@ class MipSolver(BaseSolver):
         penalty: MipPenalty,
         A: NDArray,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Optional[NDArray] = None,
     ):
         """Solve an L0-regularized problem.
 
@@ -208,7 +208,7 @@ class MipSolver(BaseSolver):
             Problem matrix.
         lmbd: float
             Problem L0-norm weight parameter.
-        x_init: Union[NDArray, None], default=None
+        x_init: NDArray, default=None
             Initial point for the solver.
         """
 

@@ -4,7 +4,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from numpy.typing import NDArray
-from typing import Union
+from typing import Optional
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 
@@ -61,7 +61,7 @@ class Result:
         Problem solution.
     objective_value: float
         Objective value.
-    trace: Union[dict, None]
+    trace: dict, default=None
         Solver trace if available, otherwise `None`.
     """
 
@@ -70,7 +70,7 @@ class Result:
     iter_count: int
     x: NDArray
     objective_value: float
-    trace: Union[dict, None]
+    trace: Optional[dict]
 
     def __str__(self) -> str:
         s = ""
@@ -112,7 +112,7 @@ class BaseSolver:
         penalty: BasePenalty,
         A: NDArray,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Optional[NDArray] = None,
     ) -> Result:
         r"""Solve an L0-regularized problem.
 
@@ -126,7 +126,7 @@ class BaseSolver:
             Problem matrix.
         lmbd: float, positive
             Problem L0-norm weight.
-        x_init: Union[NDArray, None] = None
+        x_init: NDArray, default=None
             Stating point for the solver.
 
         Returns

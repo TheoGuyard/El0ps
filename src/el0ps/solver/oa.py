@@ -5,7 +5,7 @@ import pyomo.environ as pyo
 import pyomo.kernel as pmo
 import sys
 from time import time
-from typing import Union
+from typing import Optional, Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
 from pyomo.opt import OptSolver
@@ -45,11 +45,11 @@ class OaSolver(BaseSolver):
         Relative tolerance on the objective value.
     absolute_gap: float, default=0.0
         Absolute tolerance on the objective value.
-    time_limit: float | None, default=None
+    time_limit: float, default=None
         Limit in second on the solving time.
-    iter_limit: float | None, default=None
+    iter_limit: int, default=None
         Limit on the number of outer-approximation steps performed.
-    inner_iter_limit: float | None, default=None
+    inner_iter_limit: int, default=None
         Maximum number of iterations for the inner steps optimization solver.
     inner_rel_tol: float, default=1e-8
         Relative tolerance on the objective value for the inner steps.
@@ -73,9 +73,9 @@ class OaSolver(BaseSolver):
         optimizer_name: str = "gurobi",
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        time_limit: float | None = None,
-        iter_limit: int | None = None,
-        inner_iter_limit: int | None = None,
+        time_limit: Optional[float] = None,
+        iter_limit: Optional[int] = None,
+        inner_iter_limit: Optional[int] = None,
         inner_rel_tol: float = 1e-8,
         verbose: bool = False,
         keeptrace: bool = False,
@@ -248,7 +248,7 @@ class OaSolver(BaseSolver):
         penalty: Union[BasePenalty, CompilableClass, JitClassType],
         A: NDArray,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Optional[NDArray] = None,
     ):
         """Solve an L0-regularized problem.
 
@@ -266,7 +266,7 @@ class OaSolver(BaseSolver):
             Problem matrix.
         lmbd: float
             Problem L0-norm weight parameter.
-        x_init: Union[NDArray, None], default=None
+        x_init: NDArray, default=None
             Initial point for the solver. If `None`, the solver initializes it
             to the all-zero vector.
         """

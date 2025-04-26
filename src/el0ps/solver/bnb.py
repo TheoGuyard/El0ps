@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from numba import boolean, float64, int64
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
-from typing import Union
+from typing import Optional, Union
 
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
@@ -87,7 +87,7 @@ class BoundSolver(CompilableClass):
 
     def __init__(
         self,
-        iter_limit: int | None = None,
+        iter_limit: Optional[int] = None,
         relative_tol: float = 1e-4,
         workingset: bool = True,
         dualpruning: bool = True,
@@ -420,7 +420,7 @@ class ProblemWrapper(pb.Problem):
         penalty: Union[BaseDatafit, JitClassType],
         A: NDArray,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Optional[NDArray] = None,
         bound_solver: Union[BoundSolver, JitClassType] = BoundSolver(),
     ):
 
@@ -608,11 +608,11 @@ class BnbSolver:
         Relative gap targeted on the objective value by the solver.
     absolute_gap: float, default=0.0
         Absolute gap targeted on the objective value by the solver.
-    time_limit: float | None, default=None
+    time_limit: float, default=None
         Limit in second on the solving time.
-    node_limit: int | None, default=None
+    node_limit: int, default=None
         Limit on the number of nodes explored during the BnB algorithm.
-    queue_limit: int | None, default=None
+    queue_limit: int, default=None
         Limit on the number of nodes in the queue during the BnB algorithm.
     queue_strategy: str, default="bound"
         Queue strategy during the BnB algorithm. Can be one of the following:
@@ -637,8 +637,8 @@ class BnbSolver:
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
         time_limit: float = np.inf,
-        node_limit: int | None = None,
-        queue_limit: int | None = None,
+        node_limit: Optional[int] = None,
+        queue_limit: Optional[int] = None,
         queue_strategy: str = "bound",
         verbose: bool = False,
         **kwargs,
@@ -720,7 +720,7 @@ class BnbSolver:
         penalty: Union[BaseDatafit, CompilableClass, JitClassType],
         A: NDArray,
         lmbd: float,
-        x_init: Union[NDArray, None] = None,
+        x_init: Optional[NDArray] = None,
     ):
         """Solve an L0-regularized problem.
 
@@ -738,7 +738,7 @@ class BnbSolver:
             Problem matrix.
         lmbd: float
             Problem L0-norm weight parameter.
-        x_init: Union[NDArray, None], default=None
+        x_init: NDArray, default=None
             Initial point for the solver. If `None`, the solver initializes it
             to the all-zero vector.
         """

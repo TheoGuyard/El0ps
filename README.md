@@ -105,7 +105,7 @@ They can be used similarly to any other estimator in the package pipeline as fol
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from el0ps.estimator import L0Regressor
+from el0ps.estimator import L0L2Regressor
 
 # Generate sparse regression data
 A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
@@ -113,8 +113,8 @@ A, y = make_regression(n_informative=5, n_samples=100, n_features=200)
 # Split training and testing sets
 A_train, A_test, y_train, y_test = train_test_split(A, y)
 
-# Initialize a regerssor with L0-norm regularization with Big-M constraint
-estimator = L0Regressor(lmbd=0.1, M=1.)
+# Initialize a regressor with L0L2-norm regularization
+estimator = L0L2Regressor(lmbd=0.1, beta=1.)
 
 # Fit and score the estimator manually ...
 estimator.fit(A_train, y_train)

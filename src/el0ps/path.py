@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Union
+from typing import Optional, Union
 from numba.experimental.jitclass.base import JitClassType
 from numpy.typing import NDArray
 
@@ -27,7 +27,7 @@ class Path:
 
     Parameters
     ----------
-    lmbds : Union[None, list] = None
+    lmbds : list, default=None
         Values of parameter ``lmbd`` to consider. If ``None``, the values
         considered is computed from the other parameters ``lmbd_max``,
         ``lmbd_min``, ``lmbd_num``, ``lmbd_normalized``, and ``lmbd_spacing``.
@@ -62,13 +62,13 @@ class Path:
 
     def __init__(
         self,
-        lmbds: Union[None, list] = None,
+        lmbds: Optional[list] = None,
         lmbd_max: float = 1e-0,
         lmbd_min: float = 1e-2,
         lmbd_num: int = 10,
         lmbd_scale: str = "log",
         lmbd_normalized: bool = True,
-        max_nnz: int | None = None,
+        max_nnz: Optional[int] = None,
         stop_if_not_optimal: bool = True,
         verbose: bool = True,
     ) -> None:
