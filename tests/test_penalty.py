@@ -62,14 +62,15 @@ def test_penalty(penalty: BasePenalty):
             penalty.value(i, xi) + penalty.conjugate(i, ui) >= xi * ui - 1e-10
         )
 
+        tol = 1e-8
         slope_pos = penalty.param_slope_pos(i, lmbd)
         slope_neg = penalty.param_slope_neg(i, lmbd)
-        slope_pos_approx = compute_param_slope_pos(penalty, i, lmbd)
-        slope_neg_approx = compute_param_slope_neg(penalty, i, lmbd)
+        slope_pos_approx = compute_param_slope_pos(penalty, i, lmbd, tol=tol)
+        slope_neg_approx = compute_param_slope_neg(penalty, i, lmbd, tol=tol)
         assert slope_pos >= 0.0
         assert slope_neg <= 0.0
-        assert slope_pos == pytest.approx(slope_pos_approx)
-        assert slope_neg == pytest.approx(slope_neg_approx)
+        assert slope_pos == pytest.approx(slope_pos_approx, abs=tol)
+        assert slope_neg == pytest.approx(slope_neg_approx, abs=tol)
 
         limit_pos = penalty.param_limit_pos(i, lmbd)
         limit_neg = penalty.param_limit_neg(i, lmbd)

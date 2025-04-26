@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from sklearn.multiclass import check_classification_targets
 from sklearn.base import BaseEstimator
 from sklearn.linear_model._base import LinearModel, LinearClassifierMixin
@@ -70,7 +70,7 @@ class L0Estimator(LinearModel, BaseEstimator):
         self.intercept_ = None
         self.n_iter_ = None
 
-    def fit(self, X: ArrayLike, y: ArrayLike):
+    def fit(self, X: NDArray, y: NDArray):
 
         # Sanity checks
         if isinstance(self, LinearClassifierMixin):
@@ -119,3 +119,12 @@ class L0Estimator(LinearModel, BaseEstimator):
         self.intercept_ = 0.0
 
         return self
+
+    def predict(self, X: NDArray) -> NDArray:
+        if not self.is_fitted_:
+            raise ValueError("The estimator is not fitted yet.")
+        decision = X @ self.coef_ + self.intercept_
+        if isinstance(self, LinearClassifierMixin):
+            binary_preds = (decision > 0).astype(int)
+            decision = self.classes_[binary_preds]
+        return decision

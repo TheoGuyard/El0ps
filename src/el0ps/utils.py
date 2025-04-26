@@ -32,7 +32,7 @@ def compute_lmbd_max(
         Problem datafit function.
     penalty: BasePenalty
         Problem penalty function.
-    A: ArrayLike
+    A: NDArray
         Problem matrix.
 
     Returns
