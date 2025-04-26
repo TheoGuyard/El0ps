@@ -1,23 +1,31 @@
 import numpy as np
-from numpy.typing import ArrayLike
-from sklearn.base import ClassifierMixin
+from numpy.typing import NDArray
 from sklearn.multiclass import check_classification_targets
-from sklearn.linear_model._base import LinearModel
+from sklearn.base import BaseEstimator
+from sklearn.linear_model._base import LinearModel, LinearClassifierMixin
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import validate_data
+
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 
 
-class L0Estimator(LinearModel):
-    """Scikit-learn-compatible `LinearModel` estimators corresponding to
-    solutions of L0-regularized problems expressed as
+class L0Estimator(LinearModel, BaseEstimator):
+    r"""Scikit-learn-compatible `linear model <https://scikit-learn.org/stable/api/sklearn.linear_model.html>`_
+    estimators based on L0-regularized problems.
 
-        `min_{w in R^n} f(Xw) + lmbd * ||w||_0 + h(w)`
+    The estimator corresponds to a solution of the problem
 
-    where `f` is a datafit function, `X` is a matrix, `h` is a penalty
-    function, and `lmbd` is a positive scalar.
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a datafit function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix,
+    :math:`\lambda > 0` is a parameter, the L0-norm :math:`\|\cdot\|_0` counts
+    the number of non-zero entries in its input, and :math:`h` is a penalty
+    function.
 
     Parameters
     ----------
@@ -31,7 +39,7 @@ class L0Estimator(LinearModel):
         Whether to fit an intercept term.
     solver: BaseSolver, default=BnbSolver()
         Solver for the estimator associated problem.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -62,10 +70,10 @@ class L0Estimator(LinearModel):
         self.intercept_ = None
         self.n_iter_ = None
 
-    def fit(self, X: ArrayLike, y: ArrayLike):
+    def fit(self, X: NDArray, y: NDArray):
 
         # Sanity checks
-        if isinstance(self, ClassifierMixin):
+        if isinstance(self, LinearClassifierMixin):
             check_classification_targets(y)
             enc = LabelEncoder()
             y = enc.fit_transform(y)
@@ -96,11 +104,7 @@ class L0Estimator(LinearModel):
 
         # Solve the estimator optimization problem
         result = self.solver.solve(
-            self.datafit,
-            self.penalty,
-            X,
-            self.lmbd,
-            x_init=self.coef_
+            self.datafit, self.penalty, X, self.lmbd, x_init=self.coef_
         )
 
         # Reset the datafit target vector
@@ -115,3 +119,12 @@ class L0Estimator(LinearModel):
         self.intercept_ = 0.0
 
         return self
+
+    def predict(self, X: NDArray) -> NDArray:
+        if not self.is_fitted_:
+            raise ValueError("The estimator is not fitted yet.")
+        decision = X @ self.coef_ + self.intercept_
+        if isinstance(self, LinearClassifierMixin):
+            binary_preds = (decision > 0).astype(int)
+            decision = self.classes_[binary_preds]
+        return decision

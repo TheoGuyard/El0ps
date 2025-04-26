@@ -5,8 +5,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from numba import boolean, float64, int64
 from numba.experimental.jitclass.base import JitClassType
-from numpy.typing import ArrayLike
-from typing import Union
+from numpy.typing import NDArray
+from typing import Optional, Union
 
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
@@ -17,11 +17,11 @@ from el0ps.solver import Status, Result
 @dataclass
 class NodeState:
     category: int
-    S0: ArrayLike
-    S1: ArrayLike
-    Sb: ArrayLike
-    x_lower: ArrayLike
-    x_upper: ArrayLike
+    S0: NDArray
+    S1: NDArray
+    Sb: NDArray
+    x_lower: NDArray
+    x_upper: NDArray
     upper_bound: float
     lower_bound: float
 
@@ -43,10 +43,51 @@ class TreeState:
 
 
 class BoundSolver(CompilableClass):
+    r"""Bounding solver for the :class:`BnbSolver`.
+
+    The solver solves convex optimization problems of the form
+
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + g(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`g` is a
+    regularization function that depends on the current node treated by the
+    :class:`BnbSolver` solver. The problem is solved using a coordinate-descent
+    method, potentially combined with an active-set strategy.
+
+    Parameters
+    ----------
+    iter_limit: int, default=sys.maxsize
+        Maximum number of iterations for the inner solver.
+    relative_tol: float, default=1e-4
+        Relative tolerance on the problem objective value.
+    workingset: bool, default=True
+        Toggle the use of a working-set method.
+    dualpruning: bool, default=True
+        If ``True``, the solver checks after each working-set update if the
+        dual bound is greater than the best upper bound known during the
+        Branch-and-Bound algorithm. If so, the node currently treated is
+        pruned. See "Techniques for accelerating Branch-and-Bound algorithms
+        dedicated to sparse optimization" by G. Samain et al. for more details.
+    screening: bool, default=True
+        If ``True``, the solver performs screening tests after each working-set
+        update to identify variables that can be fixed to zero to reduce the
+        computational load. See "One to beat them all: RYU--a unifying
+        framework for the construction of safe balls" by T.L. Tran et al. for
+        more details.
+    simpruning: bool, default=True
+        If ``True``, the solver performs simultaneous pruning tests after each
+        working-set update. This allows to identify new branchings that can be
+        performed on the current node. This in done in-place during the
+        bounding process. See "A New Branch-and-bound pruning framework for
+        L0-regularized problems" by T. Guyard et al. for more details.
+    """  # noqa: E501
 
     def __init__(
         self,
-        iter_limit: int = sys.maxsize,
+        iter_limit: Optional[int] = None,
         relative_tol: float = 1e-4,
         workingset: bool = True,
         dualpruning: bool = True,
@@ -55,7 +96,7 @@ class BoundSolver(CompilableClass):
     ) -> None:
 
         # Solver parameters
-        self.iter_limit = iter_limit
+        self.iter_limit = iter_limit if iter_limit is not None else sys.maxsize
         self.relative_tol = relative_tol
         self.workingset = workingset
         self.dualpruning = dualpruning
@@ -133,32 +174,42 @@ class BoundSolver(CompilableClass):
 
     def setup(
         self,
-        datafit: JitClassType,
-        penalty: JitClassType,
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
         lmbd: float,
     ) -> None:
+        """Setup the bounding solver with problem data."""
         self.lipschitz = datafit.gradient_lipschitz_constant()
         self.A_colnorm = np.sqrt(np.sum(A**2, axis=0))
         self.stepsize = 1.0 / (self.lipschitz * self.A_colnorm**2)
-        self.param_slope_pos = penalty.param_slope_pos(lmbd, range(A.shape[1]))
-        self.param_slope_neg = penalty.param_slope_neg(lmbd, range(A.shape[1]))
-        self.param_limit_pos = penalty.param_limit_pos(lmbd, range(A.shape[1]))
-        self.param_limit_neg = penalty.param_limit_neg(lmbd, range(A.shape[1]))
+        self.param_slope_pos = [
+            penalty.param_slope_pos(i, lmbd) for i in range(A.shape[1])
+        ]
+        self.param_slope_neg = np.array(
+            [penalty.param_slope_neg(i, lmbd) for i in range(A.shape[1])]
+        )
+        self.param_limit_pos = np.array(
+            [penalty.param_limit_pos(i, lmbd) for i in range(A.shape[1])]
+        )
+        self.param_limit_neg = np.array(
+            [penalty.param_limit_neg(i, lmbd) for i in range(A.shape[1])]
+        )
 
     def bound(
         self,
-        datafit: JitClassType,
-        penalty: JitClassType,
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
         lmbd: float,
-        S0: ArrayLike,
-        S1: ArrayLike,
-        Sb: ArrayLike,
-        x: ArrayLike,
+        S0: NDArray,
+        S1: NDArray,
+        Sb: NDArray,
+        x: NDArray,
         ub: float,
         upper: bool,
     ):
+        """Solve the bounding problem."""
 
         # ----- Initialize working values ----- #
 
@@ -214,45 +265,43 @@ class BoundSolver(CompilableClass):
 
     def update_pv(
         self,
-        datafit: JitClassType,
-        penalty: JitClassType,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
         lmbd: float,
     ):
         pv = datafit.value(self.w)
         for i in np.flatnonzero(self.S1):
-            pv += lmbd + penalty.value_scalar(i, self.x[i])
+            pv += lmbd + penalty.value(i, self.x[i])
         for i in np.flatnonzero(self.Sbi):
             if 0.0 <= self.x[i] <= self.param_limit_pos[i]:
                 pv += self.param_slope_pos[i] * self.x[i]
             elif 0.0 >= self.x[i] >= self.param_limit_neg[i]:
                 pv += self.param_slope_neg[i] * self.x[i]
             else:
-                pv += lmbd + penalty.value_scalar(i, self.x[i])
+                pv += lmbd + penalty.value(i, self.x[i])
         self.pv = pv
 
     def update_dv(
         self,
-        datafit: JitClassType,
-        penalty: JitClassType,
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
         lmbd: float,
     ):
         dv = -datafit.conjugate(-self.u)
         for i in np.flatnonzero(self.S1):
             self.v[i] = np.dot(A[:, i], self.u)
-            dv -= penalty.conjugate_scalar(i, self.v[i]) - lmbd
+            dv -= penalty.conjugate(i, self.v[i]) - lmbd
         for i in np.flatnonzero(self.Sbi):
             self.v[i] = np.dot(A[:, i], self.u)
-            dv -= np.maximum(
-                penalty.conjugate_scalar(i, self.v[i]) - lmbd, 0.0
-            )
+            dv -= np.maximum(penalty.conjugate(i, self.v[i]) - lmbd, 0.0)
         self.dv = dv
 
     def inner_loop(
         self,
-        datafit: JitClassType,
-        penalty: JitClassType,
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
     ):
         for i in np.flatnonzero(self.Ws):
             ai = A[:, i]
@@ -268,9 +317,9 @@ class BoundSolver(CompilableClass):
                 elif spi + self.param_limit_pos[i] >= ci > spi:
                     self.x[i] = ci - spi
                 else:
-                    self.x[i] = penalty.prox_scalar(i, ci, self.stepsize[i])
+                    self.x[i] = penalty.prox(i, ci, self.stepsize[i])
             elif self.S1[i]:
-                self.x[i] = penalty.prox_scalar(i, ci, self.stepsize[i])
+                self.x[i] = penalty.prox(i, ci, self.stepsize[i])
             if self.x[i] != xi:
                 self.w += (self.x[i] - xi) * ai
                 self.u = -datafit.gradient(self.w)
@@ -295,7 +344,7 @@ class BoundSolver(CompilableClass):
             self.inner_relative_tol *= 1e-2
         return False
 
-    def workingset_update(self, A: ArrayLike):
+    def workingset_update(self, A: NDArray):
         self.flag_Ws_update = False
         for i in np.flatnonzero(np.logical_not(self.Ws) & self.Sbi):
             self.v[i] = np.dot(A[:, i], self.u)
@@ -306,7 +355,9 @@ class BoundSolver(CompilableClass):
                 self.Ws[i] = True
                 self.flag_Ws_update = True
 
-    def screening_tests(self, datafit: JitClassType, A: ArrayLike):
+    def screening_tests(
+        self, datafit: Union[BaseDatafit, JitClassType], A: NDArray
+    ):
         flag = False
         r = np.sqrt(2.0 * np.abs(self.pv - self.dv) * self.lipschitz)
         for i in np.flatnonzero(self.Sbi):
@@ -324,9 +375,9 @@ class BoundSolver(CompilableClass):
 
     def simpruning_tests(
         self,
-        datafit: JitClassType,
-        penalty: JitClassType,
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, JitClassType],
+        penalty: Union[BasePenalty, JitClassType],
+        A: NDArray,
         lmbd: float,
     ):
         flag_update = False
@@ -334,7 +385,7 @@ class BoundSolver(CompilableClass):
         while flag_passed:
             flag_passed = False
             for i in np.flatnonzero(self.Sb):
-                p = penalty.conjugate_scalar(i, self.v[i]) - lmbd
+                p = penalty.conjugate(i, self.v[i]) - lmbd
                 pp = np.maximum(p, 0.0)
                 pn = np.maximum(-p, 0.0)
                 if self.dv + pn > self.ub:
@@ -360,30 +411,32 @@ class BoundSolver(CompilableClass):
 
 
 class ProblemWrapper(pb.Problem):
+    """`pybnb <https://pybnb.readthedocs.io/en/stable/>`_ wrapper for
+    L0-regularized problems."""
 
     def __init__(
         self,
         datafit: Union[BaseDatafit, JitClassType],
         penalty: Union[BaseDatafit, JitClassType],
-        A: ArrayLike,
+        A: NDArray,
         lmbd: float,
-        x_init: Union[ArrayLike, None] = None,
+        x_init: Optional[NDArray] = None,
         bound_solver: Union[BoundSolver, JitClassType] = BoundSolver(),
     ):
 
         # Prepare problem data
-        if isinstance(datafit, BaseDatafit) and isinstance(
-            datafit, CompilableClass
-        ):
-            datafit = compiled_clone(datafit)
-        if isinstance(penalty, BasePenalty) and isinstance(
-            penalty, CompilableClass
-        ):
-            penalty = compiled_clone(penalty)
+        if isinstance(datafit, CompilableClass):
+            if not isinstance(datafit, JitClassType):
+                datafit = compiled_clone(datafit)
+        if isinstance(penalty, CompilableClass):
+            if not isinstance(penalty, JitClassType):
+                penalty = compiled_clone(penalty)
+        if isinstance(datafit, JitClassType):
+            if isinstance(penalty, JitClassType):
+                if not isinstance(self.bound_solver, JitClassType):
+                    self.bound_solver = compiled_clone(self.bound_solver)
         if not A.flags.f_contiguous:
             A = np.array(A, order="F")
-        if isinstance(bound_solver, BoundSolver):
-            bound_solver = compiled_clone(bound_solver)
         if x_init is None:
             x_init = np.zeros(A.shape[1])
 
@@ -536,16 +589,58 @@ class ProblemWrapper(pb.Problem):
 
 
 class BnbSolver:
+    r"""Branch-and-Bound solver for L0-regularized problems.
+
+    The problem is expressed as
+
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar.
+
+    Parameters
+    ----------
+    relative_gap: float, default=1e-8
+        Relative gap targeted on the objective value by the solver.
+    absolute_gap: float, default=0.0
+        Absolute gap targeted on the objective value by the solver.
+    time_limit: float, default=None
+        Limit in second on the solving time.
+    node_limit: int, default=None
+        Limit on the number of nodes explored during the BnB algorithm.
+    queue_limit: int, default=None
+        Limit on the number of nodes in the queue during the BnB algorithm.
+    queue_strategy: str, default="bound"
+        Queue strategy during the BnB algorithm. Can be one of the following:
+        - "bound": select nodes with the worst lower bound first
+        - "objective": select nodes with the best upper bound first
+        - "breadth": select shallower nodes in the BnB tree first
+        - "depth": select deepest nodes in the BnB tree first
+        - "fifo": select nodes lastly added to the queue first
+        - "lifo": select nodes firstly added to the queue first
+        - "random": select nodes randomly in the queue
+        - "local_gap": select nodes with the closest gap between their upper
+        and lower bounds first
+    verbose: bool, default=True
+        Toggle solver verbosity.
+    **kwargs: keyword arguments
+        Additional keyword arguments passed to a :class:`BoundSolver` instance
+        used for the bounding step of the Branch-and-Bound algorithm.
+    """  # noqa: E501
 
     def __init__(
         self,
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        node_limit: int = sys.maxsize,
         time_limit: float = np.inf,
-        queue_limit: int = sys.maxsize,
+        node_limit: Optional[int] = None,
+        queue_limit: Optional[int] = None,
         queue_strategy: str = "bound",
-        verbose: bool = True,
+        verbose: bool = False,
         **kwargs,
     ):
         self.solver = pb.Solver()
@@ -557,13 +652,17 @@ class BnbSolver:
         self.queue_strategy = queue_strategy
         self.verbose = verbose
 
-        self.bound_solver = compiled_clone(BoundSolver(**kwargs))
+        self.bound_solver = BoundSolver(**kwargs)
 
     @property
     def accept_jitclass(self) -> bool:
         return True
 
-    def package_results(self, problem, results):
+    def package_results(
+        self,
+        problem: pb.Problem,
+        results: pb.SolverResults,
+    ) -> Result:
 
         status = Status.UNKNOWN
         if results.solution_status == pb.SolutionStatus.optimal:
@@ -617,12 +716,32 @@ class BnbSolver:
 
     def solve(
         self,
-        datafit: Union[BaseDatafit, JitClassType],
-        penalty: Union[BaseDatafit, JitClassType],
-        A: ArrayLike,
+        datafit: Union[BaseDatafit, CompilableClass, JitClassType],
+        penalty: Union[BaseDatafit, CompilableClass, JitClassType],
+        A: NDArray,
         lmbd: float,
-        x_init: Union[ArrayLike, None] = None,
+        x_init: Optional[NDArray] = None,
     ):
+        """Solve an L0-regularized problem.
+
+        Parameters
+        ----------
+        datafit: Union[BaseDatafit, JitClassType]
+            Problem datafit function. If not already JIT-compiled the solver
+            automatically compiles if it derives from the
+            :class:`el0ps.compilation.CompilableClass`.
+        penalty: Union[BaseDatafit, JitClassType]
+            Problem penalty function. If not already JIT-compiled the solver
+            automatically compiles if it derives from the
+            :class:`el0ps.compilation.CompilableClass`.
+        A: NDArray
+            Problem matrix.
+        lmbd: float
+            Problem L0-norm weight parameter.
+        x_init: NDArray, default=None
+            Initial point for the solver. If `None`, the solver initializes it
+            to the all-zero vector.
+        """
 
         problem = ProblemWrapper(
             datafit, penalty, A, lmbd, x_init, self.bound_solver

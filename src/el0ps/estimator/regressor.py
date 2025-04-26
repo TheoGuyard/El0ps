@@ -1,38 +1,29 @@
 """Base classes for L0-norm regression estimators."""
 
 import numpy as np
-from sklearn.base import RegressorMixin
+from sklearn.linear_model._base import RegressorMixin
+
 from el0ps.solver import BaseSolver, BnbSolver
 from el0ps.datafit import Leastsquares
-from .base import L0Estimator
-from .utils import select_bigml1l2_penalty
+from el0ps.estimator.base import L0Estimator
+from el0ps.estimator.utils import select_bigml1l2_penalty
 
 
 class L0L1L2Regressor(L0Estimator, RegressorMixin):
-    """Scikit-learn-compatible `LinearModel` regression estimator corresponding
-    to a solution of L0-regularized problems expressed as
+    r"""Scikit-learn-compatible `linear model <https://scikit-learn.org/stable/api/sklearn.linear_model.html>`_
+    regression estimators with L0L1L2-regularization.
 
-        `min_{||w||_{infty} <= M} 0.5 * ||Xw - y||_2^2 + lmbd * ||w||_0 + alpha * ||w||_1 + beta * ||w||_2^2`
+    The estimator corresponds to a solution of the problem
 
-    where `alpha >= 0`, `beta >= 0` and `M > 0`. Setting `alpha = 0`,
-    `beta = 0` or `M = infty` is allowed, but not simultaneously.
+    .. math::
 
+        \textstyle\min_{\|\mathbf{x}\|_{\infty} \leq M} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + \alpha\|\mathbf{x}\|_1 + \beta\|\mathbf{x}\|_2^2
 
-    Parameters
-    ----------
-    lmbd: float
-        L0-norm weight.
-    alpha: float
-        L1-norm weight.
-    beta: float
-        L2-norm weight.
-    M: float, default=np.inf
-        Big-M value.
-    fit_intercept: bool, default=False
-        Whether to fit an intercept term.
-    solver: BaseSolver, default=BnbSolver()
-        Solver for the estimator associated problem.
-    """  # noqa: E501
+    where :math:`f` is a :class:`el0ps.datafit.Leastsquares` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix,
+    :math:`\lambda > 0` is a parameter, the L0-norm :math:`\|\cdot\|_0` counts
+    the number of non-zero entries in its input, and :math:`h` is a penalty
+    function."""  # noqa: E501
 
     def __init__(
         self,
@@ -43,14 +34,18 @@ class L0L1L2Regressor(L0Estimator, RegressorMixin):
         fit_intercept: bool = False,
         solver: BaseSolver = BnbSolver(),
     ):
+        self.lmbd = lmbd
+        self.alpha = alpha
+        self.beta = beta
+        self.M = M
         datafit = Leastsquares(np.zeros(0))
         penalty = select_bigml1l2_penalty(alpha, beta, M)
         super().__init__(datafit, penalty, lmbd, fit_intercept, solver)
 
 
 class L0Regressor(L0L1L2Regressor):
-    """Substitute for :class:`.estimators.L0L1L2Regressor` with parameters
-    `alpha=0` and `beta=0`."""
+    """Substitute for :class:`L0L1L2Regressor` with parameters ``alpha=0`` and
+    ``beta=0``."""
 
     def __init__(
         self,
@@ -63,8 +58,7 @@ class L0Regressor(L0L1L2Regressor):
 
 
 class L0L1Regressor(L0L1L2Regressor):
-    """Substitute for :class:`.estimators.L0L1L2Regressor` with parameter
-    `beta=0`."""
+    """Substitute for :class:`L0L1L2Regressor` with parameter ``beta=0``."""
 
     def __init__(
         self,
@@ -78,8 +72,7 @@ class L0L1Regressor(L0L1L2Regressor):
 
 
 class L0L2Regressor(L0L1L2Regressor):
-    """Substitute for :class:`.estimators.L0L1L2Regressor` with parameters
-    `alpha=0`."""
+    """Substitute for :class:`L0L1L2Regressor` with parameters ``alpha=0``."""
 
     def __init__(
         self,

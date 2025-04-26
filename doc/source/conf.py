@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime
 from el0ps import __version__ as version
 from el0ps import __authors__ as authors
 
@@ -10,7 +11,7 @@ from el0ps import __authors__ as authors
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "El0ps"
-copyright = "2024, Theo Guyard"
+copyright = f"{datetime.now().year}, Theo Guyard"
 author = authors
 release = version
 

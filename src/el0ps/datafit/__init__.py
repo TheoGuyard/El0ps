@@ -1,4 +1,4 @@
-"""Datafit functions module."""
+"""Datafit functions."""
 
 from .base import BaseDatafit, MipDatafit
 from .kullbackleibler import KullbackLeibler

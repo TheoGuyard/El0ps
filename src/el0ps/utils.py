@@ -1,155 +1,46 @@
 """Miscellaneous utilities."""
 
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
+
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
 
 
 def compute_lmbd_max(
-    datafit: BaseDatafit, penalty: BasePenalty, A: ArrayLike
+    datafit: BaseDatafit, penalty: BasePenalty, A: NDArray
 ) -> float:
-    """Return a value of ``lmbd`` above which the all-zero vector is always a
-    solution of the L0-penalized problem.
+    r"""
+    Return a value :math:`\lambda_{\max}` such that the all-zero vector is
+    a solution of an L0-regularized problem whenever
+    :math:`\lambda \geq \lambda_{\max}`.
+
+    The problem is expressed as
+
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar.
 
     Parameters
     ----------
     datafit: BaseDatafit
-        Datafit function.
+        Problem datafit function.
     penalty: BasePenalty
-        Penalty function.
-    A: ArrayLike
-        Linear operator.
+        Problem penalty function.
+    A: NDArray
+        Problem matrix.
 
     Returns
     -------
     lmbd_max: float
-        A value of ``lmbd`` above which the all-zero vector is always a
-        solution of the L0-penalized problem.
-    """
+        The value ``lmbd_max`` ensuring an all-zero solution.
+    """  # noqa: E501
     w = np.zeros(A.shape[0])
     v = np.abs(A.T @ datafit.gradient(w))
     i = np.argmax(v)
-    return penalty.conjugate_scalar(i, v[i])
-
-
-def compute_param_slope_pos_scalar(
-    penalty: BasePenalty,
-    i: int,
-    lmbd: float,
-    tol: float = 1e-8,
-    maxit: int = 100,
-) -> float:
-    """Utility function to compute the value of ``param_slope_pos_scalar`` in a
-    :class:`.penalty.BasePenalty` instance when no closed-form is available.
-
-    Parameters
-    ----------
-    penalty: BasePenalty
-        The penalty instance.
-    i: int
-        Index of the splitting term.
-    lmbd: float
-        L0-regularization parameter.
-    tol: float = 1e-4
-        Bisection tolerance.
-    maxit: int = 100
-        Maximum number of bisection iterations.
-    """
-    a = 0.0
-    b = 1.0
-    while penalty.conjugate_scalar(i, b) < lmbd:
-        b *= 2.0
-        if b > 1e12:
-            return np.inf
-    for _ in range(maxit):
-        c = (a + b) / 2.0
-        fa = penalty.conjugate_scalar(i, a) - lmbd
-        fc = penalty.conjugate_scalar(i, c) - lmbd
-        if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
-            return c
-        elif fc * fa >= 0.0:
-            a = c
-        else:
-            b = c
-    return c
-
-
-def compute_param_slope_neg_scalar(
-    penalty: BasePenalty,
-    i: int,
-    lmbd: float,
-    tol: float = 1e-8,
-    maxit: int = 100,
-) -> float:
-    """Utility function to compute the value of ``param_slope_neg_scalar`` in a
-    :class:`.penalty.BasePenalty` instance when no closed-form is available.
-
-    Parameters
-    ----------
-    penalty: BasePenalty
-        The penalty instance.
-    i: int
-        Index of the splitting term.
-    lmbd: float
-        L0-regularization parameter.
-    tol: float = 1e-4
-        Bisection tolerance.
-    maxit: int = 100
-        Maximum number of bisection iterations.
-    """
-    a = -1.0
-    b = 0.0
-    while penalty.conjugate_scalar(i, a) < lmbd:
-        a *= 2.0
-        if a < -1e12:
-            return -np.inf
-    for _ in range(maxit):
-        c = (a + b) / 2.0
-        fa = penalty.conjugate_scalar(i, a) - lmbd
-        fc = penalty.conjugate_scalar(i, c) - lmbd
-        if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
-            return c
-        elif fc * fa >= 0.0:
-            a = c
-        else:
-            b = c
-    return c
-
-
-def compute_param_limit_pos_scalar(
-    penalty: BasePenalty, i: int, lmbd: float
-) -> float:
-    """Utility function to compute the value of ``param_limit_pos_scalar`` in a
-    :class:`.penalty.BasePenalty` instance when no closed-form is available.
-
-    Parameters
-    ----------
-    penalty: BasePenalty
-        The penalty instance.
-    i: int
-        Index of the splitting term.
-    lmbd: float
-        L0-regularization parameter.
-    """
-    param_slope_scalar = penalty.param_slope_pos_scalar(i, lmbd)
-    return penalty.conjugate_subdiff_scalar(i, param_slope_scalar)[1]
-
-
-def compute_param_limit_neg_scalar(
-    penalty: BasePenalty, i: int, lmbd: float
-) -> float:
-    """Utility function to compute the value of ``param_limit_neg_scalar`` in a
-    :class:`.penalty.BasePenalty` instance when no closed-form is available.
-
-    Parameters
-    ----------
-    penalty: BasePenalty
-        The penalty instance.
-    i: int
-        Index of the splitting term.
-    lmbd: float
-        L0-regularization parameter.
-    """
-    param_slope_scalar = penalty.param_slope_neg_scalar(i, lmbd)
-    return penalty.conjugate_subdiff_scalar(i, param_slope_scalar)[0]
+    return penalty.conjugate(i, v[i])

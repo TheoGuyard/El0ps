@@ -4,9 +4,11 @@ import numpy as np
 import pyomo.environ as pyo
 import pyomo.kernel as pmo
 import sys
-from typing import Union
-from numpy.typing import ArrayLike
-from pyomo.opt.results import SolverResults
+from typing import Optional
+from numpy.typing import NDArray
+from pyomo.opt import OptSolver
+from pyomo.opt import SolverResults
+
 from el0ps.datafit import MipDatafit
 from el0ps.penalty import MipPenalty
 from el0ps.solver import BaseSolver, Result, Status
@@ -41,39 +43,57 @@ _mip_optim_bindings = {
 
 
 class MipSolver(BaseSolver):
-    """Mixed-Integer Programming solver for L0-regularized problems.
+    r"""Mixed-integer programming solver for L0-regularized problems.
+
+    The problem is expressed as
+
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar. To use this solver, the optimizer specified in the
+    ``optimizer_name`` parameter must be installed and accessible by
+    `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ which is the underlying
+    library used to model the problem.
 
     Parameters
     ----------
     optimizer_name: str = "gurobi"
         Mixed-Integer Programming optimizer to use. Available options are
         "cplex", "gurobi", and "mosek".
-    relative_gap: float
-        Relative Mixed-Integer Programming tolerance.
-    absolute_gap: float
-        Absolute Mixed-Integer Programming tolerance.
-    node_limit: int
-        Mixed-Integer Programming number of nodes explored limit.
-    time_limit: float
-        Mixed-Integer Programming solver time limit in seconds.
-    queue_limit: int
-        Mixed-Integer Programming queue size limit.
-    verbose: bool
+    relative_gap: float, default=1e-8
+        Relative tolerance on the objective value.
+    absolute_gap: float, default=0.0
+        Absolute tolerance on the objective value.
+    time_limit: float, default=None
+        Limit in second on the solving time.
+    node_limit: int, default=None
+        Limit on the number of nodes explored by the MIP solver.
+    queue_limit: int, default=None
+        Limit on the number of nodes in the queue in the MIP solver.
+    verbose: bool, default=False
         Whether to toggle solver verbosity.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
         optimizer_name: str = "gurobi",
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        node_limit: int = sys.maxsize,
-        time_limit: float = float(sys.maxsize),
+        time_limit: Optional[float] = None,
+        node_limit: Optional[int] = None,
+        queue_limit: Optional[int] = None,
         verbose: bool = False,
     ) -> None:
         self.optimizer_name = optimizer_name
-        self.node_limit = node_limit
-        self.time_limit = time_limit
+        self.node_limit = node_limit if node_limit is not None else sys.maxsize
+        self.queue_limit = (
+            queue_limit if queue_limit is not None else sys.maxsize
+        )
+        self.time_limit = time_limit if time_limit is not None else np.inf
         self.relative_gap = relative_gap
         self.absolute_gap = absolute_gap
         self.verbose = verbose
@@ -81,10 +101,10 @@ class MipSolver(BaseSolver):
     def __str__(self):
         return "MipSolver"
 
-    def initialize_optimizer(self):
+    def initialize_optimizer(self) -> OptSolver:
         if self.optimizer_name in _mip_optim_bindings:
             bindings = _mip_optim_bindings[self.optimizer_name]
-            optim = pyo.SolverFactory(bindings["optimizer_name"])
+            optim: OptSolver = pyo.SolverFactory(bindings["optimizer_name"])
             optim.options[bindings["relative_gap"]] = self.relative_gap
             optim.options[bindings["absolute_gap"]] = self.absolute_gap
             # Raises errors with cplex
@@ -104,9 +124,9 @@ class MipSolver(BaseSolver):
         self,
         datafit: MipDatafit,
         penalty: MipPenalty,
-        A: ArrayLike,
+        A: NDArray,
         lmbd: float,
-    ):
+    ) -> pmo.block:
         model = pmo.block()
         model.M = range(A.shape[0])
         model.N = range(A.shape[1])
@@ -119,7 +139,7 @@ class MipSolver(BaseSolver):
         for j in model.M:
             model.w[j] = pmo.variable(domain=pmo.Reals)
         model.f = pmo.variable(domain=pmo.Reals)
-        model.g = pmo.variable(domain=pmo.Reals)
+        model.h = pmo.variable(domain=pmo.Reals)
 
         model.w_con = pmo.constraint_dict()
         for j in model.M:
@@ -128,9 +148,11 @@ class MipSolver(BaseSolver):
             )
 
         datafit.bind_model(model)
-        penalty.bind_model(model, lmbd)
+        penalty.bind_model(model)
 
-        model.obj = pmo.objective(model.f + model.g)
+        model.obj = pmo.objective(
+            model.f + lmbd * sum(model.z[i] for i in model.N) + model.h
+        )
         return model
 
     def package_result(self, model: pmo.block, result: SolverResults):
@@ -140,6 +162,10 @@ class MipSolver(BaseSolver):
             status = Status.ITER_LIMIT
         elif result.solver.termination_condition == "maxTimeLimit":
             status = Status.TIME_LIMIT
+        elif result.solver.termination_condition == "unbounded":
+            status = Status.UNBOUNDED
+        elif result.solver.termination_condition == "infeasible":
+            status = Status.INFEASIBLE
         else:
             status = Status.UNKNOWN
 
@@ -166,10 +192,25 @@ class MipSolver(BaseSolver):
         self,
         datafit: MipDatafit,
         penalty: MipPenalty,
-        A: ArrayLike,
+        A: NDArray,
         lmbd: float,
-        x_init: Union[ArrayLike, None] = None,
+        x_init: Optional[NDArray] = None,
     ):
+        """Solve an L0-regularized problem.
+
+        Parameters
+        ----------
+        datafit: MipDatafit
+            Problem datafit function.
+        penalty: MipDatafit
+            Problem penalty function.
+        A: NDArray
+            Problem matrix.
+        lmbd: float
+            Problem L0-norm weight parameter.
+        x_init: NDArray, default=None
+            Initial point for the solver.
+        """
 
         optim = self.initialize_optimizer()
         model = self.build_model(datafit, penalty, A, lmbd)

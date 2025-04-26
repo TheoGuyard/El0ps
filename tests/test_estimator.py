@@ -33,9 +33,12 @@ lmbd_svc = lmbd_factor * compute_lmbd_max(
 )
 
 test_data = [
-    (L0L1L2Classifier(lmbd_cls, alpha, beta), A_cls, y_cls),
-    (L0L1L2Regressor(lmbd_reg, alpha, beta), A_reg, y_reg),
-    (L0L1L2SVC(lmbd_cls, alpha, beta), A_svc, y_svc),
+    pytest.param(estimator, A, y, id=f"{estimator.__class__.__name__}")
+    for estimator, A, y in [
+        (L0L1L2Classifier(lmbd_cls, alpha, beta), A_cls, y_cls),
+        (L0L1L2Regressor(lmbd_reg, alpha, beta), A_reg, y_reg),
+        (L0L1L2SVC(lmbd_cls, alpha, beta), A_svc, y_svc),
+    ]
 ]
 
 
@@ -45,5 +48,6 @@ def test_estimator(estimator, A, y):
     assert np.all(checks)
     estimator.fit(A, y)
     y_pred = estimator.predict(A)
+    estimator.score(A, y)
     assert estimator.fit_result_.status == Status.OPTIMAL
     assert y_pred.shape == y.shape

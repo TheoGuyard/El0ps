@@ -3,405 +3,394 @@
 import numpy as np
 import pyomo.kernel as pmo
 from abc import abstractmethod
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 
 class BasePenalty:
-    """Base class for penalty functions. Penalty functions are assumed to be
-    proper, closed, convex, separable, even, coercive, non-negative and
-    minimized at 0.
+    r"""Base class for penalty defined as separable functions.
+
+    This class represent separable mathematical functions expressed as
+
+    .. math::
+        \begin{align*}
+            h : \mathbb{R}^n &\rightarrow \mathbb{R} \cup \{+\infty\} \\
+            \mathbf{x} &\mapsto h(\mathbf{x}) = \textstyle\sum_{i=1}^n h_i(x_i)
+        \end{align*}
+
+
+    where each splitting term :math:`h_i` is proper, lower-semicontinuous,
+    convex, coercive, non-negative, and minimized at :math:`x_i = 0`.
     """
 
     @abstractmethod
-    def value_scalar(self, i: int, x: float) -> float:
-        """Value of the i-th splitting term of the function at ``x``.
+    def value(self, i: int, x: float) -> float:
+        """Value of the i-th splitting term of the penalty function at ``x``.
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
-            Value at which the function is evaluated.
+        x : float
+            Value at which the splitting term is evaluated.
 
         Returns
         -------
-        value: float
-            The value of the function at ``x``.
+        value : float
+            The value of the i-th splitting term of the function at ``x``.
         """
         ...
 
     @abstractmethod
-    def conjugate_scalar(self, i: int, x: float) -> float:
-        """Value of the conjugate of the i-th splitting term of the function
-        at ``x``.
+    def conjugate(self, i: int, x: float) -> float:
+        """Value of the convex conjugate of the i-th splitting term of the
+        penalty function at ``x``.
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
-            Value at which the conjugate is evaluated.
+        x : float
+            Value at which the convex conjugate is evaluated.
 
         Returns
         -------
-        value: float
-            The value of the conjugate of the function at ``x``.
+        value : float
+            The value of the convex conjugate.
         """
         ...
 
     @abstractmethod
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
-        """Proximity operator of ``eta`` times the i-th splitting term of the
-        function at ``x``.
+    def prox(self, i: int, x: float, eta: float) -> float:
+        """Proximity operator of the i-th splitting term of the penalty
+        function weighted by ``eta`` at ``x``.
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
-            Value at which the prox is evaluated.
-        eta: float, positive
-            Multiplicative factor of the function.
+        x : float
+            Value at which the proximal operator is evaluated.
+        eta : float, positive
+            Multiplicative weight.
 
         Returns
         -------
-        p: float
-            The proximity operator of ``eta`` times the function at ``x``.
+        value : float
+            The value of the proximity operator.
         """
         ...
 
     @abstractmethod
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
-        """Subdifferential operator of the i-th splitting term of the function
-        at ``x``.
+    def subdiff(self, i: int, x: float) -> NDArray:
+        """Subdifferential of the i-th splitting term of the penalty function
+        at ``x``, returned as an interval.
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
-            Value at which the prox is evaluated.
+        x : float
+            Value at which the subdifferential is evaluated.
 
         Returns
         -------
-        s: ArrayLike
-            The subdifferential (interval) of the function at ``x``.
+        value : NDArray
+            1D-array of size 2 containing the lower and upper bounds of the
+            interval corresponding to the subdifferential.
         """
         ...
 
     @abstractmethod
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
-        """Subdifferential operator of the i-th splitting term of the function
-        conjugate at ``x``.
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
+        """Subdifferential of the conjugate of the i-th splitting term of the
+        penalty function at ``x``, returned as an interval.
 
         Parameters
         ----------
-        i: int
+        i : int
             Index of the splitting term.
-        x: float
-            Value at which the prox is evaluated.
+        x : float
+            Value at which the subdifferential of the conjugate is evaluated.
 
         Returns
         -------
-        s: ArrayLike
-            The subdifferential (interval) of the function conjugate at ``x``.
+        value : NDArray
+            1D-array of size 2 containing the lower and upper bounds of the
+            interval corresponding to the conjugate subdifferential.
         """
         ...
 
-    @abstractmethod
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
-        """Value of
-
-        .. math:: sup_x { x in R | h^*_i(x) <= lmbd }
-
-        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
-        penalty function.
+    def param_slope_pos(self, i: int, lmbd: float) -> float:
+        """Supremum of the set ``{x in R | self.conjugate(i, x) <= lmbd}``.
 
         Parameters
         ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Threshold value.
+        i : int
+            Index of the splitting term in the set definition.
+        lmbd : float
+            Threshold value in the set definition.
 
         Returns
         -------
-        value: float
-            The maximum value of ``x`` such that the conjugate function is
-            below ``lmbd``.
+        value : float
+            The supremum of the set.
         """
-        ...
+        return compute_param_slope_pos(self, i, lmbd)
 
-    @abstractmethod
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
-        """Value of
-
-        .. math:: inf_x { x in R | h^*_i(x) <= lmbd }
-
-        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
-        penalty function.
+    def param_slope_neg(self, i: int, lmbd: float) -> float:
+        """Infimum of the set ``{x in R | self.conjugate(i, x) <= lmbd}``.
 
         Parameters
         ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Threshold value.
+        i : int
+            Index of the splitting term in the set definition.
+        lmbd : float
+            Threshold value in the set definition.
 
         Returns
         -------
-        value: float
-            The minimum value of ``x`` such that the conjugate function is
-            below ``lmbd``.
+        value : float
+            The infimum of the set.
         """
-        ...
+        return compute_param_slope_neg(self, i, lmbd)
 
-    @abstractmethod
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
-        """Value of
-
-        .. math:: sup_x { x in subdiff(h^*_i)(t) }
-
-        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
-        penalty function and :math:`t` is the value of
-        `self.param_slope_pos_scalar(i, lmbd)`.
+    def param_limit_pos(self, i: int, lmbd: float) -> float:
+        """Supremum of the set ``self.conjugate_subdiff(i, tau)`` where
+        ``tau = self.param_slope_pos(i, lmbd)``.
 
         Parameters
         ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Argument of the function `self.param_slope_pos_scalar`.
+        i : int
+            Index of the splitting term in the definition of ``tau``.
+        lmbd : float
+            Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
-            The maximum element of the subdifferential of the i-th splitting
-            term of the conjugate function at
-            self.param_slope_pos_scalar(i, lmbd).
+        value : float
+            The supremum of the set.
         """
-        ...
+        s = self.conjugate_subdiff(i, self.param_slope_pos(i, lmbd))
+        return np.inf if np.all(np.isnan(s)) else s[1]
 
-    @abstractmethod
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
-        """Value of
-
-        .. math:: inf_x { x in subdiff(h^*_i)(t) }
-
-        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
-        penalty function and :math:`t` is the value of
-        `self.param_slope_neg_scalar(i, lmbd)`.
+    def param_limit_neg(self, i: int, lmbd: float) -> float:
+        """Infimum of the set ``self.conjugate_subdiff(i, tau)`` where
+        ``tau = self.param_slope_neg(i, lmbd)``.
 
         Parameters
         ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Argument of the function `self.param_slope_neg_scalar`.
+        i : int
+            Index of the splitting term in the definition of ``tau``.
+        lmbd : float
+            Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
-            The minimum element of the subdifferential of the i-th splitting
-            term of the conjugate function at
-            self.param_slope_neg_scalar(i, lmbd).
+        value : float
+            The infimum of the set.
         """
-        ...
+        s = self.conjugate_subdiff(i, self.param_slope_neg(i, lmbd))
+        return -np.inf if np.all(np.isnan(s)) else s[0]
 
-    def value(self, x: ArrayLike) -> float:
-        """Value of the function at ``x``.
+    def param_bndry_pos(self, i: int, lmbd: float) -> float:
+        """Supremum of the set ``self.subdiff(i, tau)`` where
+        ``tau = self.param_limit_pos(i, lmbd)``.
 
         Parameters
         ----------
-        x: ArrayLike
-            Value at which the function is evaluated.
+        i : int
+            Index of the splitting term in the definition of ``tau``.
+        lmbd : float
+            Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
-            The value of the function at ``x``.
+        value : float
+            The supremum of the set.
         """
-        v = np.zeros_like(x)
-        for i, xi in enumerate(x):
-            v[i] = self.value_scalar(i, xi)
-        return v.sum()
+        tau = self.param_limit_pos(i, lmbd)
+        return np.inf if tau == np.inf else self.subdiff(i, tau)[1]
 
-    def conjugate(self, x: ArrayLike) -> float:
-        """Value of the conjugate of the function at ``x``.
+    def param_bndry_neg(self, i: int, lmbd: float) -> float:
+        """Infimum of the set ``self.subdiff(i, tau)`` where
+        ``tau = self.param_limit_neg(i, lmbd)``.
 
         Parameters
         ----------
-        x: ArrayLike
-            Value at which the conjugate is evaluated.
+        i : int
+            Index of the splitting term in the definition of ``tau``.
+        lmbd : float
+            Threshold value in the definition of ``tau``.
 
         Returns
         -------
-        value: float
-            The value of the conjugate of the function at ``x``.
+        value : float
+            The supremum of the set.
         """
-        v = np.zeros_like(x)
-        for i, xi in enumerate(x):
-            v[i] = self.conjugate_scalar(i, xi)
-        return v.sum()
-
-    def prox(self, x: ArrayLike, eta: float) -> ArrayLike:
-        """Proximity operator of ``eta`` times the function at ``x``.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            Value at which the prox is evaluated.
-        eta: float, positive
-            Multiplicative factor of the function.
-
-        Returns
-        -------
-        p: ArrayLike
-            The proximity operator of ``eta`` times the function at ``x``.
-        """
-        p = np.zeros_like(x)
-        for i, xi in enumerate(x):
-            p[i] = self.prox_scalar(i, xi, eta)
-        return p
-
-    def subdiff(self, x: ArrayLike) -> ArrayLike:
-        """Subdifferential operator of the function at ``x``.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            Value at which the prox is evaluated.
-
-        Returns
-        -------
-        s: ArrayLike
-            The subdifferential (interval) of the function at ``x``.
-        """
-        s = np.zeros((x.size, 2))
-        for i, xi in enumerate(x):
-            s[i, :] = self.subdiff_scalar(i, xi)
-        return s
-
-    def conjugate_subdiff(self, x: ArrayLike) -> ArrayLike:
-        """Subdifferential operator of the function conjugate at ``x``.
-
-        Parameters
-        ----------
-        x: ArrayLike
-            Value at which the prox is evaluated.
-
-        Returns
-        -------
-        s: ArrayLike
-            The subdifferential (interval) of the function conjugate at ``x``.
-        """
-        s = np.zeros((x.size, 2))
-        for i, xi in enumerate(x):
-            s[i, :] = self.conjugate_subdiff_scalar(i, xi)
-        return s
-
-    def param_slope_pos(self, lmbd: float, idx: list) -> ArrayLike:
-        # TODO: documentation
-        return np.array([self.param_slope_pos_scalar(i, lmbd) for i in idx])
-
-    def param_slope_neg(self, lmbd: float, idx: list) -> ArrayLike:
-        # TODO: documentation
-        return np.array([self.param_slope_neg_scalar(i, lmbd) for i in idx])
-
-    def param_limit_pos(self, lmbd: float, idx: list) -> ArrayLike:
-        # TODO: documentation
-        return np.array([self.param_limit_pos_scalar(i, lmbd) for i in idx])
-
-    def param_limit_neg(self, lmbd: float, idx: list) -> ArrayLike:
-        # TODO: documentation
-        return np.array([self.param_limit_neg_scalar(i, lmbd) for i in idx])
+        tau = self.param_limit_neg(i, lmbd)
+        return -np.inf if tau == -np.inf else self.subdiff(i, tau)[0]
 
 
 class SymmetricPenalty(BasePenalty):
+    """Base class for symmetric :class:`BasePenalty` functions."""
 
     @abstractmethod
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
-        """Value of
-
-        .. math:: sup_x { x in R | h^*_i(x) <= lmbd }
-
-        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
-        penalty function.
+    def param_slope(self, i: int, lmbd: float) -> float:
+        """Supremum of the set ``{x in R | self.conjugate(i, x) <= lmbd}``.
 
         Parameters
         ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Threshold value.
+        i : int
+            Index of the splitting term in the set definition.
+        lmbd : float
+            Threshold value in the set definition.
 
         Returns
         -------
-        value: float
-            The maximum value of ``x`` such that the conjugate function is
-            below ``lmbd``.
+        value : float
+            The supremum of the set.
         """
         ...
 
-    def param_slope_pos_scalar(self, i: int, lmbd: float) -> float:
-        return self.param_slope_scalar(i, lmbd)
+    def param_slope_pos(self, i: int, lmbd: float) -> float:
+        return self.param_slope(i, lmbd)
 
-    def param_slope_neg_scalar(self, i: int, lmbd: float) -> float:
-        return -self.param_slope_scalar(i, lmbd)
+    def param_slope_neg(self, i: int, lmbd: float) -> float:
+        return -self.param_slope(i, lmbd)
 
-    @abstractmethod
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
-        """Value of
+    def param_limit(self, i: int, lmbd: float) -> float:
+        s = self.conjugate_subdiff(i, self.param_slope(i, lmbd))
+        return np.inf if np.all(np.isnan(s)) else s[1]
 
-        .. math:: sup_x { x in subdiff(h^*_i)(t) }
+    def param_limit_pos(self, i, lmbd):
+        return self.param_limit(i, lmbd)
 
-        where :math:`h^*_i` is the conjugate of the i-th splitting term of the
-        penalty function and :math:`t` is the value of
-        `self.param_slope_pos_scalar(i, lmbd)`.
+    def param_limit_neg(self, i, lmbd):
+        return -self.param_limit(i, lmbd)
 
-        Parameters
-        ----------
-        i: int
-            Index of the splitting term.
-        lmbd: float
-            Argument of the function `self.param_slope_pos_scalar`.
+    def param_bndry(self, i: int, lmbd: float) -> float:
+        tau = self.param_limit(i, lmbd)
+        return np.inf if tau < np.inf else self.subdiff(i, tau)[1]
 
-        Returns
-        -------
-        value: float
-            The maximum element of the subdifferential of the i-th splitting
-            term of the conjugate function at
-            self.param_slope_pos_scalar(i, lmbd).
-        """
-        ...
+    def param_bndry_pos(self, i: int, lmbd: float) -> float:
+        return self.param_bndry(i, lmbd)
 
-    def param_limit_pos_scalar(self, i: int, lmbd: float) -> float:
-        return self.param_limit_scalar(i, lmbd)
-
-    def param_limit_neg_scalar(self, i: int, lmbd: float) -> float:
-        return -self.param_limit_scalar(i, lmbd)
+    def param_bndry_neg(self, i: int, lmbd: float) -> float:
+        return -self.param_bndry(i, lmbd)
 
 
 class MipPenalty:
-    """Base class for penalty functions that can be modeled into pyomo."""
+    """Base class for penalty functions that can be modeled into
+    `pyomo <https://pyomo.readthedocs.io/en/stable/>`_."""
 
     @abstractmethod
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
-        """Bind the L0-regularization together with the penalty function into a
-        pyomo kernel model. The model should contain a scalar and
-        unconstrained variable `model.g`, a variable `model.x` with size
-        `model.N` and a variable `model.z` with size `model.N`. The
-        `bind_model` function binds the following epigraph formulation:
+    def bind_model(self, model: pmo.block) -> None:
+        """Impose an constraint associated with the penalty function in a
+        `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ model.
 
-        .. math:: model.g >= lmbd * sum(model.z) + self.value(model.x)
+        Given a pyomo.kernel.block ``model`` object containing a real scalar
+        variable ``model.h`` and a real vector variable ``model.x`` of size
+        ``model.N``, this function is intended to impose the relations
 
-        and must ensures that `model.z[i] = 0` implies `model.x[i] = 0`.
+        ``model.h >= self.value(model.x)``
+
+        and
+
+        ``model.z[i] = 0 ==> model.x[i] = 0 for all i in model.N``
+
+        using ``pyomo`` expressions.
 
         Parameters
         ----------
-        model: pmo.block
-            The pyomo mixed-integer programming model (kernel model).
-        lmbd: float
-            The L0-regularization weight.
+        model : pmo.block
+            The pyomo kernel model.
+        lmbd : float
+            The scalar parameter involved in the expressions to be modeled.
         """
         ...
+
+
+def compute_param_slope_pos(
+    penalty: BasePenalty,
+    i: int,
+    lmbd: float,
+    tol: float = 1e-8,
+    maxit: int = 100,
+) -> float:
+    """Utility to approximate the value of the function
+    ``penalty.param_slope_pos`` for a given :class:`BasePenalty` instance using
+    a bisection method.
+
+    Parameters
+    ----------
+    penalty : BasePenalty
+        The penalty function.
+    i : int
+        Parameter involved in the ``penalty.param_slope_pos`` function.
+    lmbd : float
+        Parameter involved in the ``penalty.param_slope_pos`` function.
+    tol : float = 1e-4
+        Bisection approximation tolerance.
+    maxit : int = 100
+        Maximum number of bisection iterations.
+    """
+    a = 0.0
+    b = 1.0
+    while penalty.conjugate(i, b) < lmbd:
+        b *= 2.0
+        if b > 1e12:
+            return np.inf
+    for _ in range(maxit):
+        c = (a + b) / 2.0
+        fa = penalty.conjugate(i, a) - lmbd
+        fc = penalty.conjugate(i, c) - lmbd
+        if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
+            return c
+        elif fc * fa >= 0.0:
+            a = c
+        else:
+            b = c
+    return c
+
+
+def compute_param_slope_neg(
+    penalty: BasePenalty,
+    i: int,
+    lmbd: float,
+    tol: float = 1e-8,
+    maxit: int = 100,
+) -> float:
+    """Utility to approximate the value of the function
+    ``penalty.param_slope_neg`` for a given :class:`BasePenalty` instance using
+    a bisection method.
+
+    Parameters
+    ----------
+    penalty : BasePenalty
+        The penalty function.
+    i : int
+        Parameter involved in the ``penalty.param_slope_neg`` function.
+    lmbd : float
+        Parameter involved in the ``penalty.param_slope_neg`` function.
+    tol : float = 1e-4
+        Bisection approximation tolerance.
+    maxit : int = 100
+        Maximum number of bisection iterations.
+    """
+    a = -1.0
+    b = 0.0
+    while penalty.conjugate(i, a) < lmbd:
+        a *= 2.0
+        if a < -1e12:
+            return -np.inf
+    for _ in range(maxit):
+        c = (a + b) / 2.0
+        fa = penalty.conjugate(i, a) - lmbd
+        fc = penalty.conjugate(i, c) - lmbd
+        if (-tol <= fc <= tol) or (b - a < 0.5 * tol):
+            return c
+        elif fc * fa >= 0.0:
+            a = c
+        else:
+            b = c
+    return c

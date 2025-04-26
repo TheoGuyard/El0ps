@@ -1,24 +1,24 @@
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from numba import float64
 
 from el0ps.compilation import CompilableClass
-
-from .base import SymmetricPenalty
+from el0ps.penalty.base import SymmetricPenalty
 
 
 class L1norm(CompilableClass, SymmetricPenalty):
-    r"""L1-norm penalty function.
+    r"""L1-norm :class:`BasePenalty` penalty function.
 
-    The function is defined as
+    The splitting terms are expressed as
 
-    .. math:: h(x) = \alpha \|x\|_1
+    .. math::
+        h_i(x_i) = \alpha|x_i|
 
-    where :math:`\alpha > 0`.
+    for some :math:`\alpha > 0`.
 
     Parameters
     ----------
-    alpha: float, positive
+    alpha: float
         L1-norm weight.
     """
 
@@ -35,23 +35,23 @@ class L1norm(CompilableClass, SymmetricPenalty):
     def params_to_dict(self) -> dict:
         return dict(alpha=self.alpha)
 
-    def value_scalar(self, i: int, x: float) -> float:
+    def value(self, i: int, x: float) -> float:
         return self.alpha * np.abs(x)
 
-    def conjugate_scalar(self, i: int, x: float) -> float:
+    def conjugate(self, i: int, x: float) -> float:
         return 0.0 if np.abs(x) <= self.alpha else np.inf
 
-    def prox_scalar(self, i: int, x: float, eta: float) -> float:
+    def prox(self, i: int, x: float, eta: float) -> float:
         return np.sign(x) * np.maximum(0.0, np.abs(x) - eta * self.alpha)
 
-    def subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def subdiff(self, i: int, x: float) -> NDArray:
         if x == 0:
             return [-self.alpha, self.alpha]
         else:
             s = self.alpha * np.sign(x)
             return [s, s]
 
-    def conjugate_subdiff_scalar(self, i: int, x: float) -> ArrayLike:
+    def conjugate_subdiff(self, i: int, x: float) -> NDArray:
         if np.abs(x) < self.alpha:
             return [0.0, 0.0]
         elif x == -self.alpha:
@@ -61,8 +61,11 @@ class L1norm(CompilableClass, SymmetricPenalty):
         else:
             return [np.nan, np.nan]
 
-    def param_slope_scalar(self, i: int, lmbd: float) -> float:
+    def param_slope(self, i: int, lmbd: float) -> float:
         return self.alpha
 
-    def param_limit_scalar(self, i: int, lmbd: float) -> float:
+    def param_limit(self, i: int, lmbd: float) -> float:
+        return np.inf
+
+    def param_bndry(self, i, lmbd):
         return np.inf
