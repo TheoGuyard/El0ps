@@ -8,12 +8,17 @@ from .base import BasePenalty
 
 
 class PositiveL1norm(CompilableClass, BasePenalty):
-    """Positive L1-norm penalty function expressed as
+    r"""Positive L1-norm :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(xi) = alpha * xi`` if ``xi >= 0.`` and ``hi(xi) = inf``
-    otherwise for some ``alpha > 0``.
+    .. math::
+        h_i(x_i) = \begin{cases}
+        \alpha x_i & \text{if } x_i \geq 0 \\
+        +\infty & \text{otherwise}
+        \end{cases}
+    
+    for some :math:`\alpha > 0`.
 
     Parameters
     ----------

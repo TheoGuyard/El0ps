@@ -8,12 +8,17 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """Big-M penalty function expressed as
+    r"""Big-M :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(xi) = 0`` if ``|xi| <= M`` and ``hi(xi) = inf`` otherwise for
-    some ``M > 0``.
+    .. math::
+        h_i(x_i) = \begin{cases}
+        0 & \text{if } |x_i| \leq M \\
+        +\infty & \text{otherwise}
+        \end{cases}
+    
+    for some :math:`M > 0`.
 
     Parameters
     ----------
@@ -69,16 +74,14 @@ class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
     def param_bndry(self, i, lmbd):
         return np.inf
 
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
-        model.gpos_con = pmo.constraint_dict()
-        model.gneg_con = pmo.constraint_dict()
+    def bind_model(self, model: pmo.block) -> None:
+        model.hpos_con = pmo.constraint_dict()
+        model.hneg_con = pmo.constraint_dict()
         for i in model.N:
-            model.gpos_con[i] = pmo.constraint(
+            model.hpos_con[i] = pmo.constraint(
                 model.x[i] <= self.M * model.z[i]
             )
-            model.gneg_con[i] = pmo.constraint(
+            model.hneg_con[i] = pmo.constraint(
                 model.x[i] >= -self.M * model.z[i]
             )
-        model.g_con = pmo.constraint(
-            model.g >= lmbd * sum(model.z[i] for i in model.N)
-        )
+        model.h_con = pmo.constraint(model.h >= 0.)

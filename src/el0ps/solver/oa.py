@@ -18,17 +18,23 @@ from el0ps.solver.mip import _mip_optim_bindings
 
 
 class OaSolver(BaseSolver):
-    """Outer Approximation solver for L0-regularized problems expressed as
+    r"""Outer approximation solver for L0-regularized problems.
 
-    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+    The problem is expressed as
 
-    where ``f`` is a datafit function, ``A`` is a matrix, ``lmbd`` is a
-    positive scalar, and ``h`` is a penalty function. This method is based on
-    the work presented in "A unified approach to mixed-integer optimization
-    problems with logical constraints" by D. Bertsimas et al. To use this
-    solver, the optimizer specified in the `optimizer_name` parameter must be
-    installed and accessible by ``pyomo`` (https://github.com/Pyomo) which is
-    the underlying library used to model the outer problem.
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar. This method is based on the work presented in "A unified
+    approach to mixed-integer optimization problems with logical constraints"
+    by D. Bertsimas et al. To use this solver, the optimizer specified in the
+    ``optimizer_name`` parameter must be installed and accessible by
+    `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ which is the underlying
+    library used to model the outer problem.
 
     Parameters
     ----------
@@ -39,11 +45,11 @@ class OaSolver(BaseSolver):
         Relative tolerance on the objective value.
     absolute_gap: float, default=0.0
         Absolute tolerance on the objective value.
-    time_limit: float, default=sys.maxsize
+    time_limit: float | None, default=None
         Limit in second on the solving time.
-    iter_limit: float, default=sys.maxsize
+    iter_limit: float | None, default=None
         Limit on the number of outer-approximation steps performed.
-    inner_iter_limit: float, default=sys.maxsize
+    inner_iter_limit: float | None, default=None
         Maximum number of iterations for the inner steps optimization solver.
     inner_rel_tol: float, default=1e-8
         Relative tolerance on the objective value for the inner steps.
@@ -67,9 +73,9 @@ class OaSolver(BaseSolver):
         optimizer_name: str = "gurobi",
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        time_limit: float = float(sys.maxsize),
-        iter_limit: int = sys.maxsize,
-        inner_iter_limit: int = sys.maxsize,
+        time_limit: float | None = None,
+        iter_limit: int | None = None,
+        inner_iter_limit: int | None = None,
         inner_rel_tol: float = 1e-8,
         verbose: bool = False,
         keeptrace: bool = False,
@@ -77,9 +83,9 @@ class OaSolver(BaseSolver):
         self.optimizer_name = optimizer_name
         self.relative_gap = relative_gap
         self.absolute_gap = absolute_gap
-        self.time_limit = time_limit
-        self.iter_limit = iter_limit
-        self.inner_iter_limit = inner_iter_limit
+        self.time_limit = time_limit if time_limit is not None else np.inf
+        self.iter_limit = iter_limit if iter_limit is not None else sys.maxsize
+        self.inner_iter_limit = inner_iter_limit if inner_iter_limit is not None else sys.maxsize
         self.inner_rel_tol = inner_rel_tol
         self.verbose = verbose
         self.keeptrace = keeptrace

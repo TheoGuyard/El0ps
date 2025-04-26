@@ -35,8 +35,10 @@ class CompilableClass:
 
 @lru_cache()
 def compiled_clone(instance: CompilableClass):
-    """Compile a class instance to a ``jitclass``. This function is inspired
-    from a similar one in the ``skglm`` package.
+    r"""Compile a class instance to a
+    `jitclass <https://numba.readthedocs.io/en/stable/user/jitclass.html>`_.
+    This function is inspired from a similar one in the
+    `skglm <https://github.com/scikit-learn-contrib/skglm/tree/main>`_ package.
 
     Parameters
     ----------
@@ -47,7 +49,7 @@ def compiled_clone(instance: CompilableClass):
     -------
     compiled_instance: jitclass
         Compiled instance.
-    """
+    """ 
     cls = instance.__class__
     spec = instance.get_spec()
     params = instance.params_to_dict()

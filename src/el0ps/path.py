@@ -12,13 +12,19 @@ from el0ps.utils import compute_lmbd_max
 
 
 class Path:
-    """Regularization path fitting for L0-regularized problems expressed as
+    r"""Regularization path fitting for L0-regularized problems.
+     
+    The problem is expressed as
 
-    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+    .. math::
 
-    where ``f`` is a datafit function, ``A`` is a matrix, ``h`` is a penalty
-    function, and ``lmbd`` is a positive scalar. The path fitting consists of
-    solving the problem over a range of values of parameter ``lmbd``.
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+   where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar. The path fitting consists of solving this problem over a
+    range of values of parameter :math:`\lambda`.
 
     Parameters
     ----------
@@ -46,13 +52,14 @@ class Path:
         If ``lmbds`` is not `None`, this value is ignored.
     max_nnz : int = sys.maxsize
         Stop the path fitting when a solution with more than ``max_nnz``
-        non-zero coefficients is found for a given value of ``lmbd``.
+        non-zero coefficients is found for a given value of ``lmbd``. When
+        ``None``, this criterion is ignored.
     stop_if_not_optimal : bool = True
         Stop the path fitting when the problem at a given value of ``lmbd``
         is not solved to optimality.
     verbose : bool = True
         Toggle displays during path fitting.
-    """  # noqa: W605
+    """
 
     def __init__(
         self,
@@ -62,7 +69,7 @@ class Path:
         lmbd_num: int = 10,
         lmbd_scale: str = "log",
         lmbd_normalized: bool = True,
-        max_nnz: int = sys.maxsize,
+        max_nnz: int | None = None,
         stop_if_not_optimal: bool = True,
         verbose: bool = True,
     ) -> None:
@@ -189,8 +196,9 @@ class Path:
             # Termination criteria
             if self.stop_if_not_optimal and result.status != Status.OPTIMAL:
                 break
-            if np.count_nonzero(result.x) > self.max_nnz:
-                break
+            if self.max_nnz is not None:
+                if np.count_nonzero(result.x) > self.max_nnz:
+                    break
 
         if self.verbose:
             self._display_path_foot()

@@ -8,12 +8,17 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 
 class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
-    """Positive big-M plus L1-norm penalty function expressed as
+    r"""Positive big-M plus L1-norm :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(x) = alpha * xi`` if ``0 <= xi <= M`` and ``h_i(xi) = inf``
-    otherwise for some ``M > 0`` and ``alpha > 0``.
+    .. math::
+        h_i(x_i) = \begin{cases}
+        \alpha x_i & \text{if } 0 \leq x_i \leq M \\
+        +\infty & \text{otherwise}
+        \end{cases}
+    
+    for some :math:`M > 0` and :math:`\alpha > 0`.
 
     Parameters
     ----------
@@ -87,27 +92,23 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
     def param_bndry_neg(self, i: int, lmbd: float) -> float:
         return -np.inf
 
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+    def bind_model(self, model: pmo.block) -> None:
 
-        model.g1_var = pmo.variable_dict()
+        model.h1_var = pmo.variable_dict()
         for i in model.N:
-            model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
+            model.h1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
 
-        model.gpos_con = pmo.constraint_dict()
-        model.gneg_con = pmo.constraint_dict()
-        model.g1pos_con = pmo.constraint_dict()
-        model.g1neg_con = pmo.constraint_dict()
+        model.hpos_con = pmo.constraint_dict()
+        model.hneg_con = pmo.constraint_dict()
+        model.h1pos_con = pmo.constraint_dict()
+        model.h1neg_con = pmo.constraint_dict()
         for i in model.N:
-            model.gpos_con[i] = pmo.constraint(
+            model.hpos_con[i] = pmo.constraint(
                 model.x[i] <= self.M * model.z[i]
             )
-            model.gneg_con[i] = pmo.constraint(model.x[i] >= 0)
-            model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
-            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= 0.0)
-        model.g_con = pmo.constraint(
-            model.g
-            >= (
-                lmbd * sum(model.z[i] for i in model.N)
-                + self.alpha * sum(model.g1_var[i] for i in model.N)
-            )
+            model.hneg_con[i] = pmo.constraint(model.x[i] >= 0)
+            model.h1pos_con[i] = pmo.constraint(model.h1_var[i] >= model.x[i])
+            model.h1neg_con[i] = pmo.constraint(model.h1_var[i] >= 0.0)
+        model.h_con = pmo.constraint(
+            model.h >= self.alpha * sum(model.h1_var[i] for i in model.N)
         )

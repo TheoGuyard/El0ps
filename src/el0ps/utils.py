@@ -10,13 +10,21 @@ from el0ps.penalty import BasePenalty
 def compute_lmbd_max(
     datafit: BaseDatafit, penalty: BasePenalty, A: NDArray
 ) -> float:
-    """Return a value ``lmbd_max`` such that the all-zero vector is a solution
-    of the problem
+    r"""
+    Return a value :math:`\lambda_{\max}` such that the all-zero vector is
+    a solution of an L0-regularized problem whenever
+    :math:`\lambda \geq \lambda_{\max}`.
 
-    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+    The problem is expressed as
 
-    whenever ``lmbd >= lmbd_max`` for any datafit function ``f`` and penalty
-    function ``h``.
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar.
 
     Parameters
     ----------

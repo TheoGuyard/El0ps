@@ -7,11 +7,14 @@ from el0ps.penalty.base import SymmetricPenalty
 
 
 class L1norm(CompilableClass, SymmetricPenalty):
-    """L1-norm penalty function expressed as
+    r"""L1-norm :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(xi) = alpha * |xi|`` for some ``alpha > 0``.
+    .. math::
+        h_i(x_i) = \alpha|x_i|
+    
+    for some :math:`\alpha > 0`.
 
     Parameters
     ----------

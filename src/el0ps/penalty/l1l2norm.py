@@ -8,12 +8,14 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """L1L2-norm penalty function expressed as
+    r"""L1L2-norm :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(xi) = alpha * |xi| + beta * xi^2`` for some ``alpha > 0`` and
-    ``beta > 0``.
+    .. math::
+        h_i(x_i) = \alpha|x_i| + \beta x_i^2
+    
+    for some :math:`\alpha > 0` and :math:`\beta > 0`.
 
     Parameters
     ----------
@@ -77,28 +79,27 @@ class L1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
     def param_bndry(self, i, lmbd):
         return (self.alpha + 2.0 * self.beta) * np.sqrt(lmbd / self.beta)
 
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
+    def bind_model(self, model: pmo.block) -> None:
 
-        model.g1_var = pmo.variable_dict()
-        model.g2_var = pmo.variable_dict()
+        model.h1_var = pmo.variable_dict()
+        model.h2_var = pmo.variable_dict()
         for i in model.N:
-            model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
-            model.g2_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
+            model.h1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
+            model.h2_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
 
-        model.g1pos_con = pmo.constraint_dict()
-        model.g1neg_con = pmo.constraint_dict()
-        model.g2_con = pmo.constraint_dict()
+        model.h1pos_con = pmo.constraint_dict()
+        model.h1neg_con = pmo.constraint_dict()
+        model.h2_con = pmo.constraint_dict()
         for i in model.N:
-            model.g1pos_con[i] = pmo.constraint(model.g1_var[i] >= model.x[i])
-            model.g1neg_con[i] = pmo.constraint(model.g1_var[i] >= -model.x[i])
-            model.g2_con[i] = pmo.conic.rotated_quadratic(
-                model.g2_var[i], model.z[i], [model.x[i]]
+            model.h1pos_con[i] = pmo.constraint(model.h1_var[i] >= model.x[i])
+            model.h1neg_con[i] = pmo.constraint(model.h1_var[i] >= -model.x[i])
+            model.h2_con[i] = pmo.conic.rotated_quadratic(
+                model.h2_var[i], model.z[i], [model.x[i]]
             )
-        model.g_con = pmo.constraint(
-            model.g
+        model.h_con = pmo.constraint(
+            model.h
             >= (
-                lmbd * sum(model.z[i] for i in model.N)
-                + self.alpha * sum(model.g1_var[i] for i in model.N)
-                + 2.0 * self.beta * sum(model.g2_var[i] for i in model.N)
+                self.alpha * sum(model.h1_var[i] for i in model.N)
+                + 2.0 * self.beta * sum(model.h2_var[i] for i in model.N)
             )
         )

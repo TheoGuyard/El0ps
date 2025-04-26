@@ -43,15 +43,20 @@ _mip_optim_bindings = {
 
 
 class MipSolver(BaseSolver):
-    """Mixed-Integer Programming solver for L0-regularized problems expressed
-    as
+    r"""Mixed-integer programming solver for L0-regularized problems.
 
-    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+    The problem is expressed as
 
-    where ``f`` is a datafit function, ``A`` is a matrix, ``lmbd`` is a
-    positive scalar, and ``h`` is a penalty function. To use this solver, the
-    optimizer specified in the `optimizer_name` parameter must be installed and
-    accessible by ``pyomo`` (https://github.com/Pyomo) which is the underlying
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar. To use this solver, the optimizer specified in the
+    ``optimizer_name`` parameter must be installed and accessible by
+    `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ which is the underlying
     library used to model the problem.
 
     Parameters
@@ -63,11 +68,11 @@ class MipSolver(BaseSolver):
         Relative tolerance on the objective value.
     absolute_gap: float, default=0.0
         Absolute tolerance on the objective value.
-    time_limit: float, default=sys.maxsize
+    time_limit: float | None, default=None
         Limit in second on the solving time.
-    node_limit: int, default=sys.maxsize
+    node_limit: int | None, default=None
         Limit on the number of nodes explored by the MIP solver.
-    queue_limit: int, default=sys.maxsize
+    queue_limit: int | None, default=None
         Limit on the number of nodes in the queue in the MIP solver.
     verbose: bool, default=False
         Whether to toggle solver verbosity.
@@ -78,13 +83,15 @@ class MipSolver(BaseSolver):
         optimizer_name: str = "gurobi",
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        time_limit: float = float(sys.maxsize),
-        node_limit: int = sys.maxsize,
+        time_limit: float | None = None,
+        node_limit: int | None = None,
+        queue_limit: int | None = None,
         verbose: bool = False,
     ) -> None:
         self.optimizer_name = optimizer_name
-        self.node_limit = node_limit
-        self.time_limit = time_limit
+        self.node_limit = node_limit if node_limit is not None else sys.maxsize
+        self.queue_limit = queue_limit if queue_limit is not None else sys.maxsize
+        self.time_limit = time_limit if time_limit is not None else np.inf
         self.relative_gap = relative_gap
         self.absolute_gap = absolute_gap
         self.verbose = verbose
@@ -130,7 +137,7 @@ class MipSolver(BaseSolver):
         for j in model.M:
             model.w[j] = pmo.variable(domain=pmo.Reals)
         model.f = pmo.variable(domain=pmo.Reals)
-        model.g = pmo.variable(domain=pmo.Reals)
+        model.h = pmo.variable(domain=pmo.Reals)
 
         model.w_con = pmo.constraint_dict()
         for j in model.M:
@@ -139,9 +146,11 @@ class MipSolver(BaseSolver):
             )
 
         datafit.bind_model(model)
-        penalty.bind_model(model, lmbd)
+        penalty.bind_model(model)
 
-        model.obj = pmo.objective(model.f + model.g)
+        model.obj = pmo.objective(
+            model.f + lmbd * sum(model.z[i] for i in model.N) + model.h
+        )
         return model
 
     def package_result(self, model: pmo.block, result: SolverResults):

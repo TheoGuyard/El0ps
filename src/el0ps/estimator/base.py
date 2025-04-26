@@ -12,13 +12,20 @@ from el0ps.penalty import BasePenalty
 
 
 class L0Estimator(LinearModel, BaseEstimator):
-    """Scikit-learn-compatible `LinearModel` estimators corresponding to
-    solutions of L0-regularized problems expressed as
+    r"""Scikit-learn-compatible `linear model <https://scikit-learn.org/stable/api/sklearn.linear_model.html>`_
+    estimators based on L0-regularized problems.
+    
+    The estimator corresponds to a solution of the problem
 
-        `min_{w in R^n} f(Xw) + lmbd * ||w||_0 + h(w)`
+    .. math::
 
-    where `f` is a datafit function, `X` is a matrix, `h` is a penalty
-    function, and `lmbd` is a positive scalar.
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a datafit function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix,
+    :math:`\lambda > 0` is a parameter, the L0-norm :math:`\|\cdot\|_0` counts
+    the number of non-zero entries in its input, and :math:`h` is a penalty
+    function.
 
     Parameters
     ----------

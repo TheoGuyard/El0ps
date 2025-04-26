@@ -8,11 +8,16 @@ from el0ps.datafit.base import BaseDatafit, MipDatafit
 
 
 class Leastsquares(CompilableClass, BaseDatafit, MipDatafit):
-    """Least-squares datafit function.
-     
-    The function is defined as ``f(w) = sum_{i=1,...,m} 0.5 * (yi - wi)^2``
-    where ``y in R^m``.
+    r"""Least-squares datafit function.
 
+    The function is defined as
+
+    .. math::
+
+        f(\mathbf{w}) = \sum_{i=1}^m \tfrac{1}{2}(y_i - w_i)^2    
+    
+    for some :math:`\mathbf{y} \in \mathbb{R}^m`.
+     
     Parameters
     ----------
     y : NDArray

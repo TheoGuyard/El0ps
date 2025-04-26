@@ -43,14 +43,18 @@ class TreeState:
 
 
 class BoundSolver(CompilableClass):
-    """Bounding solver for :class:`el0ps.solver.bnb.BnbSolver` which solves
-    convex optimization problems of the form
+    r"""Bounding solver for the :class:`BnbSolver`.
+    
+    The solver solves convex optimization problems of the form
 
-    ``min_{x in R^n} f(Ax) + g(x)``
+    .. math::
 
-    where ``f`` is a datafit function, ``A`` is a matrix, and ``g`` is a
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + g(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`g` is a
     regularization function that depends on the current node treated by the
-    Branch-and-Bound solver. The problem is solved using a coordinate-descent
+    :class:`BnbSolver` solver. The problem is solved using a coordinate-descent
     method, potentially combined with an active-set strategy.
 
     Parameters
@@ -62,19 +66,19 @@ class BoundSolver(CompilableClass):
     workingset: bool, default=True
         Toggle the use of a working-set method.
     dualpruning: bool, default=True
-        If `True`, the solver checks after each working-set update if the dual
-        bound is greater than the best upper bound known during the
+        If ``True``, the solver checks after each working-set update if the
+        dual bound is greater than the best upper bound known during the
         Branch-and-Bound algorithm. If so, the node currently treated is
         pruned. See "Techniques for accelerating Branch-and-Bound algorithms
         dedicated to sparse optimization" by G. Samain et al. for more details.
     screening: bool, default=True
-        If `True`, the solver performs screening tests after each working-set
+        If ``True``, the solver performs screening tests after each working-set
         update to identify variables that can be fixed to zero to reduce the
         computational load. See "One to beat them all: RYU--a unifying
         framework for the construction of safe balls" by T.L. Tran et al. for
         more details.
     simpruning: bool, default=True
-        If `True`, the solver performs simultaneous pruning tests after each
+        If ``True``, the solver performs simultaneous pruning tests after each
         working-set update. This allows to identify new branchings that can be
         performed on the current node. This in done in-place during the
         bounding process. See "A New Branch-and-bound pruning framework for
@@ -83,7 +87,7 @@ class BoundSolver(CompilableClass):
 
     def __init__(
         self,
-        iter_limit: int = sys.maxsize,
+        iter_limit: int | None = None,
         relative_tol: float = 1e-4,
         workingset: bool = True,
         dualpruning: bool = True,
@@ -92,7 +96,7 @@ class BoundSolver(CompilableClass):
     ) -> None:
 
         # Solver parameters
-        self.iter_limit = iter_limit
+        self.iter_limit = iter_limit if iter_limit is not None else sys.maxsize
         self.relative_tol = relative_tol
         self.workingset = workingset
         self.dualpruning = dualpruning
@@ -175,6 +179,7 @@ class BoundSolver(CompilableClass):
         A: NDArray,
         lmbd: float,
     ) -> None:
+        """Setup the bounding solver with problem data."""
         self.lipschitz = datafit.gradient_lipschitz_constant()
         self.A_colnorm = np.sqrt(np.sum(A**2, axis=0))
         self.stepsize = 1.0 / (self.lipschitz * self.A_colnorm**2)
@@ -204,6 +209,7 @@ class BoundSolver(CompilableClass):
         ub: float,
         upper: bool,
     ):
+        """Solve the bounding problem."""
 
         # ----- Initialize working values ----- #
 
@@ -405,7 +411,8 @@ class BoundSolver(CompilableClass):
 
 
 class ProblemWrapper(pb.Problem):
-    """``pybnb`` wrapper for L0-regularized problems."""
+    """`pybnb <https://pybnb.readthedocs.io/en/stable/>`_ wrapper for
+    L0-regularized problems."""
 
     def __init__(
         self,
@@ -582,12 +589,18 @@ class ProblemWrapper(pb.Problem):
 
 
 class BnbSolver:
-    """Branch-and-Bound solver for L0-regularized problems expressed as
+    r"""Branch-and-Bound solver for L0-regularized problems.
 
-    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+    The problem is expressed as
 
-    where ``f`` is a datafit function, ``A`` is a matrix, ``lmbd`` is a
-    positive scalar, and ``h`` is a penalty function.
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar.
 
     Parameters
     ----------
@@ -595,11 +608,11 @@ class BnbSolver:
         Relative gap targeted on the objective value by the solver.
     absolute_gap: float, default=0.0
         Absolute gap targeted on the objective value by the solver.
-    time_limit: float, default=np.inf
+    time_limit: float | None, default=None
         Limit in second on the solving time.
-    node_limit: int, default=sys.maxsize
+    node_limit: int | None, default=None
         Limit on the number of nodes explored during the BnB algorithm.
-    queue_limit: int, default=sys.maxsize
+    queue_limit: int | None, default=None
         Limit on the number of nodes in the queue during the BnB algorithm.
     queue_strategy: str, default="bound"
         Queue strategy during the BnB algorithm. Can be one of the following:
@@ -615,9 +628,8 @@ class BnbSolver:
     verbose: bool, default=True
         Toggle solver verbosity.
     **kwargs: keyword arguments
-        Additional keyword arguments passed to a
-        :class:`el0ps.solver.bnb.BoundSolver` instance used for the bounding
-        step of the BnB algorithm.
+        Additional keyword arguments passed to a :class:`BoundSolver` instance 
+        used for the bounding step of the Branch-and-Bound algorithm.
     """
 
     def __init__(
@@ -625,8 +637,8 @@ class BnbSolver:
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
         time_limit: float = np.inf,
-        node_limit: int = sys.maxsize,
-        queue_limit: int = sys.maxsize,
+        node_limit: int | None = None,
+        queue_limit: int | None = None,
         queue_strategy: str = "bound",
         verbose: bool = False,
         **kwargs,

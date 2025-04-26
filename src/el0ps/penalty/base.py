@@ -7,12 +7,19 @@ from numpy.typing import NDArray
 
 
 class BasePenalty:
-    """Base class for penalty defined as separable functions expressed as
+    r"""Base class for penalty defined as separable functions.
 
-    ``h(x) = sum_{i = 1,...,n} h_i(x_i)``
+    This class represent separable mathematical functions expressed as
 
-    where each splitting term ``h_i`` is proper, lower-semicontinuous, convex,
-    coercive, non-negative and minimized at 0.
+    .. math::
+        \begin{align*}
+            h : \mathbb{R}^n &\rightarrow \mathbb{R} \cup \{+\infty\} \\
+            \mathbf{x} &\mapsto h(\mathbf{x}) = \textstyle\sum_{i=1}^n h_i(x_i)
+        \end{align*}
+        
+
+    where each splitting term :math:`h_i` is proper, lower-semicontinuous,
+    convex, coercive, non-negative, and minimized at :math:`x_i = 0`.
     """
 
     @abstractmethod
@@ -225,10 +232,7 @@ class BasePenalty:
 
 
 class SymmetricPenalty(BasePenalty):
-    """Base class for symmetric :class:`el0ps.penalty.BasePenalty` instances
-    to simplify the definition of the methods ``param_slope_pos`` and
-    ``param_slope_neg`` which are redundant in this case. With this class, only
-    one `param_slope` method needs to be implemented."""
+    """Base class for symmetric :class:`BasePenalty` functions."""
 
     @abstractmethod
     def param_slope(self, i: int, lmbd: float) -> float:
@@ -276,15 +280,19 @@ class SymmetricPenalty(BasePenalty):
 
 
 class MipPenalty:
-    """Base class for penalty functions that can be modeled into pyomo."""
+    """Base class for penalty functions that can be modeled into
+    `pyomo <https://pyomo.readthedocs.io/en/stable/>`_."""
 
     @abstractmethod
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
-        """In a pyomo model containing a real scalar variable `model.g`, a
-        real vector variable `model.x` of size `model.N` and a binary vector
-        variable `model.z` of size `model.N`, bind the relations
+    def bind_model(self, model: pmo.block) -> None:
+        """Impose an constraint associated with the penalty function in a
+        `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ model.
+        
+        Given a pyomo.kernel.block ``model`` object containing a real scalar
+        variable ``model.h`` and a real vector variable ``model.x`` of size
+        ``model.N``, this function is intended to impose the relations
 
-        ``model.g >= lmbd * sum(model.z) + self.value(model.x)``
+        ``model.h >= self.value(model.x)``
 
         and
 
@@ -310,8 +318,8 @@ def compute_param_slope_pos(
     maxit: int = 100,
 ) -> float:
     """Utility to approximate the value of the function
-    ``penalty.param_slope_pos`` for a given :class:`el0ps.penalty.BasePenalty`
-    instance using a bisection method.
+    ``penalty.param_slope_pos`` for a given :class:`BasePenalty` instance using
+    a bisection method.
 
     Parameters
     ----------
@@ -353,8 +361,8 @@ def compute_param_slope_neg(
     maxit: int = 100,
 ) -> float:
     """Utility to approximate the value of the function
-    ``penalty.param_slope_neg`` for a given :class:`el0ps.penalty.BasePenalty`
-    instance using a bisection method.
+    ``penalty.param_slope_neg`` for a given :class:`BasePenalty` instance using
+    a bisection method.
 
     Parameters
     ----------

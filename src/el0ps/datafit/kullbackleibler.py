@@ -7,11 +7,16 @@ from el0ps.datafit.base import BaseDatafit
 
 
 class KullbackLeibler(CompilableClass, BaseDatafit):
-    """Kullback-Leibler datafit function.
+    r"""Kullback-Leibler datafit function.
      
     The function is defined as
-    ``f(w) = sum_{i=1,...,m} yi * log(yi / (wi + e)) + (wi + e) - yi``
-    where ``y in R^m`` and ``e > 0``.
+
+    .. math::
+        
+        f(\mathbf{w}) = \sum_{i=1}^m y_i \log(\tfrac{y_i}{w_i + e}) + (w_i + e) - y_i
+    
+    
+    for some :math:`\mathbf{y} \in \mathbb{R}^m` and :math:`e > 0`.
 
     Parameters
     ----------

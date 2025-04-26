@@ -8,13 +8,17 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 
 class Bounds(CompilableClass, BasePenalty, MipPenalty):
-    """Bound constraint penalty function expressed as
+    r"""Bound-constraint :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(xi) = 0`` if ``x_lb[i] <= xi <= x_ub[i]`` and ``hi(xi) = inf``
-    otherwise for vectors ``x_lb <= 0`` and ``x_ub >= 0`` of lower and upper
-    bounds.
+    .. math::
+        h_i(x_i) = \begin{cases}
+        0 & \text{if } x^{\text{lb}}_i \leq x_i \leq x^{\text{ub}}_i \\
+        +\infty & \text{otherwise}
+        \end{cases}
+    
+    for some :math:`x^{\text{lb}}_i < 0` and :math:`x^{\text{ub}}_i > 0`.
 
     Parameters
     ----------
@@ -92,16 +96,14 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
     def param_bndry_neg(self, i, lmbd):
         return -np.inf
 
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
-        model.gpos_con = pmo.constraint_dict()
-        model.gneg_con = pmo.constraint_dict()
+    def bind_model(self, model: pmo.block) -> None:
+        model.hpos_con = pmo.constraint_dict()
+        model.hneg_con = pmo.constraint_dict()
         for i in model.N:
-            model.gpos_con[i] = pmo.constraint(
+            model.hpos_con[i] = pmo.constraint(
                 model.x[i] <= self.x_ub[i] * model.z[i]
             )
-            model.gneg_con[i] = pmo.constraint(
+            model.hneg_con[i] = pmo.constraint(
                 model.x[i] >= self.x_lb[i] * model.z[i]
             )
-        model.g_con = pmo.constraint(
-            model.g >= lmbd * sum(model.z[i] for i in model.N)
-        )
+        model.h_con = pmo.constraint(model.h >= 0.)

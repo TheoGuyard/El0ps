@@ -8,11 +8,14 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 
 class L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
-    """L2-norm penalty function expressed as
+    r"""L2-norm :class:`BasePenalty` penalty function.
+    
+    The splitting terms are expressed as
 
-    ``h(x) = sum_{i = 1,...,n} hi(xi)``
-
-    where ``hi(xi) = beta * xi^2`` for some ``beta > 0``.
+    .. math::
+        h_i(x_i) = \beta x_i^2
+    
+    for some :math:`\beta > 0`.
 
     Parameters
     ----------
@@ -59,20 +62,16 @@ class L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
     def param_bndry(self, i, lmbd):
         return 2.0 * np.sqrt(lmbd * self.beta)
 
-    def bind_model(self, model: pmo.block, lmbd: float) -> None:
-        model.g1_var = pmo.variable_dict()
+    def bind_model(self, model: pmo.block) -> None:
+        model.h1_var = pmo.variable_dict()
         for i in model.N:
-            model.g1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
+            model.h1_var[i] = pmo.variable(domain=pmo.NonNegativeReals)
 
-        model.g1_con = pmo.constraint_dict()
+        model.h1_con = pmo.constraint_dict()
         for i in model.N:
-            model.g1_con[i] = pmo.conic.rotated_quadratic(
-                model.g1_var[i], model.z[i], [model.x[i]]
+            model.h1_con[i] = pmo.conic.rotated_quadratic(
+                model.h1_var[i], model.z[i], [model.x[i]]
             )
-        model.g_con = pmo.constraint(
-            model.g
-            >= (
-                lmbd * sum(model.z[i] for i in model.N)
-                + 2.0 * self.beta * sum(model.g1_var[i] for i in model.N)
-            )
+        model.h_con = pmo.constraint(
+            model.h >= 2.0 * self.beta * sum(model.h1_var[i] for i in model.N)
         )

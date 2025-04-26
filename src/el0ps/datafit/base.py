@@ -6,8 +6,17 @@ from numpy.typing import NDArray
 
 
 class BaseDatafit:
-    """Base class for datafit functions. These functions are assumed proper,
-    lower-semicontinuous, convex, and differentiable with a
+    r"""Base class for datafit functions.
+
+    This class represent mathematical functions expressed as
+
+    .. math::
+        \begin{align*}
+            f : \mathbb{R}^m &\rightarrow \mathbb{R} \cup \{+\infty\} \\
+            \mathbf{w} &\mapsto f(\mathbf{w})
+        \end{align*}
+    
+    that are proper, lower-semicontinuous, convex, and differentiable with a
     Lipschitz-continuous gradient."""
 
     @abstractmethod
@@ -71,12 +80,17 @@ class BaseDatafit:
 
 
 class MipDatafit:
-    """Base class for datafit functions that can be modeled into pyomo."""
+    """Base class for datafit functions that can be modeled into
+    `pyomo <https://pyomo.readthedocs.io/en/stable/>`_."""
 
     @abstractmethod
     def bind_model(self, model: pmo.block) -> None:
-        """In a pyomo model containing a real scalar variable ``model.f`` and a
-        real vector variable ``model.w`` of size ``model.M``, bind the relation
+        """Impose a constraint associated with the datafit function in a
+        `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ model.
+        
+        Given a pyomo.kernel.block ``model`` object containing a real scalar
+        variable ``model.f`` and a real vector variable ``model.w`` of size
+        ``model.M``, this function is intended to imposer the relation
 
         ``model.f >= self.value(model.w)``
 

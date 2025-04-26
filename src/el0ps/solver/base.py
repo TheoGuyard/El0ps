@@ -84,19 +84,26 @@ class Result:
 
 
 class BaseSolver:
-    """Base class for solvers of L0-regularized problem of the form
+    r"""Base class for solvers of L0-regularized problem.
 
-    ``min_{x in R^n} f(Ax) + lmbd * ||x||_0 + h(x)``
+    The problem is expressed as
 
-    where ``f`` is a datafit function, ``A`` is a matrix, ``lmbd`` is a
-    positive scalar, and ``h`` is a penalty function.
+    .. math::
+
+        \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
+
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
+    :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
+    positive scalar.
     """
 
     @property
     def accept_jitclass(self) -> bool:
-        """Return whether if the solver accepts jitclass for the datafit and
-        penalty function. This method can be overridden in derived classes to
-        provide a more specific implementation."""
+        """Return whether if the solver accepts a 
+        `jitclass <https://numba.readthedocs.io/en/stable/user/jitclass.html>`_ 
+        for the datafit and penalty function. This method can be overridden in
+        derived classes to provide a more specific implementation."""
         return False
 
     @abstractmethod

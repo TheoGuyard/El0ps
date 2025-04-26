@@ -27,9 +27,7 @@ The package includes:
 
 - An **interface** to `scikit-learn <https://scikit-learn.org>`_ providing linear model estimators based on L0-regularized problems.
 
-.. important::
-
-   Get a quick tour of the package with the :ref:`getting_started` page.
+Get a quick tour of the package with the :ref:`getting_started` page.
 
 
 Installation
@@ -85,10 +83,10 @@ Please cite it as follows:
    :maxdepth: 1
    :hidden:
    :includehidden:
-
+   
    getting_started.rst
    custom.rst
    examples/examples.rst
-   api.rst
+   api/api.rst
    contribute.rst
    news.rst

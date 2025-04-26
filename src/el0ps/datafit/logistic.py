@@ -8,10 +8,15 @@ from el0ps.datafit.base import BaseDatafit, MipDatafit
 
 
 class Logistic(CompilableClass, BaseDatafit, MipDatafit):
-    """Logistic datafit function.
+    r"""Logistic datafit function.
      
     The function is defined as
-    ``f(w) = sum_{i=1,...,m} log(1 + exp(-yi * wi))`` where ``y in R^m``.
+
+    .. math::
+        
+        f(\mathbf{w}) = \sum_{i=1}^m \log(1 + \exp(-y_i w_i))
+
+    for some :math:`\mathbf{y} \in \mathbb{R}^m`.
 
     Parameters
     ----------
