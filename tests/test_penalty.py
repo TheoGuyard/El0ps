@@ -78,8 +78,7 @@ def test_penalty(penalty: BasePenalty):
         elif limit_pos < np.inf:
             assert penalty.conjugate(i, slope_pos) == pytest.approx(lmbd)
             assert (
-                penalty.value(i, limit_pos)
-                + penalty.conjugate(i, slope_pos)
+                penalty.value(i, limit_pos) + penalty.conjugate(i, slope_pos)
                 >= limit_pos * slope_pos - 1e-10
             )
         else:
@@ -89,8 +88,7 @@ def test_penalty(penalty: BasePenalty):
         elif limit_neg > -np.inf:
             assert penalty.conjugate(i, slope_neg) == pytest.approx(lmbd)
             assert (
-                penalty.value(i, limit_neg)
-                + penalty.conjugate(i, slope_neg)
+                penalty.value(i, limit_neg) + penalty.conjugate(i, slope_neg)
                 >= limit_neg * slope_neg - 1e-10
             )
         else:

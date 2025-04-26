@@ -12,7 +12,7 @@ from el0ps.estimator.utils import select_bigml1l2_penalty
 class L0L1L2SVC(L0Estimator, LinearClassifierMixin):
     r"""Scikit-learn-compatible `linear model <https://scikit-learn.org/stable/api/sklearn.linear_model.html>`_
     support-vector-classifier estimators with L0L1L2-regularization.
-    
+
     The estimator corresponds to a solution of the problem
 
     .. math::
@@ -23,7 +23,7 @@ class L0L1L2SVC(L0Estimator, LinearClassifierMixin):
     :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix,
     :math:`\lambda > 0` is a parameter, the L0-norm :math:`\|\cdot\|_0` counts
     the number of non-zero entries in its input, and :math:`h` is a penalty
-    function."""
+    function."""  # noqa: E501
 
     def __init__(
         self,

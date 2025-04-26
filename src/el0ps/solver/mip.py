@@ -76,7 +76,7 @@ class MipSolver(BaseSolver):
         Limit on the number of nodes in the queue in the MIP solver.
     verbose: bool, default=False
         Whether to toggle solver verbosity.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -90,7 +90,9 @@ class MipSolver(BaseSolver):
     ) -> None:
         self.optimizer_name = optimizer_name
         self.node_limit = node_limit if node_limit is not None else sys.maxsize
-        self.queue_limit = queue_limit if queue_limit is not None else sys.maxsize
+        self.queue_limit = (
+            queue_limit if queue_limit is not None else sys.maxsize
+        )
         self.time_limit = time_limit if time_limit is not None else np.inf
         self.relative_gap = relative_gap
         self.absolute_gap = absolute_gap

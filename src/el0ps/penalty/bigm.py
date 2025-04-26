@@ -9,7 +9,7 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
     r"""Big-M :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -17,7 +17,7 @@ class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
         0 & \text{if } |x_i| \leq M \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`M > 0`.
 
     Parameters
@@ -84,4 +84,4 @@ class Bigm(CompilableClass, SymmetricPenalty, MipPenalty):
             model.hneg_con[i] = pmo.constraint(
                 model.x[i] >= -self.M * model.z[i]
             )
-        model.h_con = pmo.constraint(model.h >= 0.)
+        model.h_con = pmo.constraint(model.h >= 0.0)

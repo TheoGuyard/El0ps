@@ -8,13 +8,13 @@ from el0ps.datafit.base import BaseDatafit
 
 class Logcosh(CompilableClass, BaseDatafit):
     r"""Logcosh datafit function.
-     
+
     The function is defined as
-    
+
     .. math::
-        
+
         f(\mathbf{w}) = \sum_{i=1}^m \log(\cosh(y_i - w_i))
-    
+
     for some :math:`\mathbf{y} \in \mathbb{R}^m`.
 
     Parameters

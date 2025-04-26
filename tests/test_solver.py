@@ -32,12 +32,12 @@ solvers = [
 
 @pytest.mark.parametrize("solver", solvers)
 def test_solver(solver):
-    
+
     if isinstance(solver, (MipSolver, OaSolver)):
         if not check_available_solvers(
             _mip_optim_bindings[solver.optimizer_name]["optimizer_name"]
         ):
             pytest.skip(f"{solver.optimizer_name} not available.")
-    
+
     result = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
     assert result.status == Status.OPTIMAL

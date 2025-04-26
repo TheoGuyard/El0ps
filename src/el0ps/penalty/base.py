@@ -16,7 +16,7 @@ class BasePenalty:
             h : \mathbb{R}^n &\rightarrow \mathbb{R} \cup \{+\infty\} \\
             \mathbf{x} &\mapsto h(\mathbf{x}) = \textstyle\sum_{i=1}^n h_i(x_i)
         \end{align*}
-        
+
 
     where each splitting term :math:`h_i` is proper, lower-semicontinuous,
     convex, coercive, non-negative, and minimized at :math:`x_i = 0`.
@@ -287,7 +287,7 @@ class MipPenalty:
     def bind_model(self, model: pmo.block) -> None:
         """Impose an constraint associated with the penalty function in a
         `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ model.
-        
+
         Given a pyomo.kernel.block ``model`` object containing a real scalar
         variable ``model.h`` and a real vector variable ``model.x`` of size
         ``model.N``, this function is intended to impose the relations

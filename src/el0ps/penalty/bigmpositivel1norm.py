@@ -9,7 +9,7 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
     r"""Positive big-M plus L1-norm :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -17,7 +17,7 @@ class BigmPositiveL1norm(CompilableClass, BasePenalty, MipPenalty):
         \alpha x_i & \text{if } 0 \leq x_i \leq M \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`M > 0` and :math:`\alpha > 0`.
 
     Parameters

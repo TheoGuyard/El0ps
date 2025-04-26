@@ -10,7 +10,7 @@ from .base import BasePenalty, MipPenalty
 
 class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
     r"""Positive L2-norm :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -18,7 +18,7 @@ class PositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
         \beta x_i^2 & \text{if } x_i \geq 0 \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`\beta > 0`.
 
     Parameters

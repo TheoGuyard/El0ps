@@ -14,7 +14,7 @@ from el0ps.penalty import BasePenalty
 class L0Estimator(LinearModel, BaseEstimator):
     r"""Scikit-learn-compatible `linear model <https://scikit-learn.org/stable/api/sklearn.linear_model.html>`_
     estimators based on L0-regularized problems.
-    
+
     The estimator corresponds to a solution of the problem
 
     .. math::
@@ -39,7 +39,7 @@ class L0Estimator(LinearModel, BaseEstimator):
         Whether to fit an intercept term.
     solver: BaseSolver, default=BnbSolver()
         Solver for the estimator associated problem.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,

@@ -9,7 +9,7 @@ from .base import BasePenalty
 
 class PositiveL1norm(CompilableClass, BasePenalty):
     r"""Positive L1-norm :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -17,7 +17,7 @@ class PositiveL1norm(CompilableClass, BasePenalty):
         \alpha x_i & \text{if } x_i \geq 0 \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`\alpha > 0`.
 
     Parameters

@@ -95,13 +95,12 @@ class BaseSolver:
     where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
     :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
     :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
-    positive scalar.
-    """
+    positive scalar."""  # noqa: E501
 
     @property
     def accept_jitclass(self) -> bool:
-        """Return whether if the solver accepts a 
-        `jitclass <https://numba.readthedocs.io/en/stable/user/jitclass.html>`_ 
+        """Return whether if the solver accepts a
+        `jitclass <https://numba.readthedocs.io/en/stable/user/jitclass.html>`_
         for the datafit and penalty function. This method can be overridden in
         derived classes to provide a more specific implementation."""
         return False

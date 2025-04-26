@@ -9,7 +9,7 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 class BigmL2norm(CompilableClass, SymmetricPenalty, MipPenalty):
     r"""Big-M plus L2-norm :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -17,7 +17,7 @@ class BigmL2norm(CompilableClass, SymmetricPenalty, MipPenalty):
         \beta x_i^2 & \text{if } |x_i| \leq M \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`M > 0` and :math:`\beta > 0`.
 
     Parameters

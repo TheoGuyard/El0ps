@@ -49,7 +49,7 @@ def compiled_clone(instance: CompilableClass):
     -------
     compiled_instance: jitclass
         Compiled instance.
-    """ 
+    """
     cls = instance.__class__
     spec = instance.get_spec()
     params = instance.params_to_dict()

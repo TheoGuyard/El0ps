@@ -57,7 +57,7 @@ class OaSolver(BaseSolver):
         Whether to toggle solver verbosity.
     keeptrace: bool, default=False
         Whether to store the solver trace.
-    """
+    """  # noqa: E501
 
     _trace_keys = [
         "timer",
@@ -85,7 +85,9 @@ class OaSolver(BaseSolver):
         self.absolute_gap = absolute_gap
         self.time_limit = time_limit if time_limit is not None else np.inf
         self.iter_limit = iter_limit if iter_limit is not None else sys.maxsize
-        self.inner_iter_limit = inner_iter_limit if inner_iter_limit is not None else sys.maxsize
+        self.inner_iter_limit = (
+            inner_iter_limit if inner_iter_limit is not None else sys.maxsize
+        )
         self.inner_rel_tol = inner_rel_tol
         self.verbose = verbose
         self.keeptrace = keeptrace

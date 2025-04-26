@@ -44,7 +44,7 @@ class TreeState:
 
 class BoundSolver(CompilableClass):
     r"""Bounding solver for the :class:`BnbSolver`.
-    
+
     The solver solves convex optimization problems of the form
 
     .. math::
@@ -83,7 +83,7 @@ class BoundSolver(CompilableClass):
         performed on the current node. This in done in-place during the
         bounding process. See "A New Branch-and-bound pruning framework for
         L0-regularized problems" by T. Guyard et al. for more details.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -628,9 +628,9 @@ class BnbSolver:
     verbose: bool, default=True
         Toggle solver verbosity.
     **kwargs: keyword arguments
-        Additional keyword arguments passed to a :class:`BoundSolver` instance 
+        Additional keyword arguments passed to a :class:`BoundSolver` instance
         used for the bounding step of the Branch-and-Bound algorithm.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,

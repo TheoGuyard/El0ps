@@ -9,11 +9,11 @@ from el0ps.datafit.base import BaseDatafit, MipDatafit
 
 class Squaredhinge(CompilableClass, BaseDatafit, MipDatafit):
     r"""Squared-hinge datafit function.
-     
-    The function is defined as 
-    
+
+    The function is defined as
+
     .. math::
-        
+
         f(\mathbf{w}) = \sum_{i=1}^m \max(1 - y_i w_i, 0)^2
 
     for some :math:`\mathbf{y} \in \mathbb{R}^m`.

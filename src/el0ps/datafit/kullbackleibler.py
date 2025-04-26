@@ -8,14 +8,14 @@ from el0ps.datafit.base import BaseDatafit
 
 class KullbackLeibler(CompilableClass, BaseDatafit):
     r"""Kullback-Leibler datafit function.
-     
+
     The function is defined as
 
     .. math::
-        
+
         f(\mathbf{w}) = \sum_{i=1}^m y_i \log(\tfrac{y_i}{w_i + e}) + (w_i + e) - y_i
-    
-    
+
+
     for some :math:`\mathbf{y} \in \mathbb{R}^m` and :math:`e > 0`.
 
     Parameters
@@ -24,7 +24,7 @@ class KullbackLeibler(CompilableClass, BaseDatafit):
         Data vector.
     e : float = 1e-8
         Smoothing parameter.
-    """
+    """  # noqa: E501
 
     def __init__(self, y: NDArray, e: float = 1e-8) -> None:
         self.y = y

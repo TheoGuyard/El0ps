@@ -39,7 +39,7 @@ def compute_lmbd_max(
     -------
     lmbd_max: float
         The value ``lmbd_max`` ensuring an all-zero solution.
-    """
+    """  # noqa: E501
     w = np.zeros(A.shape[0])
     v = np.abs(A.T @ datafit.gradient(w))
     i = np.argmax(v)

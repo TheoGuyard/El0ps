@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 from typing import Union
 from numba.experimental.jitclass.base import JitClassType
@@ -13,14 +12,14 @@ from el0ps.utils import compute_lmbd_max
 
 class Path:
     r"""Regularization path fitting for L0-regularized problems.
-     
+
     The problem is expressed as
 
     .. math::
 
         \textstyle\min_{\mathbf{x} \in \mathbb{R}^{n}} f(\mathbf{Ax}) + \lambda\|\mathbf{x}\|_0 + h(\mathbf{x})
 
-   where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
+    where :math:`f` is a :class:`el0ps.datafit.BaseDatafit` function,
     :math:`\mathbf{A} \in \mathbb{R}^{m \times n}` is a matrix, :math:`h` is a
     :class:`el0ps.penalty.BasePenalty` function, and :math:`\lambda` is a
     positive scalar. The path fitting consists of solving this problem over a
@@ -59,7 +58,7 @@ class Path:
         is not solved to optimality.
     verbose : bool = True
         Toggle displays during path fitting.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,

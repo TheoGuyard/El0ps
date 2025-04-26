@@ -14,10 +14,10 @@ class Leastsquares(CompilableClass, BaseDatafit, MipDatafit):
 
     .. math::
 
-        f(\mathbf{w}) = \sum_{i=1}^m \tfrac{1}{2}(y_i - w_i)^2    
-    
+        f(\mathbf{w}) = \sum_{i=1}^m \tfrac{1}{2}(y_i - w_i)^2
+
     for some :math:`\mathbf{y} \in \mathbb{R}^m`.
-     
+
     Parameters
     ----------
     y : NDArray

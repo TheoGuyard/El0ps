@@ -9,7 +9,7 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 class Bounds(CompilableClass, BasePenalty, MipPenalty):
     r"""Bound-constraint :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -17,7 +17,7 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
         0 & \text{if } x^{\text{lb}}_i \leq x_i \leq x^{\text{ub}}_i \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`x^{\text{lb}}_i < 0` and :math:`x^{\text{ub}}_i > 0`.
 
     Parameters
@@ -106,4 +106,4 @@ class Bounds(CompilableClass, BasePenalty, MipPenalty):
             model.hneg_con[i] = pmo.constraint(
                 model.x[i] >= self.x_lb[i] * model.z[i]
             )
-        model.h_con = pmo.constraint(model.h >= 0.)
+        model.h_con = pmo.constraint(model.h >= 0.0)

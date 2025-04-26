@@ -15,7 +15,7 @@ class BaseDatafit:
             f : \mathbb{R}^m &\rightarrow \mathbb{R} \cup \{+\infty\} \\
             \mathbf{w} &\mapsto f(\mathbf{w})
         \end{align*}
-    
+
     that are proper, lower-semicontinuous, convex, and differentiable with a
     Lipschitz-continuous gradient."""
 
@@ -87,7 +87,7 @@ class MipDatafit:
     def bind_model(self, model: pmo.block) -> None:
         """Impose a constraint associated with the datafit function in a
         `pyomo <https://pyomo.readthedocs.io/en/stable/>`_ model.
-        
+
         Given a pyomo.kernel.block ``model`` object containing a real scalar
         variable ``model.f`` and a real vector variable ``model.w`` of size
         ``model.M``, this function is intended to imposer the relation

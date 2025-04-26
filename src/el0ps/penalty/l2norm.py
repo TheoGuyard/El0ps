@@ -9,12 +9,12 @@ from el0ps.penalty.base import SymmetricPenalty, MipPenalty
 
 class L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
     r"""L2-norm :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
         h_i(x_i) = \beta x_i^2
-    
+
     for some :math:`\beta > 0`.
 
     Parameters

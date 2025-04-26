@@ -9,7 +9,7 @@ from el0ps.penalty.base import BasePenalty, MipPenalty
 
 class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
     r"""Positive big-M plus L2-norm :class:`BasePenalty` penalty function.
-    
+
     The splitting terms are expressed as
 
     .. math::
@@ -17,7 +17,7 @@ class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
         \beta x_i^2 & \text{if } 0 \leq x_i \leq M \\
         +\infty & \text{otherwise}
         \end{cases}
-    
+
     for some :math:`M > 0` and :math:`\beta > 0`.
 
     Parameters
@@ -46,20 +46,20 @@ class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
         return dict(M=self.M, beta=self.beta)
 
     def value(self, i: int, x: float) -> float:
-        return self.beta * x**2 if (x >= 0.) and (x <= self.M) else np.inf
+        return self.beta * x**2 if (x >= 0.0) and (x <= self.M) else np.inf
 
     def conjugate(self, i: int, x: float) -> float:
-        r = np.maximum(np.minimum(x / (2.0 * self.beta), self.M), 0.)
+        r = np.maximum(np.minimum(x / (2.0 * self.beta), self.M), 0.0)
         return x * r - self.beta * r**2
 
     def prox(self, i: int, x: float, eta: float) -> float:
         v = x / (1.0 + 2.0 * eta * self.beta)
-        return np.maximum(np.minimum(v, self.M), 0.)
+        return np.maximum(np.minimum(v, self.M), 0.0)
 
     def subdiff(self, i: int, x: float) -> NDArray:
-        if x == 0.:
-            return [-np.inf, 0.]
-        elif 0. < x < self.M:
+        if x == 0.0:
+            return [-np.inf, 0.0]
+        elif 0.0 < x < self.M:
             s = 2.0 * self.beta * x
             return [s, s]
         elif x == self.M:
@@ -68,7 +68,7 @@ class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
             return [np.nan, np.nan]
 
     def conjugate_subdiff(self, i: int, x: float) -> NDArray:
-        s = np.maximum(np.minimum(x / (2.0 * self.beta), self.M), 0.)
+        s = np.maximum(np.minimum(x / (2.0 * self.beta), self.M), 0.0)
         return [s, s]
 
     def param_slope_pos(self, i: int, lmbd: float) -> float:
@@ -76,7 +76,7 @@ class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
             return np.sqrt(4.0 * lmbd * self.beta)
         else:
             return (lmbd / self.M) + self.beta * self.M
-        
+
     def param_slope_neg(self, i: int, lmbd: float) -> float:
         return -np.inf
 
@@ -85,16 +85,16 @@ class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
             return np.sqrt(lmbd / self.beta)
         else:
             return self.M
-        
+
     def param_limit_neg(self, i: int, lmbd: float) -> float:
-        return 0.
+        return 0.0
 
     def param_bndry_pos(self, i, lmbd):
         if lmbd < self.beta * self.M**2:
             return np.sqrt(4.0 * lmbd * self.beta)
         else:
             return np.inf
-        
+
     def param_bndry_neg(self, i, lmbd):
         return -np.inf
 
@@ -113,7 +113,7 @@ class BigmPositiveL2norm(CompilableClass, BasePenalty, MipPenalty):
             model.hpos_con[i] = pmo.constraint(
                 model.x[i] <= self.M * model.z[i]
             )
-            model.hneg_con[i] = pmo.constraint(model.x[i] >= 0.)
+            model.hneg_con[i] = pmo.constraint(model.x[i] >= 0.0)
             model.h1_con[i] = pmo.conic.rotated_quadratic(
                 model.h1_var[i], model.z[i], [model.x[i]]
             )
