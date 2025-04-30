@@ -167,7 +167,7 @@ class OaSolver(BaseSolver):
                     w += (x[i] - xi) * ai
                     u[:] = -self.datafit.gradient(w)
             pv = self.datafit.value(w) + sum(
-                self.penalty.value(xi) for xi in x
+                self.penalty.value(i, xi) for i, xi in enumerate(x)
             )
             rtol = np.abs(pv - pv_old) / (np.abs(pv) + 1e-10)
             if rtol < self.inner_rel_tol:
@@ -292,7 +292,7 @@ class OaSolver(BaseSolver):
         self.upper_bound = (
             self.datafit.value(self.A @ self.x)
             + self.lmbd * np.linalg.norm(self.x, 0)
-            + sum(self.penalty.value(xi) for xi in self.x)
+            + sum(self.penalty.value(i, xi) for i, xi in enumerate(self.x))
         )
         self.lower_bound = -np.inf
         self.trace = {k: [] for k in self._trace_keys}
