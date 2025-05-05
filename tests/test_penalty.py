@@ -7,6 +7,7 @@ from el0ps.penalty import (
     SymmetricPenalty,
     Bigm,
     BigmL1norm,
+    BigmL1L2norm,
     BigmL2norm,
     BigmPositiveL1norm,
     BigmPositiveL2norm,
@@ -32,6 +33,7 @@ penalties = [
     for penalty in [
         Bigm(bigm),
         BigmL1norm(bigm, alpha),
+        BigmL1L2norm(bigm, alpha, beta),
         BigmL2norm(bigm, alpha),
         BigmPositiveL1norm(bigm, alpha),
         BigmPositiveL2norm(bigm, beta),
