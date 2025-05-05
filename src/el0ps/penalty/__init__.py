@@ -9,6 +9,7 @@ from .base import (
 )
 from .bigm import Bigm
 from .bigml1norm import BigmL1norm
+from .bigml1l2norm import BigmL1L2norm
 from .bigml2norm import BigmL2norm
 from .bigmpositivel1norm import BigmPositiveL1norm
 from .bigmpositivel2norm import BigmPositiveL2norm
@@ -28,6 +29,7 @@ __all__ = [
     "compute_param_slope_neg",
     "Bigm",
     "BigmL1norm",
+    "BigmL1L2norm",
     "BigmL2norm",
     "BigmPositiveL1norm",
     "BigmPositiveL2norm",
