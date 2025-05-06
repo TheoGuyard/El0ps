@@ -143,6 +143,6 @@ class BigmL1L2norm(CompilableClass, SymmetricPenalty, MipPenalty):
             )
         model.h_con = pmo.constraint(
             model.h
-            >= self.alpha * sum(model.h1var[i] for i in model.N)
+            >= self.alpha * sum(model.h1_var[i] for i in model.N)
             + 2.0 * self.beta * sum(model.h2_var[i] for i in model.N)
         )
