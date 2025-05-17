@@ -171,7 +171,7 @@ class BasePenalty:
             The supremum of the set.
         """
         s = self.conjugate_subdiff(i, self.param_slope_pos(i, lmbd))
-        return np.inf if np.all(np.isnan(s)) else s[1]
+        return np.inf if (s[1] == np.nan) else s[1]
 
     def param_limit_neg(self, i: int, lmbd: float) -> float:
         """Infimum of the set ``self.conjugate_subdiff(i, tau)`` where
@@ -190,7 +190,7 @@ class BasePenalty:
             The infimum of the set.
         """
         s = self.conjugate_subdiff(i, self.param_slope_neg(i, lmbd))
-        return -np.inf if np.all(np.isnan(s)) else s[0]
+        return -np.inf if (s[0] == np.nan) else s[0]
 
     def param_bndry_pos(self, i: int, lmbd: float) -> float:
         """Supremum of the set ``self.subdiff(i, tau)`` where
@@ -260,7 +260,7 @@ class SymmetricPenalty(BasePenalty):
 
     def param_limit(self, i: int, lmbd: float) -> float:
         s = self.conjugate_subdiff(i, self.param_slope(i, lmbd))
-        return np.inf if np.all(np.isnan(s)) else s[1]
+        return np.inf if (s[1] == np.nan) else s[1]
 
     def param_limit_pos(self, i, lmbd):
         return self.param_limit(i, lmbd)
