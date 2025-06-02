@@ -76,7 +76,8 @@ class BoundSolver(CompilableClass):
         update to identify variables that can be fixed to zero to reduce the
         computational load. See "One to beat them all: RYU--a unifying
         framework for the construction of safe balls" by T.L. Tran et al. for
-        more details.
+        more details. Only works if the loss function has a gradient with
+        finite Lipschitz constant.
     simpruning: bool, default=True
         If ``True``, the solver performs simultaneous pruning tests after each
         working-set update. This allows to identify new branchings that can be
@@ -237,6 +238,8 @@ class BoundSolver(CompilableClass):
         self.flag_Ws_update = False
         self.upper = upper
 
+        lipschitz_datafit = datafit.gradient_lipschitz_constant() < np.inf
+
         while True:
 
             self.v = np.empty_like(x)
@@ -258,7 +261,7 @@ class BoundSolver(CompilableClass):
             if self.dualpruning:
                 if self.dv > ub:
                     break
-            if self.screening:
+            if self.screening and lipschitz_datafit:
                 self.screening_tests(datafit, A)
             if self.simpruning:
                 self.simpruning_tests(datafit, penalty, A, lmbd)
