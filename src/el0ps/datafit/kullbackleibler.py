@@ -16,7 +16,9 @@ class KullbackLeibler(CompilableClass, BaseDatafit):
         f(\mathbf{w}) = \sum_{i=1}^m y_i \log(\tfrac{y_i}{w_i + e}) + (w_i + e) - y_i
 
 
-    for some :math:`\mathbf{y} \in \mathbb{R}^m` and :math:`e > 0`.
+    for some :math:`\mathbf{y} \in \mathbb{R}_+^m` and :math:`e \geq 0`. The
+    function returns :math:`+\infty` whenever :math:`w_i + e \leq 0` for some
+    :math:`i \in \{1,\dots,m\}`.
 
     Parameters
     ----------
@@ -29,7 +31,7 @@ class KullbackLeibler(CompilableClass, BaseDatafit):
     def __init__(self, y: NDArray, e: float = 1e-8) -> None:
         self.y = y
         self.e = e
-        self.L = np.max(y) / e**2
+        self.L = np.inf
         self.log_yy = np.log(y * y)
 
     def __str__(self) -> str:
@@ -48,18 +50,21 @@ class KullbackLeibler(CompilableClass, BaseDatafit):
         return dict(y=self.y, e=self.e)
 
     def value(self, w: NDArray) -> float:
-        z = np.maximum(w, 0.0) + self.e
+        z = w + self.e
+        if np.any(z <= 0.0):
+            return np.inf
         return np.sum(self.y * np.log(self.y / z) + z - self.y)
 
     def conjugate(self, w: NDArray) -> float:
-        u = w
-        v = 1.0 - u
-        if np.any(v <= 0.0):
-            return np.inf
-        return np.sum(self.y * (self.log_yy - np.log(v)) - self.e * u)
+        v = np.maximum(self.y / (1. - w) - self.e, 0.0)
+        return np.sum(
+            self.y * np.log(self.y / (v + self.e)) + v + self.e - self.y
+        )
 
     def gradient(self, w: NDArray) -> NDArray:
-        z = np.maximum(w, 0.0) + self.e
+        z = w + self.e
+        if np.any(z <= 0.0):
+            return np.inf * np.ones_like(w)
         return 1.0 - self.y / z
 
     def gradient_lipschitz_constant(self) -> float:
