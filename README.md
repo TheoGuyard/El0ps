@@ -139,14 +139,27 @@ Check out the [Contribution](https://theoguyard.github.io/El0ps/html/contribute.
 
 `el0ps` is distributed under
 [AGPL v3 license](https://github.com/TheoGuyard/El0ps/blob/main/LICENSE).
+
 Please cite the package as follows:
 
 ```bibtex
-@inproceedings{guyard2024el0ps,
-    title        = {A New Branch-and-Bound Pruning Framework for L0-Regularized Problems},
-    author       = {Guyard, Th{\'e}o and Herzet, C{\'e}dric and Elvira, Cl{\'e}ment and Ayse-Nur Arslan},
-    booktitle    = {International Conference on Machine Learning (ICML)},
-    year         = {2024},
-    organization = {PMLR},
+@article{guyard2025el0ps,
+    title           = {El0ps: An Exact L0-regularized Problems Solver}, 
+    author          = {Théo Guyard and Cédric Herzet and Clément Elvira},
+    year            = {2025},
+    eprint          = {2506.06373},
+    archivePrefix   = {arXiv},
+}
+```
+
+Please cite the Branch-and-Bound solver included in the package as follows:
+
+```bibtex
+@article{elvira2025generic,
+    title           = {A Generic Branch-and-Bound Algorithm for $\ell_0$-Penalized Problems with Supplementary Material}, 
+    author          = {Clément Elvira and Théo Guyard and Cédric Herzet},
+    year            = {2025},
+    eprint          = {2506.03974},
+    archivePrefix   = {arXiv},
 }
 ```
