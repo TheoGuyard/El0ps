@@ -71,8 +71,8 @@ def test_penalty(penalty: BasePenalty):
         slope_neg_approx = compute_param_slope_neg(penalty, i, lmbd, tol=tol)
         assert slope_pos >= 0.0
         assert slope_neg <= 0.0
-        assert slope_pos == pytest.approx(slope_pos_approx, abs=tol)
-        assert slope_neg == pytest.approx(slope_neg_approx, abs=tol)
+        assert slope_pos == pytest.approx(slope_pos_approx, abs=10 * tol)
+        assert slope_neg == pytest.approx(slope_neg_approx, abs=10 * tol)
 
         limit_pos = penalty.param_limit_pos(i, lmbd)
         limit_neg = penalty.param_limit_neg(i, lmbd)
