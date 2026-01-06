@@ -23,9 +23,7 @@ solvers = [
         MipSolver(optimizer_name="cplex"),
         MipSolver(optimizer_name="gurobi"),
         MipSolver(optimizer_name="mosek"),
-        OaSolver(optimizer_name="cplex"),
-        OaSolver(optimizer_name="gurobi"),
-        OaSolver(optimizer_name="mosek"),
+        OaSolver(),
     ]
 ]
 
