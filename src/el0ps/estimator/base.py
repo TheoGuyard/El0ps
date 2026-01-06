@@ -65,11 +65,6 @@ class L0Estimator(LinearModel, BaseEstimator):
         self.fit_intercept = fit_intercept
         self.solver = solver
 
-        self.is_fitted_ = False
-        self.coef_ = None
-        self.intercept_ = None
-        self.n_iter_ = None
-
     def fit(self, X: NDArray, y: NDArray):
 
         # Sanity checks
@@ -90,13 +85,15 @@ class L0Estimator(LinearModel, BaseEstimator):
         )
         assert y.ndim == 1
 
-        # Initialize estimator.coef_
-        if self.coef_ is None:
+        # Initialize estimator attributes
+        if not hasattr(self, "is_fitted_"):
+            self.is_fitted_ = False
+        if not hasattr(self, "coef_"):
             self.coef_ = np.zeros(X.shape[1])
-
-        # Initialize estimator.intercept_
-        if self.intercept_ is None:
+        if not hasattr(self, "intercept_"):
             self.intercept_ = 0.0
+        if not hasattr(self, "n_iter_"):
+            self.n_iter_ = 0
 
         # Update datafit target vector
         y_old = np.copy(self.datafit.y)

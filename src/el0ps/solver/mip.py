@@ -3,14 +3,30 @@
 import numpy as np
 import pyomo.environ as pyo
 import pyomo.kernel as pmo
-import sys
 from typing import Optional
 from numpy.typing import NDArray
 from pyomo.opt import OptSolver
 from pyomo.opt import SolverResults
 
-from el0ps.datafit import MipDatafit
-from el0ps.penalty import MipPenalty
+from el0ps.datafit import (
+    MipDatafit,
+    Leastsquares,
+    Logistic,
+    Squaredhinge,
+)
+from el0ps.penalty import (
+    MipPenalty,
+    Bigm,
+    BigmL1L2norm,
+    BigmL1norm,
+    BigmL2norm,
+    BigmPositiveL1norm,
+    BigmPositiveL2norm,
+    Bounds,
+    L1L2norm,
+    L2norm,
+    PositiveL2norm,
+)
 from el0ps.solver import BaseSolver, Result, Status
 
 
@@ -19,7 +35,6 @@ _mip_optim_bindings = {
         "optimizer_name": "cplex_persistent",
         "relative_gap": "mip_tolerances_mipgap",
         "absolute_gap": "mip_tolerances_absmipgap",
-        "node_limit": "mip_limits_nodes",
         "time_limit": "timelimit",
         "verbose": "mip_display",
     },
@@ -27,7 +42,6 @@ _mip_optim_bindings = {
         "optimizer_name": "gurobi_persistent",
         "relative_gap": "MIPGap",
         "absolute_gap": "MIPGapAbs",
-        "node_limit": "NodeLimit",
         "time_limit": "TimeLimit",
         "verbose": "OutputFlag",
     },
@@ -35,9 +49,56 @@ _mip_optim_bindings = {
         "optimizer_name": "mosek_persistent",
         "relative_gap": "dparam.mio_tol_rel_gap",
         "absolute_gap": "dparam.mio_tol_abs_gap",
-        "node_limit": "dparam.mio_max_nodes",
         "time_limit": "dparam.mio_max_time",
         "verbose": "iparam.log",
+    },
+}
+
+_mip_supports = {
+    "cplex": {
+        "datafit": [Leastsquares, Squaredhinge],
+        "penalty": [
+            Bigm,
+            BigmL1L2norm,
+            BigmL1norm,
+            BigmL2norm,
+            BigmPositiveL1norm,
+            BigmPositiveL2norm,
+            Bounds,
+            L1L2norm,
+            L2norm,
+            PositiveL2norm,
+        ],
+    },
+    "gurobi": {
+        "datafit": [Leastsquares, Squaredhinge],
+        "penalty": [
+            Bigm,
+            BigmL1L2norm,
+            BigmL1norm,
+            BigmL2norm,
+            BigmPositiveL1norm,
+            BigmPositiveL2norm,
+            Bounds,
+            L1L2norm,
+            L2norm,
+            PositiveL2norm,
+        ],
+    },
+    "mosek": {
+        "datafit": [Leastsquares, Logistic, Squaredhinge],
+        "penalty": [
+            Bigm,
+            BigmL1L2norm,
+            BigmL1norm,
+            BigmL2norm,
+            BigmPositiveL1norm,
+            BigmPositiveL2norm,
+            Bounds,
+            L1L2norm,
+            L2norm,
+            PositiveL2norm,
+        ],
     },
 }
 
@@ -70,12 +131,12 @@ class MipSolver(BaseSolver):
         Absolute tolerance on the objective value.
     time_limit: float, default=None
         Limit in second on the solving time.
-    node_limit: int, default=None
-        Limit on the number of nodes explored by the MIP solver.
-    queue_limit: int, default=None
-        Limit on the number of nodes in the queue in the MIP solver.
     verbose: bool, default=False
         Whether to toggle solver verbosity.
+    optimizer_kwargs: dict, optional
+        Additional keyword arguments to pass to the optimizer. The keywords
+        name/values depend on the selected optimizer and must match those
+        expected by `pyomo <https://pyomo.readthedocs.io/en/stable/>`_.
     """  # noqa: E501
 
     def __init__(
@@ -83,20 +144,16 @@ class MipSolver(BaseSolver):
         optimizer_name: str = "gurobi",
         relative_gap: float = 1e-8,
         absolute_gap: float = 0.0,
-        time_limit: Optional[float] = None,
-        node_limit: Optional[int] = None,
-        queue_limit: Optional[int] = None,
+        time_limit: float = 1e60,
         verbose: bool = False,
+        **optimizer_kwargs,
     ) -> None:
         self.optimizer_name = optimizer_name
-        self.node_limit = node_limit if node_limit is not None else sys.maxsize
-        self.queue_limit = (
-            queue_limit if queue_limit is not None else sys.maxsize
-        )
-        self.time_limit = time_limit if time_limit is not None else np.inf
+        self.time_limit = time_limit
         self.relative_gap = relative_gap
         self.absolute_gap = absolute_gap
         self.verbose = verbose
+        self.optimizer_kwargs = optimizer_kwargs
 
     def __str__(self):
         return "MipSolver"
@@ -107,10 +164,10 @@ class MipSolver(BaseSolver):
             optim: OptSolver = pyo.SolverFactory(bindings["optimizer_name"])
             optim.options[bindings["relative_gap"]] = self.relative_gap
             optim.options[bindings["absolute_gap"]] = self.absolute_gap
-            # Raises errors with cplex
-            # optim.options[bindings["node_limit"]] = self.node_limit
             optim.options[bindings["time_limit"]] = self.time_limit
             optim.options[bindings["verbose"]] = int(self.verbose)
+            for k, v in self.optimizer_kwargs.items():
+                optim.options[k] = v
         else:
             raise ValueError(
                 "Solver {} not supported. Available ones are: {}".format(
@@ -127,6 +184,21 @@ class MipSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
     ) -> pmo.block:
+
+        # Sanity checks
+        if not type(datafit) in _mip_supports[self.optimizer_name]["datafit"]:
+            raise ValueError(
+                "Datafit {} not supported by optimizer {}.".format(
+                    type(datafit), self.optimizer_name
+                )
+            )
+        if not type(penalty) in _mip_supports[self.optimizer_name]["penalty"]:
+            raise ValueError(
+                "Penalty {} not supported by optimizer {}.".format(
+                    type(penalty), self.optimizer_name
+                )
+            )
+
         model = pmo.block()
         model.M = range(A.shape[0])
         model.N = range(A.shape[1])
