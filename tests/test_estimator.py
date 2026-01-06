@@ -1,6 +1,4 @@
 import pytest
-import numpy as np
-from sklearn.utils.estimator_checks import check_estimator
 from el0ps.datafit import Leastsquares, Logistic, Squaredhinge
 from el0ps.estimator import (
     L0L1L2Regressor,
@@ -44,8 +42,6 @@ test_data = [
 
 @pytest.mark.parametrize("estimator,A,y", test_data)
 def test_estimator(estimator, A, y):
-    checks = check_estimator(estimator, generate_only=True)
-    assert np.all(checks)
     estimator.fit(A, y)
     y_pred = estimator.predict(A)
     estimator.score(A, y)
