@@ -94,7 +94,7 @@ class L0Estimator(LinearModel, BaseEstimator):
             self.intercept_ = 0.0
         if not hasattr(self, "n_iter_"):
             self.n_iter_ = 0
-        
+
         # Update datafit target vector
         y_old = np.copy(self.datafit.y)
         self.datafit.y = y

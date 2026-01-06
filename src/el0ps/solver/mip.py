@@ -8,8 +8,25 @@ from numpy.typing import NDArray
 from pyomo.opt import OptSolver
 from pyomo.opt import SolverResults
 
-from el0ps.datafit import MipDatafit
-from el0ps.penalty import MipPenalty
+from el0ps.datafit import (
+    MipDatafit,
+    Leastsquares,
+    Logistic,
+    Squaredhinge,
+)
+from el0ps.penalty import (
+    MipPenalty,
+    Bigm,
+    BigmL1L2norm,
+    BigmL1norm,
+    BigmL2norm,
+    BigmPositiveL1norm,
+    BigmPositiveL2norm,
+    Bounds,
+    L1L2norm,
+    L2norm,
+    PositiveL2norm,
+)
 from el0ps.solver import BaseSolver, Result, Status
 
 
@@ -34,6 +51,54 @@ _mip_optim_bindings = {
         "absolute_gap": "dparam.mio_tol_abs_gap",
         "time_limit": "dparam.mio_max_time",
         "verbose": "iparam.log",
+    },
+}
+
+_mip_supports = {
+    "cplex": {
+        "datafit": [Leastsquares, Squaredhinge],
+        "penalty": [
+            Bigm,
+            BigmL1L2norm,
+            BigmL1norm,
+            BigmL2norm,
+            BigmPositiveL1norm,
+            BigmPositiveL2norm,
+            Bounds,
+            L1L2norm,
+            L2norm,
+            PositiveL2norm,
+        ],
+    },
+    "gurobi": {
+        "datafit": [Leastsquares, Squaredhinge],
+        "penalty": [
+            Bigm,
+            BigmL1L2norm,
+            BigmL1norm,
+            BigmL2norm,
+            BigmPositiveL1norm,
+            BigmPositiveL2norm,
+            Bounds,
+            L1L2norm,
+            L2norm,
+            PositiveL2norm,
+        ],
+    },
+    "mosek": {
+        "datafit": [Leastsquares, Logistic, Squaredhinge],
+        "penalty": [
+            Bigm,
+            BigmL1L2norm,
+            BigmL1norm,
+            BigmL2norm,
+            BigmPositiveL1norm,
+            BigmPositiveL2norm,
+            Bounds,
+            L1L2norm,
+            L2norm,
+            PositiveL2norm,
+        ],
     },
 }
 
@@ -119,6 +184,21 @@ class MipSolver(BaseSolver):
         A: NDArray,
         lmbd: float,
     ) -> pmo.block:
+
+        # Sanity checks
+        if not type(datafit) in _mip_supports[self.optimizer_name]["datafit"]:
+            raise ValueError(
+                "Datafit {} not supported by optimizer {}.".format(
+                    type(datafit), self.optimizer_name
+                )
+            )
+        if not type(penalty) in _mip_supports[self.optimizer_name]["penalty"]:
+            raise ValueError(
+                "Penalty {} not supported by optimizer {}.".format(
+                    type(penalty), self.optimizer_name
+                )
+            )
+
         model = pmo.block()
         model.M = range(A.shape[0])
         model.N = range(A.shape[1])

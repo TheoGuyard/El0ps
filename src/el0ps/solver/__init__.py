@@ -2,7 +2,7 @@
 
 from .base import BaseSolver, Result, Status
 from .bnb import BoundSolver, BnbSolver
-from .mip import MipSolver
+from .mip import MipSolver, _mip_supports
 from .oa import OaSolver
 
 __all__ = [
@@ -13,4 +13,5 @@ __all__ = [
     "BnbSolver",
     "MipSolver",
     "OaSolver",
+    "_mip_supports",
 ]
