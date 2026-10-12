@@ -10,7 +10,7 @@ from typing import Optional, Union
 
 from el0ps.datafit import BaseDatafit
 from el0ps.penalty import BasePenalty
-from el0ps.compilation import CompilableClass, compiled_clone
+from el0ps.compilation import CompilableClass, compiled_clone, is_compiled
 from el0ps.solver import Status, Result
 
 
@@ -184,9 +184,9 @@ class BoundSolver(CompilableClass):
         self.lipschitz = datafit.gradient_lipschitz_constant()
         self.A_colnorm = np.sqrt(np.sum(A**2, axis=0))
         self.stepsize = 1.0 / (self.lipschitz * self.A_colnorm**2)
-        self.param_slope_pos = [
-            penalty.param_slope_pos(i, lmbd) for i in range(A.shape[1])
-        ]
+        self.param_slope_pos = np.array(
+            [penalty.param_slope_pos(i, lmbd) for i in range(A.shape[1])]
+        )
         self.param_slope_neg = np.array(
             [penalty.param_slope_neg(i, lmbd) for i in range(A.shape[1])]
         )
@@ -429,19 +429,17 @@ class ProblemWrapper(pb.Problem):
 
         # Prepare problem data
         if isinstance(datafit, CompilableClass):
-            if not isinstance(datafit, JitClassType):
-                datafit = compiled_clone(datafit)
+            datafit = compiled_clone(datafit)
         if isinstance(penalty, CompilableClass):
-            if not isinstance(penalty, JitClassType):
-                penalty = compiled_clone(penalty)
-        if isinstance(datafit, JitClassType):
-            if isinstance(penalty, JitClassType):
-                if not isinstance(self.bound_solver, JitClassType):
-                    self.bound_solver = compiled_clone(self.bound_solver)
-        if not A.flags.f_contiguous:
-            A = np.array(A, order="F")
+            penalty = compiled_clone(penalty)
+        if is_compiled(datafit) and is_compiled(penalty):
+            if isinstance(bound_solver, CompilableClass):
+                bound_solver = compiled_clone(bound_solver)
+        A = np.asfortranarray(A, dtype=np.float64)
         if x_init is None:
             x_init = np.zeros(A.shape[1])
+        else:
+            x_init = np.array(x_init, dtype=np.float64)
 
         # Problem data
         self.datafit = datafit

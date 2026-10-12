@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
 from pyomo.opt.base.solvers import check_available_solvers
+from el0ps.compilation import is_compiled
 from el0ps.datafit import Leastsquares
 from el0ps.penalty import Bigm
 from el0ps.utils import compute_lmbd_max
 from el0ps.solver import Status, BnbSolver, MipSolver, OaSolver
+from el0ps.solver.bnb import ProblemWrapper
 from el0ps.solver.mip import _mip_optim_bindings
 from .utils import make_regression
 
@@ -39,3 +41,14 @@ def test_solver(solver):
 
     result = solver.solve(datafit, penalty, A, lmbd, x_init=x_init)
     assert result.status == Status.OPTIMAL
+
+
+def test_bnb_compiles_bound_solver():
+    problem = ProblemWrapper(datafit, penalty, A, lmbd)
+    assert is_compiled(problem.bound_solver)
+
+
+def test_bnb_preserves_x_init():
+    x0 = np.zeros(x_true.shape)
+    BnbSolver().solve(datafit, penalty, A, lmbd, x_init=x0)
+    assert np.all(x0 == 0.0)
