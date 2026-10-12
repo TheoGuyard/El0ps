@@ -4,6 +4,14 @@
 What's new
 ==========
 
+Version 0.0.4
+-------------
+
+* Add ``BigmL1L2norm`` penalty
+* Update ``MipSolver`` interface
+* Fix KL penalty definition
+* Fix bugs in numba compilation
+
 Version 0.0.3
 -------------
 
