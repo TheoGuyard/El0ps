@@ -1,0 +1,6 @@
+﻿el0ps.compilation.is\_compiled
+==============================
+
+.. currentmodule:: el0ps.compilation
+
+.. autofunction:: is_compiled
