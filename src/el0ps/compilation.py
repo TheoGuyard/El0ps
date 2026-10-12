@@ -3,6 +3,7 @@
 from abc import abstractmethod
 from functools import lru_cache
 from numba.experimental import jitclass
+from numba.experimental.jitclass import _box
 
 
 class CompilableClass:
@@ -34,11 +35,31 @@ class CompilableClass:
 
 
 @lru_cache()
+def _jitclass_type(cls: type, spec: tuple):
+    """Compile a class to a jitclass type, cached so that instances of the
+    same class share the same compiled code."""
+    return jitclass(spec)(cls)
+
+
+def is_compiled(instance) -> bool:
+    """Check whether an object is an instance of a jitclass.
+
+    Parameters
+    ----------
+    instance: object
+        Object to check.
+
+    Returns
+    -------
+    compiled: bool
+        Whether the object is a jitclass instance.
+    """
+    return isinstance(instance, _box.Box)
+
+
 def compiled_clone(instance: CompilableClass):
-    r"""Compile a class instance to a
-    `jitclass <https://numba.readthedocs.io/en/stable/user/jitclass.html>`_.
-    This function is inspired from a similar one in the
-    `skglm <https://github.com/scikit-learn-contrib/skglm/tree/main>`_ package.
+    """Compile a class instance to a jitclass. This function is inspired from
+    a similar one in the `skglm` package.
 
     Parameters
     ----------
@@ -53,4 +74,4 @@ def compiled_clone(instance: CompilableClass):
     cls = instance.__class__
     spec = instance.get_spec()
     params = instance.params_to_dict()
-    return jitclass(spec)(cls)(**params)
+    return _jitclass_type(cls, spec)(**params)

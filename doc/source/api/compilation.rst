@@ -8,3 +8,4 @@
 
     CompilableClass
     compiled_clone
+    is_compiled
